@@ -1,26 +1,26 @@
 # PhoenixKey
-## Formal Mathematical Specification — v4.4
+## Formal Mathematical Specification — v4.5
 
 ---
 
 | Field | Value |
 |-------|-------|
-| **Version** | 4.4 |
+| **Version** | 4.5 |
 | **Date** | 2026-05-28 |
-| **Basis** | v4.3 + Recovery completeness analysis + PR #3 validator review + Tuân/Sambo peer review |
+| **Basis** | v4.4 + Tuân peer review: 3 critical spec bugs + 2 design trade-offs + 4 editorial fixes |
 | **Status** | Testnet-Ready — Normative |
 | **Network** | Cardano L1 / Aiken–PlutusV3 |
 | **Scope** | Complete mathematical specification: cryptographic core + 10 DID types + full lifecycle + compliance + recovery completeness |
-| **Review** | 5 rounds v4.2 — Gemon (MIT Math), Serat (Security STRIDE×CVSS); v4.3–4.4 pending |
-| **Adds over v4.3** | §11.0 Recovery scope clarification (TAAD = PersonDID only; non-Person recovery; orphan handling); §11.6 Tier 5 knowledge-based recovery (Password + Email, ZK-deferred, I-TIER5-PW-1..5); §11.7 Tier 5 cancel mechanism (email OTP, not hw_pub); TAADDatum extended (knowledge_factors); I-RECOVERY-1..4 (biometric not a recovery mechanism; mandatory minimum backup); Argon2id off-chain boundary explicit; NIST KBA deprecation noted |
+| **Review** | v4.2: Gemon (MIT Math), Serat (Security); v4.4–4.5: Sambo (BA MIT Sloan), Tuân (Validator Engineer) |
+| **Fixes over v4.4** | **[Bug]** salt_pw₁ circular dependency removed — all salts now on-chain, protection by Argon2id memory-hardness; **[Bug]** `secondary_wallet_enrolled:𝔹` → `secondary_wallets:List<SecondaryWallet>` with pkh commitment; **[Bug]** Email upgraded from knowledge factor to possession factor via EmailOracle OTP (VeData-pattern); **[Bug]** Cancel Option A removed from §11.7 — knowledge factors cannot distinguish owner from attacker; **[Design]** I-RECOVERY-4 grace period (30-day backup_deadline, restricted scope, not hard block); **[Design]** I-RECOVERY-5 recursive orphan edge case; **[Editorial]** Argon2id m unit MiB; HIBP k-anonymity reference; I-TIER5-PW-5 removed |
 
 ---
 
 ## Abstract
 
-PhoenixKey is a decentralized identity and asset management system on Cardano that eliminates seed phrase memorization through hardware-secured key generation and tiered recovery. This document is the definitive mathematical specification, integrating: (1) the cryptographic key hierarchy and TAAD protocol from FormalSpec v3.0; (2) the ten-type universal DID taxonomy from v4.1; (3) all peer-review fixes; (4) v4.2 additions: TAAD ASM invariants, EUF-TAAD security theorem, protocol boundary classification, VeData request protocol, and guardian game-theoretic incentive model; (5) v4.3 additions: full entity lifecycle completeness, Emergency Vault, GDPR tombstone pattern, creator liability period, minor guardian model, jurisdiction flags, Layer 0 architecture boundary; (6) v4.4 additions: recovery scope clarification (TAAD = PersonDID only; explicit non-Person recovery and orphan handling), Tier 5 knowledge-based recovery with correct Argon2id off-chain boundary, mandatory minimum backup invariant, biometric-not-a-recovery-factor clarification.
+PhoenixKey is a decentralized identity and asset management system on Cardano that eliminates seed phrase memorization through hardware-secured key generation and tiered recovery. This document is the definitive mathematical specification. v4.5 closes four spec bugs identified in v4.4 peer review: (1) salt_pw₁ circular dependency removed — all salts on-chain, protection via Argon2id memory-hardness; (2) boolean secondary_wallet field replaced with SecondaryWallet commitment list; (3) email upgraded from knowledge to possession factor via EmailOracle OTP; (4) cancel Option A removed. Additionally: grace-period enforcement (I-RECOVERY-4 revised), recursive orphan (I-RECOVERY-5), editorial fixes.
 
-**Key results:** Theorems 27.1–27.7, 28.1–28.2 (unchanged). TAAD ASM Invariants A-1..A-6. **New v4.4:** I-RECOVERY-1..4 (recovery scope and mandatory backup); I-TIER5-PW-1..5 (Tier 5 security invariants).
+**Key results:** Theorems 27.1–27.7, 28.1–28.2. TAAD ASM Invariants A-1..A-6. I-RECOVERY-1..5. I-TIER5-PW-1..4, I-TIER5-CANCEL-1..3.
 
 **Out of scope (separate documents):**
 - PhoenixKey DID Method Specification v1.0 — resolver protocol, I-RESOLVER-1 implementation
@@ -50,7 +50,11 @@ All appendices non-normative unless marked [N].
 §6 Key Hierarchy · §7 LampNet Distributed Storage · §8 Cardano Wallet · §9 Seed Export and Import
 
 **Part III — TAAD Protocol**
-§10 TAAD State Machine · §11 Recovery Protocol · **§11.0 Recovery Scope** · **§11.6 Tier 5 Knowledge-Based** · **§11.7 Tier 5 Cancel Mechanism**
+§10 TAAD State Machine · §11 Recovery Protocol
+  - §11.0 Recovery Scope (PersonDID only; non-Person; orphan; biometric clarification)
+  - §11.1 Tier Selection cascade · §11.2 Tier 1 (secondary wallet) · §11.3 Tier 2/3 (guardian)
+  - §11.4 Post-recovery update · §11.5 VeData integration
+  - §11.6 Tier 5 (knowledge-based: password + email OTP) · §11.7 Tier 5 cancel mechanism
 
 **Part IV — DID Type Catalog**
 §12 PersonDID · §13 OrgDID · §14 ContextDID · §15 DeviceDID · §16 MachineDID
@@ -69,7 +73,7 @@ All appendices non-normative unless marked [N].
 §32 End-of-Life Protocols · §33 Emergency Vault · §34 Privacy and Compliance · §35 Layer 0 Architecture Boundary
 
 **Appendices**
-A: MECE Coverage · B: DID Construction · C: Capabilities · D: Breaking Changes · E: Glossary · F: Test Vectors
+A: MECE Coverage · B: DID Construction · C: Capabilities · D: Breaking Changes · E: Glossary · F: Test Vectors · G: References
 
 ---
 
@@ -107,6 +111,10 @@ H_sha256(x)  := SHA-256(x)      → {0,1}^256
 Sign(sk, m)   → {0,1}^512
 Verify(pk, m, σ) → 𝔹
 pk = Ed25519.PubKey(sk)
+
+-- Sentinel key values:
+NULL_KEY : Ed25519PubKey ≜ 0^256  -- all-zeros; used where no real key applies (e.g. Posthumous recovery)
+NULL_PKH : {0,1}^224       ≜ 0^224  -- all-zeros payment key hash
 
 -- Key derivation:
 HKDF(key, info, salt) → {0,1}^256    (RFC 5869, HMAC-SHA256)
@@ -148,18 +156,36 @@ current_slot : SlotNo
 ### §1.4 PhoenixKey Constants
 
 ```
-Q                    = 10^9        Q-format precision
-MAX_DELEGATION_DEPTH = 10          ownership chain length cap
-MAX_GUARDIAN_COUNT   = 7
-MIN_GUARDIAN_THRESHOLD = 2
-MIN_GUARDIAN_COLLATERAL = 50_000_000  lovelace (50 ADA)
+-- Core bounds:
+Q                       = 10^9         Q-format precision
+MAX_DELEGATION_DEPTH    = 10           ownership chain cap
+MAX_GUARDIAN_COUNT      = 7            max guardians per PersonDID
+MIN_GUARDIAN_THRESHOLD  = 2
+MIN_GUARDIAN_COLLATERAL = 50_000_000   lovelace (50 ADA)
 
-TAAD_TIMELOCK_T1 = 7  × 432_000  slots (7 days)
-TAAD_TIMELOCK_T2 = 10 × 432_000  slots (10 days)
-TAAD_TIMELOCK_T3 = 14 × 432_000  slots (14 days)
+-- TAAD timelocks (1 epoch = 432,000 slots ≈ 5 days):
+TAAD_TIMELOCK_T1         = 7  × 432_000  -- ~7 days  (Tier 1)
+TAAD_TIMELOCK_T2         = 10 × 432_000  -- ~10 days (Tier 2)
+TAAD_TIMELOCK_T3         = 14 × 432_000  -- ~14 days (Tier 3)
+TIER5_TIMELOCK           = 21 × 432_000  -- ~21 days (Tier 5: weakest)
 
+-- Backup grace period:
+TIER5_BACKUP_GRACE_SLOTS = 30 × 432_000  -- ~30 days after registration
+HIGH_STAKES_THRESHOLD    = 100_000_000   -- 100 ADA in lovelace (governance param)
+
+-- End-of-life timelocks:
+DEATH_TIMELOCK           = 30 × 432_000  -- ~30 days observation before Posthumous finalizes
+INCAPACITY_MIN_SLOTS     = 1  × 432_000  -- minimum 1 epoch for incapacity duration
+
+-- BotDID / ServiceDID:
 BOT_REFILL_WINDOW = 1000   slots (~3.3 hours)
-MAX_SERVICE_DEPTH  = 3     Service→Service chain limit
+MAX_SERVICE_DEPTH = 3      Service→Service chain limit
+
+-- Oracle public keys (governance-controlled; rotate via PhoenixKey OrgDID multisig):
+-- VEDATA_ORACLE_PK : Ed25519PubKey  (see §11.5; VeData env attestation)
+-- EMAIL_ORACLE_PK  : Ed25519PubKey  (see §11.6.2; Tier 5 email possession)
+-- Both are known public constants deployed with the validator.
+-- Rotation: PhoenixKey OrgDID governance vote (not unilateral; see §35.2 M-7).
 ```
 
 ---
@@ -686,10 +712,20 @@ I-IMPORT-3: nonce_server fresh per session (prevents replay of ownership proof).
 -- TAAD (Token-Anchored Authority Delegation) is an on-chain UTxO state machine.
 -- One TAAD UTxO per PersonDID; address = Script(TAAD_Validator).
 
+-- v4.5: SecondaryWallet commitment type [N]
+SecondaryWallet ≜ {
+  wallet_pkh_commitment : {0,1}^256,  -- BLAKE2b-256(pkh ∥ did ∥ enrolled_slot)
+  enrolled_slot         : SlotNo,
+}
+-- Commitment binds the specific wallet to this DID at enrollment time.
+-- Pre-image (pkh, did, enrolled_slot) revealed at Tier 1 recovery.
+-- Validator verifies: BLAKE2b-256(pkh ∥ did ∥ slot) = commitment
+--                     AND recovery tx signed by pkh.
+
 TAADDatum ≜ {
   did                : DID,
-  controller_pkh     : {0,1}^224,    -- Blake2b224(TAAD_Key.pub) = current controller
-  hw_pub             : Ed25519PubKey, -- current hardware signing key
+  controller_pkh     : {0,1}^224,
+  hw_pub             : Ed25519PubKey,
   seq                : ℕ,
   guardians          : List<GuardianConfig>,
   state              : TAADState,
@@ -697,13 +733,15 @@ TAADDatum ≜ {
   import_mode        : 𝔹,
   suspended_by       : Option<SuspendedByInfo>,
   suspended_until    : Option<SlotNo>,
-  -- v4.3 additions:
+  -- v4.3:
   jurisdiction_flags : Set<JurisdictionCode>,
   guardian_did       : Option<DID>,
   estate_config      : Option<EstateConfig>,
-  -- v4.4 additions:
-  knowledge_factors  : Option<KnowledgeFactors>,  -- None = Tier 5 unavailable
-  secondary_wallet_enrolled : 𝔹,                 -- True if Tier 1 pre-registered
+  -- v4.4:
+  knowledge_factors  : Option<KnowledgeFactors>,
+  -- v4.5:
+  secondary_wallets  : List<SecondaryWallet>,    -- replaces secondary_wallet_enrolled:𝔹
+  backup_deadline    : Option<SlotNo>,           -- None = backup configured; Some(s) = grace period until s
 }
 
 TAADState ≜
@@ -711,10 +749,22 @@ TAADState ≜
   | Recovering {
       pending_hw_pub     : Ed25519PubKey,
       recovery_deadline  : SlotNo,
-      verification_tier  : ℕ,
+      verification_tier  : ℕ,      -- 1 | 2 | 3 | 5 | POSTHUMOUS_TIER
       crypto_proofs      : ByteArray,
       cancel_nonce       : {0,1}^256,
     }
+  | Posthumous {
+      beneficiary    : DID,
+      confirmed_slot : SlotNo,
+    }
+  | Incapacitated {
+      config         : IncapacityConfig,
+      declared_slot  : SlotNo,
+    }
+  | Archived       -- terminal: OrgDID dissolved; non-Person DID orphaned; write-blocked
+
+POSTHUMOUS_TIER : ℕ ≜ 100  -- sentinel value for Posthumous recovery path; distinct from
+                            -- capability tiers (1–4 in §3) and recovery tiers (1,2,3,5)
 ```
 
 ### §10.2 TAAD Transitions [N]
@@ -723,7 +773,7 @@ TAADState ≜
 -- Transition: Active → Recovering (Init):
 TAAD_init_recovery(did, new_hw_pub, tier, proofs, s):
   Pre:
-    tier ∈ {1, 2, 3}
+    tier ∈ {1, 2, 3, 5}
     ∧ verify_tier_proofs(tier, proofs, did, new_hw_pub, s)   -- §11
     ∧ TAADDatum.state = Active
     ∧ seq_in_tx = TAADDatum.seq + 1
@@ -736,9 +786,13 @@ TAAD_init_recovery(did, new_hw_pub, tier, proofs, s):
   }
 
 -- Transition: Recovering → Active (Cancel):
+-- DISPATCH: if verification_tier = 5, use TAAD_cancel_tier5 (§11.7) instead.
+-- TAAD_cancel_tier5 does NOT require hw_pub; uses email token or higher-tier proof.
 TAAD_cancel_recovery(did, cancel_sig, s):
   Pre:
     TAADDatum.state = Recovering
+    ∧ state.verification_tier ≠ 5    -- Tier 5 uses TAAD_cancel_tier5 (§11.7)
+    ∧ state.verification_tier ≠ POSTHUMOUS_TIER  -- Posthumous: no cancel by owner
     ∧ Verify(TAADDatum.hw_pub, H("cancel" ∥ encode(s) ∥ encode(TAADDatum.seq)), cancel_sig)
     ∧ s < state.recovery_deadline   -- within timelock
   Effect:
@@ -757,7 +811,7 @@ TAAD_finalize_recovery(did, finalize_sig, s):
     state         ← Active
     seq           ← seq + 1
 
-TAAD_TIMELOCK : Map<ℕ, ℕ> ≜ {1 → T1, 2 → T2, 3 → T3}
+TAAD_TIMELOCK : Map<ℕ, ℕ> ≜ {1 → TAAD_TIMELOCK_T1, 2 → TAAD_TIMELOCK_T2, 3 → TAAD_TIMELOCK_T3, 5 → TIER5_TIMELOCK}
 
 -- Replay prevention: C-SEQ enforced; any tx with seq ≤ on-chain seq is rejected.
 ```
@@ -780,10 +834,11 @@ A-3: ∀ TAAD UTxO output u: u.address = Script(TAAD_Validator)
   -- Prevents TAAD token from being sent to arbitrary addresses.
   -- Enforced by Cardano native token / minting policy binding.
 
--- A-4 (State Exclusivity): TAAD UTxO is in exactly one of {Active, Recovering} at all times.
+-- A-4 (State Exclusivity): TAAD UTxO is in exactly one defined TAADState at all times.
 A-4: ∀ did: PersonDID, ∀ s: SlotNo:
-  state(TAAD(did), s) ∈ {Active, Recovering}
+  state(TAAD(did), s) ∈ {Active, Recovering, Posthumous, Incapacitated, Archived}
   -- No undefined intermediate states. Transitions are atomic (EUTxO).
+  -- Terminal states: Posthumous (write-blocked, beneficiary access), Archived (read-only).
 
 -- A-5 (Collateral Lock): Guardian recovery_collateral is locked from Tier2/3 init until
 --                         finalize or cancel. No partial withdrawal during recovery.
@@ -833,40 +888,172 @@ TAAD_state_machine_valid(did: PersonDID, op: Capability, s: SlotNo) : 𝔹 ≜
 
 ## §11 Recovery Protocol [N]
 
+§11 defines the tiered recovery protocol for PersonDID holders who have lost access to their device. The protocol is TAAD-based (§10) and applies exclusively to PersonDID. Recovery tiers are ordered from strongest to weakest; the cascade (§11.1) tries each tier in order. Tier 4 (Posthumous, §32.1) is a special administrative path triggered by a government OrgDID death certificate, not by the user.
+
+## §11.0 Recovery Scope and Mandatory Backup [N] *(v4.4, revised v4.5)*
+
+### §11.0.1 TAAD Scope — PersonDID Only
+
+```
+§11 Recovery Protocol applies EXCLUSIVELY to PersonDID.
+All PersonDID recovery tiers (§11.1–§11.6) assume a TAAD UTxO exists.
+
+Non-Person DID recovery is NOT governed by §11.
+```
+
+### §11.0.2 Non-Person DID Recovery
+
+```
+-- For all DID types where type ≠ Person:
+-- Key recovery = key rotation executed by the active owner.
+-- No TAAD UTxO. No timelock. No guardian collateral.
+
+NonPerson_Recover(did: D where type(D) ≠ Person, new_pub, s):
+  Pre:  Authority(owner(did), Write_DID(did), s)
+  Effect: same as Op_rotate(did, new_pub, s) per §5.1
+  Security: inherits owner's security level
+
+I-RECOVERY-1 [N]: Non-Person DID MUST NOT have a TAAD UTxO.
+I-RECOVERY-2 [N]: Non-Person DID rotation is O(1), no timelock.
+                  Owner authority (§4.2) is the sole gate.
+```
+
+### §11.0.3 Orphaned Non-Person DID
+
+```
+-- A non-Person DID becomes orphaned when its owner is:
+--   (a) PersonDID in Posthumous state (§32.1) — write-blocked
+--   (b) PersonDID in Incapacitated state (§32.2) — scope limited
+--   (c) OrgDID in Dissolved/Archived state (§32.3) — write-blocked
+
+Orphan_recover(did: D, s):
+  Case (a) Posthumous owner:
+    beneficiary = estate_config.beneficiary_did
+    IF Write_DID(did) ∈ estate_config.scope_granted:
+      Authority(beneficiary, Write_DID(did), s) → NonPerson_Recover
+    ELSE: did transitions to Archived state (records preserved, no new ops)
+
+  Case (b) Incapacitated owner:
+    conservator = IncapacityConfig.conservator_did
+    IF Write_DID(did) ∉ IncapacityConfig.conservator_scope:
+      did suspended until incapacity resolved (§32.2 auto-expiry)
+    ELSE: conservator executes NonPerson_Recover
+
+  Case (c) Dissolved OrgDID owner:
+    OrgDID dissolution (§32.3) MUST transfer or revoke all child DIDs
+    before Op_complete_dissolution is valid (I-DISS-4 enforcement)
+    If missed: did transitions to Archived state
+
+I-RECOVERY-3 [N]: estate_config.scope_granted for Posthumous owners SHOULD
+                  include Write_DID for critical operational non-Person DIDs.
+                  PhoenixKey app MUST prompt user to configure this at
+                  estate setup time (§32.1).
+
+I-RECOVERY-5 [N]: Recursive orphan prevention.
+  If beneficiary_did itself is in state Posthumous, Incapacitated, or Archived
+  at the time Op_finalize_posthumous executes:
+    did → Archived immediately.
+  No recursive orphan chain is permitted.
+  Rationale: simultaneous deaths (accident, disaster) must not create
+  unresolvable circular ownership states on-chain.
+```
+
+### §11.0.4 Biometric Is Not a Recovery Mechanism [N]
+
+```
+-- Biometric (face, fingerprint, iris) in PhoenixKey serves ONE purpose:
+-- gating HW_Key on device for daily authentication (§6.3).
+-- Biometric is NOT used in any recovery tier (§11.1–§11.6).
+
+Property: permanent biometric loss does NOT block TAAD recovery
+          if any Tier 1–5 factor is enrolled.
+
+Counter-property: if NO recovery factor is enrolled,
+                  device loss + biometric loss = DID permanently unrecoverable.
+                  This is a user-configuration failure, not a protocol flaw.
+                  No self-sovereign identity system can recover an identity
+                  without at least one pre-registered recovery factor.
+
+I-RECOVERY-4 [N]: Mandatory backup — grace period model (v4.5 revised).
+
+  At PersonDID registration:
+    IF secondary_wallets = [] AND |guardians| < 2 AND knowledge_factors = None:
+      backup_deadline = created_slot + 30 × 432_000  -- ~30 days grace period
+    ELSE:
+      backup_deadline = None  -- backup already configured; no restriction
+
+  Validator enforces — when s > backup_deadline AND backup_deadline ≠ None
+  AND secondary_wallets = [] AND |guardians| < 2 AND knowledge_factors = None:
+    HIGH_STAKES_OPS BLOCKED:
+      Sign_Tx(v > HIGH_STAKES_THRESHOLD), Transfer_Asset,
+      Transfer_Machine, Mint_Token, Deploy_Agent(cap)
+    PERMITTED OPS (no restriction):
+      Read_DID, Issue_VC, Verify_Attestation, Access_Service,
+      TAAD recovery, Cancel_Suspension
+
+  HIGH_STAKES_THRESHOLD = 100 ADA equivalent (governance parameter)
+
+  Rationale: hard block at registration increases onboarding friction
+  by ~5-10 minutes (mobile UX data: 20-40% conversion drop).
+  Grace period allows user to start using DID immediately while
+  creating a bounded window to complete backup setup.
+  After deadline, only high-stakes ops are restricted — DID remains
+  functional for everyday use, preventing total lockout.
+```
+
+---
+
 ### §11.1 Tier Selection
 
 ```
 select_recovery_tier(did: PersonDID, new_hw_pub, s):
-  secondary_wallets = analyze_tx_graph(did)
+  datum            = TAADDatum(did)         -- on-chain TAAD datum
+  secondary_wallets = datum.secondary_wallets  -- v4.5: commitment list
+  guardians        = datum.guardians
+  threshold        = MIN_GUARDIAN_THRESHOLD    -- default 2; user may configure higher
 
+  -- Tier 1: secondary wallet key possession
   IF |secondary_wallets| ≥ 1:
     RETURN tier_1_recovery(did, secondary_wallets, new_hw_pub, s)
 
-  guardians = get_guardians(did)
-  IF |{g : tier_eligible(g) ∋ 2}| ≥ policy.threshold:
+  -- Tier 2: guardian quorum (standard threshold)
+  IF |{g ∈ guardians : 2 ∈ g.tier_eligible}| ≥ threshold:
     RETURN tier_2_recovery(did, guardians, new_hw_pub, s)
 
-  IF |{g : tier_eligible(g) ∋ 3}| ≥ policy.threshold + 1:
+  -- Tier 3: guardian quorum (elevated threshold)
+  IF |{g ∈ guardians : 3 ∈ g.tier_eligible}| ≥ threshold + 1:
     RETURN tier_3_recovery(did, guardians, new_hw_pub, s)
 
-  -- v4.4: Tier 5 knowledge-based fallback
-  IF TAADDatum.knowledge_factors ≠ None:
-    RETURN tier_5_recovery(did, TAADDatum.knowledge_factors, new_hw_pub, s)
+  -- Tier 5: knowledge-based fallback (weakest; longest timelock)
+  IF datum.knowledge_factors ≠ None:
+    RETURN tier_5_recovery(did, datum.knowledge_factors, new_hw_pub, s)
 
   RETURN recovery_not_possible()
+  -- recovery_not_possible() → DID is unrecoverable without external action.
+  -- Posthumous recovery (§32.1) requires death certificate from government OrgDID.
 ```
 
 ### §11.2 Tier 1 — Secondary Wallet Verification
 
 ```
 tier_1_recovery(did, candidates, new_hw_pub, s):
-  challenge = H("tier1" ∥ did ∥ new_hw_pub ∥ nonce ∥ encode(s))
-  -- User signs challenge with secondary wallet key
-  proof ≜ (secondary_address, sig)
-  assert Verify(secondary_address.pub, challenge, sig)
-  assert secondary_address ∈ candidates      -- must be an identified related address
-  -- NOT knowledge-based auth; requires actual key possession.
-  RETURN (tier=1, proof=serialize(proof))
+  -- v4.5: candidates come from TAADDatum.secondary_wallets list
+  --        (not from analyze_tx_graph which was underspecified)
+  enrolled = TAADDatum.secondary_wallets
+  assert |enrolled| ≥ 1
+
+  -- User provides: pkh, enrolled_slot, signature
+  pkh          = redeemer.secondary_pkh
+  enroll_slot  = redeemer.enrolled_slot
+
+  -- On-chain verification (validator):
+  commitment = BLAKE2b-256(pkh ∥ did ∥ enroll_slot)
+  assert ∃ w ∈ enrolled : w.wallet_pkh_commitment = commitment
+                         ∧ w.enrolled_slot = enroll_slot
+  -- Recovery tx must be signed by pkh:
+  assert pkh ∈ tx.extra_signatories
+
+  RETURN (tier=1, proof=serialize({pkh, enroll_slot, commitment}))
 ```
 
 ### §11.3 Tier 2 — Guardian Threshold
@@ -945,7 +1132,8 @@ tier_2_recovery(did, guardians, new_hw_pub, s):
 -- After TAAD_finalize_recovery:
 1. New Master_KEK: recovered via TSS from guardians (§6.6) OR transferred
    from recovery credential (encrypted under old TAAD_Key, decryptable by tier proofs).
-2. New Device_KEK = HKDF(new_Cloud_Secret ∥ new_HW_UID, "device-kek-v1", H(DID))
+2. On new device: new_Cloud_Secret ← SecureRandom(256), new_HW_UID ← device hardware ID
+   New Device_KEK = HKDF(new_Cloud_Secret ∥ new_HW_UID, "device-kek-v1", H(DID))
 3. New EncSeed = Enc(new_Device_KEK, Master_KEK ∥ H(DID))  → LampNet upload
 4. TAAD_Key re-derived from Master_KEK (same as before → controller_pkh unchanged)
 5. New HW_Key generated in new device's Secure Enclave
@@ -1007,98 +1195,7 @@ I-VEDATA-4: VEDATA_ORACLE_PK is a known public constant; key rotation by OrgDID 
 
 ---
 
-## §11.0 Recovery Scope and Mandatory Backup [N] *(v4.4)*
-
-### §11.0.1 TAAD Scope — PersonDID Only
-
-```
-§11 Recovery Protocol applies EXCLUSIVELY to PersonDID.
-All PersonDID recovery tiers (§11.1–§11.6) assume a TAAD UTxO exists.
-
-Non-Person DID recovery is NOT governed by §11.
-```
-
-### §11.0.2 Non-Person DID Recovery
-
-```
--- For all DID types where type ≠ Person:
--- Key recovery = key rotation executed by the active owner.
--- No TAAD UTxO. No timelock. No guardian collateral.
-
-NonPerson_Recover(did: D where type(D) ≠ Person, new_pub, s):
-  Pre:  Authority(owner(did), Write_DID(did), s)
-  Effect: same as Op_rotate(did, new_pub, s) per §5.1
-  Security: inherits owner's security level
-
-I-RECOVERY-1 [N]: Non-Person DID MUST NOT have a TAAD UTxO.
-I-RECOVERY-2 [N]: Non-Person DID rotation is O(1), no timelock.
-                  Owner authority (§4.2) is the sole gate.
-```
-
-### §11.0.3 Orphaned Non-Person DID
-
-```
--- A non-Person DID becomes orphaned when its owner is:
---   (a) PersonDID in Posthumous state (§32.1) — write-blocked
---   (b) PersonDID in Incapacitated state (§32.2) — scope limited
---   (c) OrgDID in Dissolved/Archived state (§32.3) — write-blocked
-
-Orphan_recover(did: D, s):
-  Case (a) Posthumous owner:
-    beneficiary = estate_config.beneficiary_did
-    IF Write_DID(did) ∈ estate_config.scope_granted:
-      Authority(beneficiary, Write_DID(did), s) → NonPerson_Recover
-    ELSE: did transitions to Archived state (records preserved, no new ops)
-
-  Case (b) Incapacitated owner:
-    conservator = IncapacityConfig.conservator_did
-    IF Write_DID(did) ∉ IncapacityConfig.conservator_scope:
-      did suspended until incapacity resolved (§32.2 auto-expiry)
-    ELSE: conservator executes NonPerson_Recover
-
-  Case (c) Dissolved OrgDID owner:
-    OrgDID dissolution (§32.3) MUST transfer or revoke all child DIDs
-    before Op_complete_dissolution is valid (I-DISS-4 enforcement)
-    If missed: did transitions to Archived state
-
-I-RECOVERY-3 [N]: estate_config.scope_granted for Posthumous owners SHOULD
-                  include Write_DID for critical operational non-Person DIDs.
-                  PhoenixKey app MUST prompt user to configure this at
-                  estate setup time (§32.1).
-```
-
-### §11.0.4 Biometric Is Not a Recovery Mechanism [N]
-
-```
--- Biometric (face, fingerprint, iris) in PhoenixKey serves ONE purpose:
--- gating HW_Key on device for daily authentication (§6.3).
--- Biometric is NOT used in any recovery tier (§11.1–§11.6).
-
-Property: permanent biometric loss does NOT block TAAD recovery
-          if any Tier 1–5 factor is enrolled.
-
-Counter-property: if NO recovery factor is enrolled,
-                  device loss + biometric loss = DID permanently unrecoverable.
-                  This is a user-configuration failure, not a protocol flaw.
-                  No self-sovereign identity system can recover an identity
-                  without at least one pre-registered recovery factor.
-
-I-RECOVERY-4 [N]: At PersonDID creation, at least ONE of the following
-                  MUST be enrolled before DID is considered fully active:
-                    (a) secondary_wallet_enrolled = True  (Tier 1)
-                    (b) |guardians| ≥ 2                   (Tier 2/3)
-                    (c) knowledge_factors ≠ None           (Tier 5)
-                  Biometric-only enrollment is explicitly insufficient.
-                  Validator MUST enforce:
-                    secondary_wallet_enrolled = True
-                    ∨ |guardians| ≥ 2
-                    ∨ knowledge_factors ≠ None
-                  at registration transaction.
-```
-
----
-
-## §11.6 Tier 5 — Knowledge-Based Recovery [N] *(v4.4)*
+## §11.6 Tier 5 — Knowledge-Based Recovery [N] *(v4.5)*
 
 ### §11.6.1 Overview
 
@@ -1106,8 +1203,11 @@ I-RECOVERY-4 [N]: At PersonDID creation, at least ONE of the following
 Tier 5 is the weakest recovery tier. It is the fallback for PersonDID
 holders with no secondary wallet and no guardian quorum.
 Enrollment is optional but strongly recommended for all users.
-Tier 5 requires enrollment at registration — cannot be added post-hoc
-without a TAAD state transition (seq++, signed by current controller).
+Tier 5 enrollment is optional at registration and CAN be added or updated
+post-hoc via a signed TAAD state transition (seq++, controller_pkh must sign).
+Enrolling at registration is strongly recommended to ensure recovery coverage
+from day one. Updating enrollment after registration requires the user to still
+have access to their current device (HW_Key).
 
 Cascade position: invoked only after Tiers 1, 2, 3 are all unavailable
 (see §11.1 updated cascade).
@@ -1116,181 +1216,237 @@ Deliberate design choice: Tier 5 is last resort, not first resort.
 Users with guardians or secondary wallets should rely on those first.
 ```
 
-### §11.6.2 KnowledgeFactors Type
+### §11.6.2 KnowledgeFactors Type [N] *(v4.5 revised)*
 
 ```
-KnowledgeFactors ≜ {
-  -- Factor 1: Password
-  password_commitment : {0,1}^256,  -- BLAKE2b-256(Argon2id_out₁ ∥ salt_pw₂)
-  password_salt_pw₁   : {0,1}^128,  -- Argon2id input salt (stored encrypted on LampNet)
-  password_salt_pw₂   : {0,1}^128,  -- outer BLAKE2b salt (on-chain)
+-- EmailOracle: VeData-pattern oracle for email possession verification.
+-- Analogous to VeData ContextProof (§11.5) — PhoenixKey verifies signature,
+-- does not implement email sending logic.
+EMAIL_ORACLE_PK : Ed25519PubKey  -- known public constant; governed by PhoenixKey OrgDID
 
-  -- Factor 2: Recovery Email
-  email_commitment    : {0,1}^256,  -- BLAKE2b-256(Argon2id_out₂ ∥ salt_em₂)
-  email_salt_em₁      : {0,1}^128,  -- Argon2id input salt (stored encrypted on LampNet)
-  email_salt_em₂      : {0,1}^128,  -- outer BLAKE2b salt (on-chain)
-
-  enrolled_at         : SlotNo,
-  enrolled_seq        : ℕ,          -- seq at enrollment time; detect stale factors
+EmailAccessProof ≜ {
+  email_commitment_hash : {0,1}^256,  -- must match datum.email_commitment
+  recovery_challenge    : {0,1}^256,  -- H(did ∥ new_hw_pub ∥ nonce)
+  verified_at_slot      : SlotNo,
+  nonce_echo            : {0,1}^256,  -- anti-replay: echoes challenge nonce
+  oracle_signature      : {0,1}^512,  -- Sign(EMAIL_ORACLE_KEY, H(proof_fields))
 }
 
--- NOTE: salt_pw₁ and salt_em₁ are stored ENCRYPTED on LampNet
--- (encrypted with Master_KEK). They are NOT stored on-chain.
--- Only salt_pw₂, salt_em₂, and the commitments are on-chain.
--- This prevents offline brute-force from using on-chain data alone.
+KnowledgeFactors ≜ {
+  -- Factor 1: Password (knowledge)
+  password_commitment : {0,1}^256,  -- BLAKE2b-256(Argon2id_out ∥ salt_pw)
+  password_salt       : {0,1}^128,  -- on-chain; see §11.6.3 rationale
+
+  -- Factor 2: Recovery Email (possession via EmailOracle OTP)
+  email_commitment    : {0,1}^256,  -- BLAKE2b-256(email_address ∥ salt_em)
+  email_salt          : {0,1}^128,  -- on-chain
+
+  enrolled_at         : SlotNo,
+  enrolled_seq        : ℕ,
+}
+
+-- v4.5 KEY CHANGE: All salts are ON-CHAIN.
+-- v4.4 stored salt_pw₁ encrypted with Master_KEK → circular dependency:
+--   Tier 5 invoked when Master_KEK unavailable → salt unrecoverable → DEADLOCK.
+-- v4.5 fix: salts on-chain. Security is provided by Argon2id memory-hardness,
+--   not by salt-hiding. See §11.6.3 for security analysis.
+
+-- Email factor semantics change (v4.5):
+--   v4.4: email was knowledge factor (knowing email address string is sufficient)
+--   v4.5: email is possession factor (active mailbox access required via OTP)
+--   Init Tier 5 requires EmailAccessProof from oracle, not just email string.
 ```
 
-### §11.6.3 Commitment Construction — EXCLUSIVELY Off-Chain
+### §11.6.3 Commitment Construction — EXCLUSIVELY Off-Chain [N] *(v4.5)*
 
 ```
--- These computations run on mobile/SDK. NEVER in Plutus validator.
+-- All computations run on mobile/SDK. NEVER in Plutus validator.
 
 Password commitment (at enrollment):
-  pw_argon2id_out = Argon2id(
+  pw_argon2id_out     = Argon2id(
     password,
-    salt = password_salt_pw₁,
-    m    = 65536,   -- 64 MB memory
-    t    = 3,       -- 3 iterations
-    p    = 4        -- 4 parallelism threads
+    salt = password_salt,    -- password_salt is randomly generated at enrollment
+    m    = 65536,            -- 64 MiB (KiB units per RFC 9106 §3.1)
+    t    = 3,                -- 3 iterations
+    p    = 4                 -- 4 parallelism threads
   )
-  password_commitment = BLAKE2b-256(pw_argon2id_out ∥ password_salt_pw₂)
+  password_commitment = BLAKE2b-256(pw_argon2id_out ∥ password_salt)
 
 Email commitment (at enrollment):
-  em_argon2id_out = Argon2id(
-    email_address,
-    salt = email_salt_em₁,
-    m    = 65536, t = 3, p = 4
-  )
-  email_commitment = BLAKE2b-256(em_argon2id_out ∥ email_salt_em₂)
+  email_commitment    = BLAKE2b-256(email_address ∥ email_salt)
+  -- email_salt randomly generated at enrollment
 
--- What goes on-chain: {password_commitment, password_salt_pw₂,
---                      email_commitment,    email_salt_em₂}
--- What stays off-chain (LampNet, encrypted): {password_salt_pw₁, email_salt_em₁}
--- What never leaves device: {password plaintext, email plaintext}
+-- What goes ON-CHAIN (all of these):
+--   {password_commitment, password_salt, email_commitment, email_salt}
+-- What stays OFF-CHAIN: password plaintext, email plaintext
+
+-- Security rationale — why salts on-chain is acceptable (v4.5 change):
+--   Attacker with on-chain data has: password_commitment + password_salt
+--   Attack: run Argon2id(guess, password_salt) and compare
+--   Cost: ~0.3s per attempt on dedicated GPU (64 MiB memory-hard)
+--   12+ char password, zxcvbn ≥ 3 → ~60 bits entropy
+--   2^60 attempts × 0.3s ≈ 10^18 seconds → computationally infeasible
+--   Protection source: Argon2id memory-hardness, not salt-hiding.
+--   Salt-hiding in v4.4 was unnecessary layering that created deadlock.
+
+Email OTP flow (at Tier 5 initiation — off-chain):
+  1. User provides email_address + password to PhoenixKey backend
+  2. Backend verifies: BLAKE2b-256(email_address ∥ datum.knowledge_factors.email_salt) = email_commitment
+  3. Backend generates: otp ← SecureRandom(6 digits)
+                        nonce ← SecureRandom(256)
+  4. Backend sends OTP to email_address (EmailOracle service)
+  5. User enters OTP in app → backend verifies → backend signs EmailAccessProof
+  6. EmailAccessProof submitted on-chain with recovery tx
 ```
 
-### §11.6.4 Recovery Execution
+### §11.6.4 Recovery Execution [N] *(v4.5)*
 
 ```
+Tier5Proofs ≜ {
+  pw_argon2id_out  : ByteArray,      -- off-chain Argon2id output for password
+  email_access     : EmailAccessProof, -- oracle-signed proof of mailbox access
+}
+
 tier_5_recovery(did: PersonDID, factors: KnowledgeFactors,
                 new_hw_pub: Ed25519PubKey,
                 proofs: Tier5Proofs, s: SlotNo):
   Pre:
     TAADDatum.knowledge_factors ≠ None
     ∧ factors = TAADDatum.knowledge_factors
-    -- Validator verifies commitments (BLAKE2b only — no Argon2id):
-    ∧ BLAKE2b-256(proofs.pw_argon2id_out  ∥ factors.password_salt_pw₂)
+
+    -- Password: validator verifies BLAKE2b (no Argon2id on-chain):
+    ∧ BLAKE2b-256(proofs.pw_argon2id_out ∥ factors.password_salt)
         = factors.password_commitment
-    ∧ BLAKE2b-256(proofs.em_argon2id_out  ∥ factors.email_salt_em₂)
-        = factors.email_commitment
-    -- Both factors required (AND logic — neither alone sufficient)
-    ∧ recovery_deadline = s + TIER5_TIMELOCK
+
+    -- Email: validator verifies EmailOracle signature:
+    ∧ Verify(EMAIL_ORACLE_PK,
+             H(proofs.email_access.fields_excl_sig),
+             proofs.email_access.oracle_signature)
+    ∧ proofs.email_access.email_commitment_hash = factors.email_commitment
+    ∧ proofs.email_access.recovery_challenge
+        = H(did ∥ new_hw_pub ∥ proofs.email_access.nonce_echo)
+    ∧ |s - proofs.email_access.verified_at_slot| ≤ 300  -- freshness: ~100s
+
+    -- Both factors required (AND logic — neither alone is sufficient)
+
   Effect:
     TAADDatum.state ← Recovering {
       pending_hw_pub    = new_hw_pub,
-      recovery_deadline = s + TIER5_TIMELOCK,
+      recovery_deadline = s + TIER5_TIMELOCK,  -- §1.4: 21 × 432,000 slots
       verification_tier = 5,
       crypto_proofs     = H(proofs),
       cancel_nonce      = H(proofs ∥ encode(s)),
     }
     seq++
 
-TIER5_TIMELOCK = 21 × 432_000 slots  -- ~21 days (4.2 Cardano epochs)
--- Rationale: longest timelock (weakest tier) maximises detection window.
--- Device is unavailable by definition → cancel uses §11.7, not hw_pub.
+-- TIER5_TIMELOCK = 21 × 432_000 slots  (defined in §1.4)
 ```
 
-### §11.6.5 Security Invariants
+### §11.6.5 Security Invariants [N] *(v4.5)*
 
 ```
 I-TIER5-PW-1 [N]: Argon2id MUST execute exclusively off-chain (mobile/SDK).
   Plutus validator MUST NOT execute Argon2id.
   Validator only verifies:
-    BLAKE2b-256(proof.argon2id_out ∥ datum_salt₂) = stored_commitment
-  Rationale: Argon2id requires 64 MB RAM and ~300ms CPU.
-  Plutus execution budget: ~10ms, no memory-hard operations.
-  Attempting on-chain = immediate script failure (out-of-budget).
+    BLAKE2b-256(proof.argon2id_out ∥ datum.password_salt) = password_commitment
+  Rationale: Argon2id requires 64 MiB RAM and ~300ms CPU.
+  Plutus execution budget: ~10ms CPU equivalent, no memory-hard operations.
+  Attempting on-chain = immediate script budget exhaustion.
 
 I-TIER5-PW-2 [N]: Argon2id parameters at enrollment MUST satisfy:
-  m ≥ 65536 (64 MB), t ≥ 3 (iterations), p ≥ 4 (parallelism threads).
-  Parameters stored encrypted on LampNet. NOT stored on-chain.
-  Rationale: prevents offline GPU brute-force (64MB memory-hard
-  limits parallelism; ~0.3s/attempt on high-end GPU).
+  m ≥ 65536 (= 64 MiB, unit: KiB as per Argon2 spec RFC 9106),
+  t ≥ 3 (iterations), p ≥ 4 (parallelism threads).
+  Rationale: These parameters yield ~0.3s per attempt on dedicated GPU.
+  Combined with 12+ char password (~60 bits entropy):
+    2^60 attempts × 0.3s ≈ 10^18 seconds → computationally infeasible.
+  Ref: RFC 9106 §4 — https://www.rfc-editor.org/rfc/rfc9106
 
 I-TIER5-PW-3 [N-UX]: Password strength enforced at enrollment (UX layer only):
   ≥ 12 characters.
-  zxcvbn score ≥ 3 (ref: https://github.com/dropbox/zxcvbn).
-  Not present in top-10,000 leaked password list (HIBP API check).
-  Validator does NOT enforce strength — UX is sole gate at enrollment.
-  Rationale: NIST SP 800-63B §5.1.1 requires checking against
-  breach corpuses. Weak passwords defeat Argon2id's protection.
-  Ref: https://pages.nist.gov/800-63-3/sp800-63b.html
+  zxcvbn score ≥ 3 — ref: https://github.com/dropbox/zxcvbn
+  Not present in HaveIBeenPwned breach corpus — checked via k-anonymity
+  SHA-1 prefix protocol (first 5 hex chars of SHA-1(password) sent to API;
+  full hash never transmitted) — ref: https://haveibeenpwned.com/API/v3#PwnedPasswords
+  Validator does NOT enforce strength. UX layer is sole enforcement gate.
 
-I-TIER5-PW-4 [N]: Post-recovery password rotation is MANDATORY.
+I-TIER5-PW-4 [N]: Post-recovery password and email re-enrollment mandatory.
   PhoenixKey app MUST force re-enrollment of:
     new password_commitment, new email_commitment
   within first authenticated session post-recovery.
-  Old commitments invalidated immediately upon Finalize_Recovery.
-  Validator enforces: knowledge_factors.enrolled_seq < TAADDatum.seq
-  after recovery → app detects stale factors → forces re-enrollment.
+  Old knowledge_factors invalidated upon Finalize_Recovery (seq++).
+  Validator detects stale factors: knowledge_factors.enrolled_seq < TAADDatum.seq
+  → app blocks until re-enrollment complete.
 
-I-TIER5-PW-5 [N]: salt_pw₁ and salt_em₁ MUST be stored encrypted
-  on LampNet (encrypted with Master_KEK derived key).
-  These salts MUST NOT appear on-chain.
-  Without salt_pw₁, an attacker with only on-chain data cannot
-  run Argon2id to brute-force the commitment.
-  Note: This requires LampNet to be available for recovery initiation
-  (to retrieve encrypted salts). LampNet unavailability = Tier 5
-  temporarily unavailable (falls through to recovery_not_possible).
+-- NOTE: I-TIER5-PW-5 from v4.4 (salt encryption on LampNet) is REMOVED.
+-- v4.4 encrypted salt_pw₁ with Master_KEK — created circular dependency
+-- (Tier 5 invoked when Master_KEK unavailable → cannot decrypt salt → deadlock).
+-- v4.5 fix: all salts on-chain; security via Argon2id memory-hardness (see §11.6.3).
+
+I-TIER5-EMAIL-1 [N]: Email factor MUST be treated as possession, not knowledge.
+  Validator MUST verify EmailAccessProof oracle signature (§11.6.4).
+  Validator MUST NOT accept email address string as standalone proof.
+  Rationale: email address is low-entropy (often public) and provides
+  near-zero additional security as a knowledge factor.
+  Email as possession (OTP from mailbox) requires active mailbox access.
+
+I-TIER5-EMAIL-2 [N]: EMAIL_ORACLE_PK is a known public constant.
+  Key rotation requires PhoenixKey OrgDID governance vote.
+  All EmailAccessProof signatures verified against current EMAIL_ORACLE_PK.
+  Analogous to VEDATA_ORACLE_PK (I-VEDATA-4, §11.5).
 ```
 
 ---
 
-## §11.7 Tier 5 — Cancel Mechanism [N] *(v4.4)*
+## §11.7 Tier 5 — Cancel Mechanism [N] *(v4.5)*
 
 ```
 -- Standard TAAD_cancel_recovery (§10.2) requires hw_pub signature.
--- Tier 5 is invoked when device is UNAVAILABLE → hw_pub sig impossible.
--- Tier 5 therefore uses a separate cancel mechanism.
+-- Tier 5 is invoked when device is UNAVAILABLE → hw_pub sig not possible.
+-- v4.4 included "Cancel Option A: same knowledge factors" — REMOVED in v4.5.
+-- Reason: attacker who initiated with (password + email OTP) possesses
+-- the same knowledge factors → Option A cannot distinguish owner from attacker.
 
--- Cancel authority for Tier 5:
-TAAD_cancel_tier5(did: PersonDID, cancel_proof: Tier5CancelProof, s):
+-- Cancel authority for Tier 5 (v4.5):
+TAAD_cancel_tier5(did: PersonDID, cancel_proof: Tier5CancelProof, s: SlotNo):
   Pre:
     TAADDatum.state = Recovering { verification_tier = 5 }
-    ∧ s < recovery_deadline   -- within timelock window
+    ∧ s < recovery_deadline
     ∧ (
-      -- Option A: Knowledge factors (proves legitimate owner, not attacker)
-      BLAKE2b-256(cancel_proof.pw_argon2id_out  ∥ password_salt_pw₂)
-        = password_commitment
-      ∧ BLAKE2b-256(cancel_proof.em_argon2id_out ∥ email_salt_em₂)
-        = email_commitment
-      -- Note: same factors as initiation. If owner can provide both,
-      -- they can also cancel a fraudulent recovery.
-    ) ∨ (
-      -- Option B: If Tier 1/2/3 became available (found secondary wallet,
-      -- contacted guardian): use higher-tier cancel
-      tier_1_proof_valid(did, cancel_proof.secondary_sig) ∨
-      guardian_threshold_signed(did, cancel_proof.guardian_sigs)
-    )
-  Effect:
-    state ← Active; seq++
+      -- Option 1: Email notification cancel token (PRIMARY mechanism)
+      -- Backend generates cancel_token = H(cancel_nonce ∥ "cancel-tier5")
+      -- and embeds in notification email sent at initiation.
+      -- Legitimate owner receives email → clicks cancel link → submits token.
+      -- Attacker who initiated cannot suppress notification unless
+      -- they have full control of email account (already possible via OTP).
+      H(cancel_proof.token ∥ "cancel-tier5") = H(state.cancel_nonce ∥ "cancel-tier5")
 
--- Cancel notification:
--- Upon Tier 5 recovery initiation (§11.6.4), PhoenixKey backend
--- MUST send notification to enrolled email address within 24h.
--- Email notification contains: cancel instructions + unique cancel code.
--- If attacker initiated fraudulent Tier 5: legitimate owner receives
--- email → can cancel via knowledge factors (Option A above).
--- This is the primary detection+cancel mechanism replacing hw_pub.
+      -- Option 2: Higher tier became available (device found, guardian reached)
+      ∨ tier_1_proof_valid(did, cancel_proof.secondary_sig)
+      ∨ guardian_threshold_signed(did, cancel_proof.guardian_sigs)
+    )
+  Effect: state ← Active; seq++
+
+-- Security note on Option 1:
+-- If attacker controls email account: they can initiate AND suppress cancel.
+-- This is a fundamental limitation of email-based recovery.
+-- Mitigations: 21-day window (long detection period), email notification
+-- to any linked secondary contact (if configured), LampNet activity log.
+-- Residual risk: email account security is the last line of defense for Tier 5.
+-- This risk is accepted: Tier 5 is the weakest tier by design.
+-- Users with higher security requirements should configure Tier 1/2/3.
 
 I-TIER5-CANCEL-1 [N]: Tier 5 recovery initiation MUST trigger email
   notification to enrolled email within 24h (backend responsibility).
+  Notification MUST include: cancel link containing cancel_token.
+
 I-TIER5-CANCEL-2 [N]: Tier 5 cancel MUST NOT require hw_pub signature.
-  Standard TAAD_cancel_recovery (hw_pub based) remains available
-  but is not the primary path for Tier 5.
-I-TIER5-CANCEL-3 [N]: Cancel proof requires SAME knowledge factors
-  as initiation proof. Attacker who initiated cannot cancel
-  without also knowing both password + email.
+  Standard TAAD_cancel_recovery (§10.2, hw_pub based) remains available
+  as an additional path if user has another device, but is not required.
+
+I-TIER5-CANCEL-3 [N]: Cancel Option A (knowledge factors as cancel proof)
+  is PROHIBITED. Knowledge factors cannot differentiate the legitimate owner
+  from the attacker who initiated recovery (both possess same factors).
+  Cancel authority = email notification token OR higher tier proof.
 ```
 
 ---
@@ -1300,11 +1456,15 @@ I-TIER5-CANCEL-3 [N]: Cancel proof requires SAME knowledge factors
 ## §12 PersonDID — Root of Trust [N]
 
 ```
+-- Relationship to TAADDatum: PersonDID is the canonical conceptual entity.
+-- TAADDatum (§10.1) is its on-chain Plutus datum. All PersonDID state lives in TAADDatum.
+-- Fields marked with (*) are stored in TAADDatum on-chain; others are off-chain (LampNet).
+
 PersonDID ≜ DIDBase where { type=Person, owner=None, security_level=Biometric_Hardware,
                              scope={Full_Authority} }
   extended by {
-    hw_pub         : Ed25519PubKey,   -- HW_Key: Secure Enclave, biometric-gated
-    taad_key       : Ed25519PubKey,   -- TAAD_Key: recoverable
+    hw_pub         : Ed25519PubKey,   -- (*) HW_Key: Secure Enclave, biometric-gated
+    taad_key       : Ed25519PubKey,   -- TAAD_Key: recoverable (only hash=controller_pkh on-chain)
     guardians      : List<GuardianConfig>,
     biometric_hash : {0,1}^256,       -- H(biometric enrollment template); never raw
     seed_exported  : Option<SlotNo>,
@@ -1312,11 +1472,17 @@ PersonDID ≜ DIDBase where { type=Person, owner=None, security_level=Biometric_
     linked_dids    : List<DIDLink>,   -- cross-chain identity links (§12.1)
     -- v4.3 additions:
     emergency_vault_key : {0,1}^256,  -- HKDF-derived; see §33.1; NOT Master_KEK
-    guardian_did        : Option<DID>,-- non-None iff minor; see §34.3
+    guardian_did        : Option<DID>,-- (*) non-None iff minor; see §34.3
     birth_slot          : Option<SlotNo>, -- for minor age computation; privacy: optional
     jurisdiction        : Set<JurisdictionCode>, -- applicable legal jurisdictions
-    estate_config       : Option<EstateConfig>,  -- posthumous designation; see §32.1
+    estate_config       : Option<EstateConfig>,  -- (*) posthumous designation; see §32.1
+    -- v4.4 additions:
+    knowledge_factors   : Option<KnowledgeFactors>, -- (*) Tier 5 recovery; see §11.6
+    -- v4.5 additions:
+    secondary_wallets   : List<SecondaryWallet>,    -- (*) Tier 1 recovery commitment list; see §11.2
+    backup_deadline     : Option<SlotNo>,           -- (*) None=backed up; Some(s)=grace period
   }
+  -- Note: (*) fields stored in TAADDatum on-chain; remaining fields in LampNet DID Document.
 
 -- §12.1: Cross-chain DID Linking
 -- A user may own DIDs on multiple chains (did:ethr, did:prism, did:sol...).
@@ -1854,7 +2020,7 @@ If AgentDID `a` executes `op` via Tx `tx` at slot `s`, then `tx` produces audit 
 
 *Informal proof sketch.*
 1. `TAAD_finalize_recovery` requires `Verify(pending_hw_pub, H("finalize" ∥ s ∥ seq), sig)` where `pending_hw_pub` was bound at `TAAD_init_recovery` time.
-2. `TAAD_init_recovery` requires tier-appropriate proofs (§11). Tier 1 requires `Verify(secondary_wallet_pub, challenge, sig)` with secondary wallet in the on-chain tx graph. Tier 2/3 requires ≥ threshold guardian signatures on a fresh nonce.
+2. `TAAD_init_recovery` requires tier-appropriate proofs (§11). Tier 1 requires the recovery tx to be signed by a pkh whose commitment `BLAKE2b-256(pkh ∥ did ∥ enrolled_slot)` is in `TAADDatum.secondary_wallets` (v4.5 commitment-based approach; see §11.2). Tier 2/3 requires ≥ threshold guardian signatures on a fresh nonce.
 3. The A-6 invariant (§10.4) enforces that A cannot finalize before `recovery_deadline`.
 4. The C-SEQ invariant prevents replay of old recovery proofs.
 5. Therefore A must either (a) forge a signature without the private key — impossible by Ed25519 security — or (b) collect threshold guardian signatures — requires social engineering ≥ threshold guardians — or (c) break the hash function.
@@ -1885,6 +2051,10 @@ If AgentDID `a` executes `op` via Tx `tx` at slot `s`, then `tx` produces audit 
 | GDPR erasure claim vs on-chain hash | All | T28.2: hash ≠ personal data per GDPR Rec.26 |
 | Posthumous impersonation | PersonDID | §32.1: death event requires OrgDID attestation + timelock |
 | Minor bypass guardian control | PersonDID (minor) | §34.3: MinorControl predicate; guardian approval required |
+| Tier 5: offline password brute-force | PersonDID | Argon2id 64 MiB memory-hard (I-TIER5-PW-2); 12+ char password ~60 bits → 10^18s at 0.3s/attempt |
+| Tier 5: email account takeover → init + suppress cancel | PersonDID | Residual risk acknowledged; 21-day window; user should configure Tier 1/2/3 for higher security |
+| Tier 5: EMAIL_ORACLE_PK compromise | PersonDID | EmailAccessProof forged → invalid Tier 5 inits; mitigation: oracle key rotation via PhoenixKey OrgDID governance; I-TIER5-EMAIL-2 |
+| Recursive orphan chain (cha mẹ và con cùng chết) | PersonDID (minor/estate) | I-RECOVERY-5: beneficiary Posthumous → DID → Archived immediately |
 
 ---
 
@@ -2079,8 +2249,8 @@ EstateConfig ≜ {
   -- Typically: {Read_DID, Sign_Tx(max_inheritance_value)}; NOT Full_Authority
 }
 
--- DIDState extended (v4.3):
-DIDState ≜ ... | Posthumous(beneficiary: DID, confirmed_slot: SlotNo)
+-- TAADState extended (v4.5): Posthumous is now a TAADState variant (§10.1).
+-- Validator sets TAADDatum.state ← Posthumous{...} upon finalization.
 
 -- Op_declare_death: triggered by OrgDID with death certificate authority.
 Op_declare_death(did: PersonDID, death_cert_org: OrgDID, cert_hash: {0,1}^256, s: SlotNo):
@@ -2093,7 +2263,7 @@ Op_declare_death(did: PersonDID, death_cert_org: OrgDID, cert_hash: {0,1}^256, s
     TAADDatum.state ← Recovering {
       pending_hw_pub    = NULL_KEY,     -- no new hardware key
       recovery_deadline = s + TAADDatum.estate_config.death_timelock,
-      verification_tier = 4,            -- death tier: no cancellation by owner
+      verification_tier = POSTHUMOUS_TIER,  -- §1.4: ≜ 100; distinct from capability tiers and recovery tiers 1,2,3,5
       crypto_proofs     = cert_hash,
     }
     death_cert_hash ← cert_hash
@@ -2102,7 +2272,7 @@ Op_declare_death(did: PersonDID, death_cert_org: OrgDID, cert_hash: {0,1}^256, s
 -- Op_finalize_posthumous: after timelock; no cancellation possible.
 Op_finalize_posthumous(did: PersonDID, s: SlotNo):
   Pre:
-    TAADDatum.state = Recovering { verification_tier = 4 }
+    TAADDatum.state = Recovering { verification_tier = POSTHUMOUS_TIER }
     ∧ s ≥ recovery_deadline
   Effect:
     TAADDatum.state ← Posthumous(
@@ -2139,8 +2309,8 @@ IncapacityConfig ≜ {
   issuing_court      : OrgDID,
 }
 
--- DIDState extended (v4.3):
-DIDState ≜ ... | Incapacitated(config: IncapacityConfig, declared_slot: SlotNo)
+-- TAADState extended (v4.5): Incapacitated is now a TAADState variant (§10.1).
+-- Validator sets TAADDatum.state ← Incapacitated{...} upon declaration.
 
 Op_declare_incapacity(did: PersonDID, config: IncapacityConfig, s: SlotNo):
   Pre:
@@ -2750,7 +2920,9 @@ Collision: P(n DIDs) ≤ n²/2^257;  at n=10^12: P ≤ 5.4×10^{-54}
 | **v4.3 New ops** (End-of-Life) | Op_declare_death, Op_finalize_posthumous, Op_declare_incapacity, Op_restore_capacity, Op_initiate_dissolution, Op_complete_dissolution, Op_destroy_asset, Op_decommission_device, Op_remove_guardian_did | New contracts only |
 | **v4.3 New states** | Posthumous, Incapacitated, Dissolving, Archived, Decommissioned | Validator redeployment |
 | **v4.3 Additive** | §33 Emergency Vault (client-side), §34 Compliance (policy), §35 Architecture boundary | Doc/client only |
-| **v4.4 Schema** (datum additions) | TAADDatum: knowledge_factors, secondary_wallet_enrolled | Validator redeployment |
+| **v4.5 Bug fixes** | salt_pw₁ circular dependency removed (salts on-chain); `secondary_wallet_enrolled:𝔹` → `secondary_wallets:List<SecondaryWallet>`; email possession factor + EmailAccessProof; Cancel Option A removed | Validator redeployment |
+| **v4.5 Design** | I-RECOVERY-4 revised: grace period (backup_deadline field, 30-day window, restricted ops); I-RECOVERY-5: recursive orphan prevention | New contracts only |
+| **v4.5 Editorial** | Argon2id MiB unit fix; HIBP k-anonymity reference; I-TIER5-PW-5 removed | Doc update only |
 | **v4.4 Validator logic** | Tier 5 path in select_recovery_tier; I-RECOVERY-4 enforcement at registration; TAAD_cancel_tier5 | Coordinated hard fork |
 | **v4.4 Spec clarifications** | §11.0 Recovery scope; I-RECOVERY-1..4; I-TIER5-PW-1..5; I-TIER5-CANCEL-1..3 | Doc update only |
 | **v4.4 Additive** | §11.6 Tier 5 (off-chain commitment, validator BLAKE2b only); §11.7 Tier 5 cancel | New contracts only |
@@ -2806,6 +2978,20 @@ Collision: P(n DIDs) ≤ n²/2^257;  at n=10^12: P ≤ 5.4×10^{-54}
 | Orphaned DID | Non-Person DID whose owner is Posthumous/Incapacitated/Dissolved; see §11.0.3 |
 | NonPerson_Recover | Owner-sig rotation for non-Person DID; no TAAD; no timelock; see §11.0.2 |
 | I-RECOVERY-4 | Mandatory: at least one of {secondary_wallet, guardians≥2, knowledge_factors} at creation |
+| SecondaryWallet | Commitment binding a recovery wallet to a PersonDID: {wallet_pkh_commitment, enrolled_slot}; see §10.1 |
+| wallet_pkh_commitment | BLAKE2b-256(pkh ∥ did ∥ enrolled_slot); on-chain commitment to secondary wallet pubkey hash |
+| EmailAccessProof | Oracle-signed proof of email mailbox access for Tier 5 recovery; see §11.6.2 |
+| EMAIL_ORACLE_PK | Public key of PhoenixKey email possession oracle; governance-controlled; see §1.4 |
+| backup_deadline | TAADDatum field: None if backup configured; Some(slot) = grace period end; see I-RECOVERY-4 |
+| TIER5_TIMELOCK | 21 × 432,000 slots ≈ 21 days; mandatory Tier 5 observation window |
+| TIER5_BACKUP_GRACE_SLOTS | 30 × 432,000 slots ≈ 30 days; grace period to configure backup after registration |
+| HIGH_STAKES_THRESHOLD | 100 ADA (governance parameter); ops above this threshold restricted during backup grace period |
+| NonPerson_Recover | Owner-signed rotation for non-Person DID; no TAAD; no timelock; see §11.0.2 |
+| Orphaned DID | Non-Person DID whose owner is Posthumous/Incapacitated/Dissolved; see §11.0.3 |
+| TIER5_BACKUP_GRACE_SLOTS | 30 days grace period after DID creation to setup backup; see I-RECOVERY-4 |
+| I-RECOVERY-5 | Recursive orphan prevention: beneficiary Posthumous/Incapacitated → DID → Archived |
+| I-TIER5-EMAIL-1 | Email must be possession factor (OTP), not knowledge factor (string); see §11.6.5 |
+| I-TIER5-EMAIL-2 | EMAIL_ORACLE_PK is known constant; rotation via governance |
 
 ---
 
@@ -2880,12 +3066,76 @@ Slot 201: DelegationToken_valid(dt, 201):
 
 ---
 
-*PhoenixKey Formal Mathematical Specification v4.4*
+
+---
+
+# APPENDIX G — References [I]
+
+All links valid as of 2026-05-28. Click to open.
+
+## G.1 Standards and Specifications
+
+| Ref | Document | URL |
+|-----|----------|-----|
+| [DID-CORE] | W3C DID Core v1.0 | https://www.w3.org/TR/did-core/ |
+| [VC-DATA] | W3C Verifiable Credentials Data Model v2.0 | https://www.w3.org/TR/vc-data-model-2.0/ |
+| [BBS-CRYPT] | W3C BBS Cryptosuite (selective disclosure) | https://www.w3.org/TR/vc-di-bbs/ |
+| [STATUS-LIST] | W3C Status List 2021 | https://www.w3.org/TR/vc-status-list/ |
+| [RFC5869] | HKDF — RFC 5869 | https://www.rfc-editor.org/rfc/rfc5869 |
+| [RFC8032] | Ed25519 — RFC 8032 | https://www.rfc-editor.org/rfc/rfc8032 |
+| [RFC9106] | Argon2 — RFC 9106 | https://www.rfc-editor.org/rfc/rfc9106 |
+| [NIST-63B] | NIST SP 800-63B (Authentication) | https://pages.nist.gov/800-63-3/sp800-63b.html |
+| [GDPR-17] | GDPR Article 17 — Right to Erasure | https://gdpr-info.eu/art-17-gdpr/ |
+| [GDPR-REC26] | GDPR Recital 26 — Anonymous Data | https://gdpr-info.eu/recitals/no-26/ |
+| [GDPR-ART8] | GDPR Article 8 — Children's Consent | https://gdpr-info.eu/art-8-gdpr/ |
+| [CIP-0003] | Cardano Wallet Key Derivation | https://github.com/cardano-foundation/CIPs/blob/master/CIP-0003/ |
+| [CIP-0049] | ECDSA/Schnorr secp256k1 in Plutus | https://github.com/cardano-foundation/CIPs/blob/master/CIP-0049/ |
+| [CIP-0055] | Cardano Min-ADA Calculation | https://github.com/cardano-foundation/CIPs/blob/master/CIP-0055/ |
+| [CIP-0068] | Cardano Datum Metadata Standard | https://github.com/cardano-foundation/CIPs/blob/master/CIP-0068/ |
+| [CIP-0381] | BLS12-381 in Plutus | https://github.com/cardano-foundation/CIPs/blob/master/CIP-0381/ |
+| [EUTXO] | Extended UTxO Model (IOHK) | https://iohk.io/en/research/library/papers/the-extended-utxo-model/ |
+| [EIDAS] | eIDAS 2.0 EU Digital Identity | https://digital-strategy.ec.europa.eu/en/policies/eidas-regulation |
+
+## G.2 Security and Cryptography
+
+| Ref | Document | URL |
+|-----|----------|-----|
+| [BLAKE2] | BLAKE2 Specification | https://www.blake2.net/blake2.pdf |
+| [SHAMIR79] | Shamir (1979) — How to Share a Secret | https://dl.acm.org/doi/10.1145/359168.359176 |
+| [BELLARE96] | Bellare et al. — HMAC as PRF (1996) | https://dl.acm.org/doi/10.1145/234525.234532 |
+| [NASH50] | Nash (1950) — Equilibrium in N-Person Games | https://www.pnas.org/doi/10.1073/pnas.36.1.48 |
+| [NIST-PQC] | NIST Post-Quantum Cryptography Standard 2024 | https://csrc.nist.gov/projects/post-quantum-cryptography |
+| [SAFECURVES] | SafeCurves — choosing safe elliptic curves | https://safecurves.cr.yp.to/ |
+| [ZXCVBN] | zxcvbn — realistic password strength | https://github.com/dropbox/zxcvbn |
+| [HIBP-API] | HaveIBeenPwned API v3 (k-anonymity) | https://haveibeenpwned.com/API/v3#PwnedPasswords |
+
+## G.3 Platform Documentation
+
+| Ref | Document | URL |
+|-----|----------|-----|
+| [APPLE-SE] | Apple Secure Enclave Guide | https://support.apple.com/guide/security/secure-enclave-sec59b0b31ff/web |
+| [FIDO2] | FIDO2 / WebAuthn Specification | https://fidoalliance.org/fido2/ |
+| [DIF-RESOLVER] | DIF Universal Resolver | https://github.com/decentralized-identity/universal-resolver |
+| [OID4VC] | OpenID for Verifiable Credentials | https://openid.net/sg/openid4vc/ |
+
+## G.4 Legal References
+
+| Ref | Document | URL |
+|-----|----------|-----|
+| [VN-DECREE-96] | Vietnam Decree 96/2023/ND-CP (Medical Records) | https://vanban.chinhphu.vn/ |
+| [VN-DECREE-13] | Vietnam Decree 13/2023/ND-CP (Personal Data) | https://vanban.chinhphu.vn/ |
+| [WHO-RECORDS] | WHO Medical Records Manual 2006 | https://www.who.int/healthinfo/documentation/who_mrd_06.1_eng.pdf |
+| [UNCRC] | UN Convention on Rights of the Child Art.5 | https://www.ohchr.org/en/instruments-mechanisms/instruments/convention-rights-child |
+| [VN-CIVIL] | Vietnam Civil Code 2015, Art.21 | https://vanban.chinhphu.vn/ |
+
+---
+
+*PhoenixKey Formal Mathematical Specification v4.5*
 *© 2026 Greensun Tech Corporation. Inventor: Nguyen Duc Thanh.*
 
 *Peer Review: 5 rounds v4.2 — Gemon (MIT Mathematics & EECS), Serat (Principal Security Architect). v4.3–4.4: Sambo (Senior BA, MIT Sloan), Tuân (Validator Engineer). v4.4 security review pending.*
 
-*v4.4 additions: §11.0 Recovery Scope (TAAD = PersonDID only; non-Person recovery; orphan handling); §11.6 Tier 5 Knowledge-Based Recovery (Password + Email, Argon2id off-chain, BLAKE2b on-chain, I-TIER5-PW-1..5); §11.7 Tier 5 Cancel Mechanism (knowledge-factor cancel + email notification, not hw_pub); TAADDatum extended (knowledge_factors, secondary_wallet_enrolled); I-RECOVERY-1..4 (biometric not a recovery factor; mandatory minimum backup at registration).*
+*v4.5 fixes: salt circular dependency, secondary_wallet boolean→list, email knowledge→possession, cancel Option A removed, grace period, recursive orphan, MiB, HIBP k-anon.*
 
 *Normative: §1–§35, Appendices A–D, F.*
 *Non-normative: §28, Appendix E.*
