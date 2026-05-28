@@ -1,26 +1,26 @@
 # PhoenixKey
-## Formal Mathematical Specification — v4.3
+## Formal Mathematical Specification — v4.4
 
 ---
 
 | Field | Value |
 |-------|-------|
-| **Version** | 4.3 |
-| **Date** | 2026-05-21 |
-| **Basis** | v4.2 + Lifecycle Completeness Analysis + GDPR Compliance Review + BA Spec v1.2 reconciliation |
+| **Version** | 4.4 |
+| **Date** | 2026-05-28 |
+| **Basis** | v4.3 + Recovery completeness analysis + PR #3 validator review + Tuân/Sambo peer review |
 | **Status** | Testnet-Ready — Normative |
 | **Network** | Cardano L1 / Aiken–PlutusV3 |
-| **Scope** | Complete mathematical specification: cryptographic core + 10 DID types + full lifecycle + compliance |
-| **Review** | 5 rounds v4.2 — Gemon (MIT Math), Serat (Security STRIDE×CVSS); v4.3 pending |
-| **Adds over v4.2** | §32 Lifecycle Completeness (posthumous, incapacity, dissolution, destruction, decommission); §33 Emergency Vault (HKDF offline-capable); §34 Privacy & Compliance (GDPR tombstone, creator liability, minor guardian, jurisdiction flags); §35 Layer 0 Architecture Boundary; PersonDID extended (emergency_vault_key, guardian_did, jurisdiction); TAADDatum extended (jurisdiction_flags); T28.1 Emergency Vault Key Isolation; T28.2 GDPR Tombstone Integrity; MECE lifecycle gap closure |
+| **Scope** | Complete mathematical specification: cryptographic core + 10 DID types + full lifecycle + compliance + recovery completeness |
+| **Review** | 5 rounds v4.2 — Gemon (MIT Math), Serat (Security STRIDE×CVSS); v4.3–4.4 pending |
+| **Adds over v4.3** | §11.0 Recovery scope clarification (TAAD = PersonDID only; non-Person recovery; orphan handling); §11.6 Tier 5 knowledge-based recovery (Password + Email, ZK-deferred, I-TIER5-PW-1..5); §11.7 Tier 5 cancel mechanism (email OTP, not hw_pub); TAADDatum extended (knowledge_factors); I-RECOVERY-1..4 (biometric not a recovery mechanism; mandatory minimum backup); Argon2id off-chain boundary explicit; NIST KBA deprecation noted |
 
 ---
 
 ## Abstract
 
-PhoenixKey is a decentralized identity and asset management system on Cardano that eliminates seed phrase memorization through hardware-secured key generation and tiered recovery. This document is the definitive mathematical specification, integrating: (1) the cryptographic key hierarchy and TAAD protocol from FormalSpec v3.0; (2) the ten-type universal DID taxonomy from v4.1; (3) all peer-review fixes; (4) v4.2 additions: TAAD ASM invariants, EUF-TAAD security theorem, protocol boundary classification, VeData request protocol, and guardian game-theoretic incentive model; (5) v4.3 additions: full entity lifecycle completeness (posthumous, incapacity, dissolution, destruction, decommission protocols), Emergency Vault offline-capable key derivation, GDPR-compliant tombstone pattern, creator liability period access model, minor guardian model with auto-transfer, cross-jurisdiction flags, and Layer 0 architecture boundary clarification.
+PhoenixKey is a decentralized identity and asset management system on Cardano that eliminates seed phrase memorization through hardware-secured key generation and tiered recovery. This document is the definitive mathematical specification, integrating: (1) the cryptographic key hierarchy and TAAD protocol from FormalSpec v3.0; (2) the ten-type universal DID taxonomy from v4.1; (3) all peer-review fixes; (4) v4.2 additions: TAAD ASM invariants, EUF-TAAD security theorem, protocol boundary classification, VeData request protocol, and guardian game-theoretic incentive model; (5) v4.3 additions: full entity lifecycle completeness, Emergency Vault, GDPR tombstone pattern, creator liability period, minor guardian model, jurisdiction flags, Layer 0 architecture boundary; (6) v4.4 additions: recovery scope clarification (TAAD = PersonDID only; explicit non-Person recovery and orphan handling), Tier 5 knowledge-based recovery with correct Argon2id off-chain boundary, mandatory minimum backup invariant, biometric-not-a-recovery-factor clarification.
 
-**Key results:** Theorem 27.1 (Runtime Scope Monotonicity), 27.2 (Revocation Cascade Soundness), 27.3 (Guardian Suspension Cannot Block Recovery), 27.4 (Asset Transfer Uniqueness), 27.5 (Agent Audit Atomicity), 27.6 (Context Hard Expiry), 27.7 (EUF-TAAD Security). **New v4.3:** Theorem 28.1 (Emergency Vault Key Isolation), Theorem 28.2 (GDPR Tombstone Integrity). Corollary 27.1.1 (Non-Escalation), 27.1.2 (AgentDID Non-Escalation). TAAD ASM Invariants A-1..A-6.
+**Key results:** Theorems 27.1–27.7, 28.1–28.2 (unchanged). TAAD ASM Invariants A-1..A-6. **New v4.4:** I-RECOVERY-1..4 (recovery scope and mandatory backup); I-TIER5-PW-1..5 (Tier 5 security invariants).
 
 **Out of scope (separate documents):**
 - PhoenixKey DID Method Specification v1.0 — resolver protocol, I-RESOLVER-1 implementation
@@ -50,7 +50,7 @@ All appendices non-normative unless marked [N].
 §6 Key Hierarchy · §7 LampNet Distributed Storage · §8 Cardano Wallet · §9 Seed Export and Import
 
 **Part III — TAAD Protocol**
-§10 TAAD State Machine · §11 Recovery Protocol
+§10 TAAD State Machine · §11 Recovery Protocol · **§11.0 Recovery Scope** · **§11.6 Tier 5 Knowledge-Based** · **§11.7 Tier 5 Cancel Mechanism**
 
 **Part IV — DID Type Catalog**
 §12 PersonDID · §13 OrgDID · §14 ContextDID · §15 DeviceDID · §16 MachineDID
@@ -698,9 +698,12 @@ TAADDatum ≜ {
   suspended_by       : Option<SuspendedByInfo>,
   suspended_until    : Option<SlotNo>,
   -- v4.3 additions:
-  jurisdiction_flags : Set<JurisdictionCode>,  -- ISO 3166-1 codes; empty = no GDPR obligation
-  guardian_did       : Option<DID>,            -- non-None iff PersonDID belongs to a minor (§34.3)
-  estate_config      : Option<EstateConfig>,   -- posthumous designation (§32.1)
+  jurisdiction_flags : Set<JurisdictionCode>,
+  guardian_did       : Option<DID>,
+  estate_config      : Option<EstateConfig>,
+  -- v4.4 additions:
+  knowledge_factors  : Option<KnowledgeFactors>,  -- None = Tier 5 unavailable
+  secondary_wallet_enrolled : 𝔹,                 -- True if Tier 1 pre-registered
 }
 
 TAADState ≜
@@ -834,17 +837,21 @@ TAAD_state_machine_valid(did: PersonDID, op: Capability, s: SlotNo) : 𝔹 ≜
 
 ```
 select_recovery_tier(did: PersonDID, new_hw_pub, s):
-  secondary_wallets = analyze_tx_graph(did)  -- identify secondary wallet candidates
+  secondary_wallets = analyze_tx_graph(did)
 
   IF |secondary_wallets| ≥ 1:
-    RETURN tier_1_recovery(did, secondary_wallets, new_hw_pub, s)  -- 7-day timelock
+    RETURN tier_1_recovery(did, secondary_wallets, new_hw_pub, s)
 
   guardians = get_guardians(did)
   IF |{g : tier_eligible(g) ∋ 2}| ≥ policy.threshold:
-    RETURN tier_2_recovery(did, guardians, new_hw_pub, s)           -- 10-day timelock
+    RETURN tier_2_recovery(did, guardians, new_hw_pub, s)
 
   IF |{g : tier_eligible(g) ∋ 3}| ≥ policy.threshold + 1:
-    RETURN tier_3_recovery(did, guardians, new_hw_pub, s)           -- 14-day timelock
+    RETURN tier_3_recovery(did, guardians, new_hw_pub, s)
+
+  -- v4.4: Tier 5 knowledge-based fallback
+  IF TAADDatum.knowledge_factors ≠ None:
+    RETURN tier_5_recovery(did, TAADDatum.knowledge_factors, new_hw_pub, s)
 
   RETURN recovery_not_possible()
 ```
@@ -996,6 +1003,294 @@ I-VEDATA-1: PhoenixKey MUST NOT implement SignalType collection code.
 I-VEDATA-2: PhoenixKey MUST NOT request OS sensor permissions directly.
 I-VEDATA-3: All VeData interaction via ProofRequest/ContextProof boundary only.
 I-VEDATA-4: VEDATA_ORACLE_PK is a known public constant; key rotation by OrgDID governance.
+```
+
+---
+
+## §11.0 Recovery Scope and Mandatory Backup [N] *(v4.4)*
+
+### §11.0.1 TAAD Scope — PersonDID Only
+
+```
+§11 Recovery Protocol applies EXCLUSIVELY to PersonDID.
+All PersonDID recovery tiers (§11.1–§11.6) assume a TAAD UTxO exists.
+
+Non-Person DID recovery is NOT governed by §11.
+```
+
+### §11.0.2 Non-Person DID Recovery
+
+```
+-- For all DID types where type ≠ Person:
+-- Key recovery = key rotation executed by the active owner.
+-- No TAAD UTxO. No timelock. No guardian collateral.
+
+NonPerson_Recover(did: D where type(D) ≠ Person, new_pub, s):
+  Pre:  Authority(owner(did), Write_DID(did), s)
+  Effect: same as Op_rotate(did, new_pub, s) per §5.1
+  Security: inherits owner's security level
+
+I-RECOVERY-1 [N]: Non-Person DID MUST NOT have a TAAD UTxO.
+I-RECOVERY-2 [N]: Non-Person DID rotation is O(1), no timelock.
+                  Owner authority (§4.2) is the sole gate.
+```
+
+### §11.0.3 Orphaned Non-Person DID
+
+```
+-- A non-Person DID becomes orphaned when its owner is:
+--   (a) PersonDID in Posthumous state (§32.1) — write-blocked
+--   (b) PersonDID in Incapacitated state (§32.2) — scope limited
+--   (c) OrgDID in Dissolved/Archived state (§32.3) — write-blocked
+
+Orphan_recover(did: D, s):
+  Case (a) Posthumous owner:
+    beneficiary = estate_config.beneficiary_did
+    IF Write_DID(did) ∈ estate_config.scope_granted:
+      Authority(beneficiary, Write_DID(did), s) → NonPerson_Recover
+    ELSE: did transitions to Archived state (records preserved, no new ops)
+
+  Case (b) Incapacitated owner:
+    conservator = IncapacityConfig.conservator_did
+    IF Write_DID(did) ∉ IncapacityConfig.conservator_scope:
+      did suspended until incapacity resolved (§32.2 auto-expiry)
+    ELSE: conservator executes NonPerson_Recover
+
+  Case (c) Dissolved OrgDID owner:
+    OrgDID dissolution (§32.3) MUST transfer or revoke all child DIDs
+    before Op_complete_dissolution is valid (I-DISS-4 enforcement)
+    If missed: did transitions to Archived state
+
+I-RECOVERY-3 [N]: estate_config.scope_granted for Posthumous owners SHOULD
+                  include Write_DID for critical operational non-Person DIDs.
+                  PhoenixKey app MUST prompt user to configure this at
+                  estate setup time (§32.1).
+```
+
+### §11.0.4 Biometric Is Not a Recovery Mechanism [N]
+
+```
+-- Biometric (face, fingerprint, iris) in PhoenixKey serves ONE purpose:
+-- gating HW_Key on device for daily authentication (§6.3).
+-- Biometric is NOT used in any recovery tier (§11.1–§11.6).
+
+Property: permanent biometric loss does NOT block TAAD recovery
+          if any Tier 1–5 factor is enrolled.
+
+Counter-property: if NO recovery factor is enrolled,
+                  device loss + biometric loss = DID permanently unrecoverable.
+                  This is a user-configuration failure, not a protocol flaw.
+                  No self-sovereign identity system can recover an identity
+                  without at least one pre-registered recovery factor.
+
+I-RECOVERY-4 [N]: At PersonDID creation, at least ONE of the following
+                  MUST be enrolled before DID is considered fully active:
+                    (a) secondary_wallet_enrolled = True  (Tier 1)
+                    (b) |guardians| ≥ 2                   (Tier 2/3)
+                    (c) knowledge_factors ≠ None           (Tier 5)
+                  Biometric-only enrollment is explicitly insufficient.
+                  Validator MUST enforce:
+                    secondary_wallet_enrolled = True
+                    ∨ |guardians| ≥ 2
+                    ∨ knowledge_factors ≠ None
+                  at registration transaction.
+```
+
+---
+
+## §11.6 Tier 5 — Knowledge-Based Recovery [N] *(v4.4)*
+
+### §11.6.1 Overview
+
+```
+Tier 5 is the weakest recovery tier. It is the fallback for PersonDID
+holders with no secondary wallet and no guardian quorum.
+Enrollment is optional but strongly recommended for all users.
+Tier 5 requires enrollment at registration — cannot be added post-hoc
+without a TAAD state transition (seq++, signed by current controller).
+
+Cascade position: invoked only after Tiers 1, 2, 3 are all unavailable
+(see §11.1 updated cascade).
+
+Deliberate design choice: Tier 5 is last resort, not first resort.
+Users with guardians or secondary wallets should rely on those first.
+```
+
+### §11.6.2 KnowledgeFactors Type
+
+```
+KnowledgeFactors ≜ {
+  -- Factor 1: Password
+  password_commitment : {0,1}^256,  -- BLAKE2b-256(Argon2id_out₁ ∥ salt_pw₂)
+  password_salt_pw₁   : {0,1}^128,  -- Argon2id input salt (stored encrypted on LampNet)
+  password_salt_pw₂   : {0,1}^128,  -- outer BLAKE2b salt (on-chain)
+
+  -- Factor 2: Recovery Email
+  email_commitment    : {0,1}^256,  -- BLAKE2b-256(Argon2id_out₂ ∥ salt_em₂)
+  email_salt_em₁      : {0,1}^128,  -- Argon2id input salt (stored encrypted on LampNet)
+  email_salt_em₂      : {0,1}^128,  -- outer BLAKE2b salt (on-chain)
+
+  enrolled_at         : SlotNo,
+  enrolled_seq        : ℕ,          -- seq at enrollment time; detect stale factors
+}
+
+-- NOTE: salt_pw₁ and salt_em₁ are stored ENCRYPTED on LampNet
+-- (encrypted with Master_KEK). They are NOT stored on-chain.
+-- Only salt_pw₂, salt_em₂, and the commitments are on-chain.
+-- This prevents offline brute-force from using on-chain data alone.
+```
+
+### §11.6.3 Commitment Construction — EXCLUSIVELY Off-Chain
+
+```
+-- These computations run on mobile/SDK. NEVER in Plutus validator.
+
+Password commitment (at enrollment):
+  pw_argon2id_out = Argon2id(
+    password,
+    salt = password_salt_pw₁,
+    m    = 65536,   -- 64 MB memory
+    t    = 3,       -- 3 iterations
+    p    = 4        -- 4 parallelism threads
+  )
+  password_commitment = BLAKE2b-256(pw_argon2id_out ∥ password_salt_pw₂)
+
+Email commitment (at enrollment):
+  em_argon2id_out = Argon2id(
+    email_address,
+    salt = email_salt_em₁,
+    m    = 65536, t = 3, p = 4
+  )
+  email_commitment = BLAKE2b-256(em_argon2id_out ∥ email_salt_em₂)
+
+-- What goes on-chain: {password_commitment, password_salt_pw₂,
+--                      email_commitment,    email_salt_em₂}
+-- What stays off-chain (LampNet, encrypted): {password_salt_pw₁, email_salt_em₁}
+-- What never leaves device: {password plaintext, email plaintext}
+```
+
+### §11.6.4 Recovery Execution
+
+```
+tier_5_recovery(did: PersonDID, factors: KnowledgeFactors,
+                new_hw_pub: Ed25519PubKey,
+                proofs: Tier5Proofs, s: SlotNo):
+  Pre:
+    TAADDatum.knowledge_factors ≠ None
+    ∧ factors = TAADDatum.knowledge_factors
+    -- Validator verifies commitments (BLAKE2b only — no Argon2id):
+    ∧ BLAKE2b-256(proofs.pw_argon2id_out  ∥ factors.password_salt_pw₂)
+        = factors.password_commitment
+    ∧ BLAKE2b-256(proofs.em_argon2id_out  ∥ factors.email_salt_em₂)
+        = factors.email_commitment
+    -- Both factors required (AND logic — neither alone sufficient)
+    ∧ recovery_deadline = s + TIER5_TIMELOCK
+  Effect:
+    TAADDatum.state ← Recovering {
+      pending_hw_pub    = new_hw_pub,
+      recovery_deadline = s + TIER5_TIMELOCK,
+      verification_tier = 5,
+      crypto_proofs     = H(proofs),
+      cancel_nonce      = H(proofs ∥ encode(s)),
+    }
+    seq++
+
+TIER5_TIMELOCK = 21 × 432_000 slots  -- ~21 days (4.2 Cardano epochs)
+-- Rationale: longest timelock (weakest tier) maximises detection window.
+-- Device is unavailable by definition → cancel uses §11.7, not hw_pub.
+```
+
+### §11.6.5 Security Invariants
+
+```
+I-TIER5-PW-1 [N]: Argon2id MUST execute exclusively off-chain (mobile/SDK).
+  Plutus validator MUST NOT execute Argon2id.
+  Validator only verifies:
+    BLAKE2b-256(proof.argon2id_out ∥ datum_salt₂) = stored_commitment
+  Rationale: Argon2id requires 64 MB RAM and ~300ms CPU.
+  Plutus execution budget: ~10ms, no memory-hard operations.
+  Attempting on-chain = immediate script failure (out-of-budget).
+
+I-TIER5-PW-2 [N]: Argon2id parameters at enrollment MUST satisfy:
+  m ≥ 65536 (64 MB), t ≥ 3 (iterations), p ≥ 4 (parallelism threads).
+  Parameters stored encrypted on LampNet. NOT stored on-chain.
+  Rationale: prevents offline GPU brute-force (64MB memory-hard
+  limits parallelism; ~0.3s/attempt on high-end GPU).
+
+I-TIER5-PW-3 [N-UX]: Password strength enforced at enrollment (UX layer only):
+  ≥ 12 characters.
+  zxcvbn score ≥ 3 (ref: https://github.com/dropbox/zxcvbn).
+  Not present in top-10,000 leaked password list (HIBP API check).
+  Validator does NOT enforce strength — UX is sole gate at enrollment.
+  Rationale: NIST SP 800-63B §5.1.1 requires checking against
+  breach corpuses. Weak passwords defeat Argon2id's protection.
+  Ref: https://pages.nist.gov/800-63-3/sp800-63b.html
+
+I-TIER5-PW-4 [N]: Post-recovery password rotation is MANDATORY.
+  PhoenixKey app MUST force re-enrollment of:
+    new password_commitment, new email_commitment
+  within first authenticated session post-recovery.
+  Old commitments invalidated immediately upon Finalize_Recovery.
+  Validator enforces: knowledge_factors.enrolled_seq < TAADDatum.seq
+  after recovery → app detects stale factors → forces re-enrollment.
+
+I-TIER5-PW-5 [N]: salt_pw₁ and salt_em₁ MUST be stored encrypted
+  on LampNet (encrypted with Master_KEK derived key).
+  These salts MUST NOT appear on-chain.
+  Without salt_pw₁, an attacker with only on-chain data cannot
+  run Argon2id to brute-force the commitment.
+  Note: This requires LampNet to be available for recovery initiation
+  (to retrieve encrypted salts). LampNet unavailability = Tier 5
+  temporarily unavailable (falls through to recovery_not_possible).
+```
+
+---
+
+## §11.7 Tier 5 — Cancel Mechanism [N] *(v4.4)*
+
+```
+-- Standard TAAD_cancel_recovery (§10.2) requires hw_pub signature.
+-- Tier 5 is invoked when device is UNAVAILABLE → hw_pub sig impossible.
+-- Tier 5 therefore uses a separate cancel mechanism.
+
+-- Cancel authority for Tier 5:
+TAAD_cancel_tier5(did: PersonDID, cancel_proof: Tier5CancelProof, s):
+  Pre:
+    TAADDatum.state = Recovering { verification_tier = 5 }
+    ∧ s < recovery_deadline   -- within timelock window
+    ∧ (
+      -- Option A: Knowledge factors (proves legitimate owner, not attacker)
+      BLAKE2b-256(cancel_proof.pw_argon2id_out  ∥ password_salt_pw₂)
+        = password_commitment
+      ∧ BLAKE2b-256(cancel_proof.em_argon2id_out ∥ email_salt_em₂)
+        = email_commitment
+      -- Note: same factors as initiation. If owner can provide both,
+      -- they can also cancel a fraudulent recovery.
+    ) ∨ (
+      -- Option B: If Tier 1/2/3 became available (found secondary wallet,
+      -- contacted guardian): use higher-tier cancel
+      tier_1_proof_valid(did, cancel_proof.secondary_sig) ∨
+      guardian_threshold_signed(did, cancel_proof.guardian_sigs)
+    )
+  Effect:
+    state ← Active; seq++
+
+-- Cancel notification:
+-- Upon Tier 5 recovery initiation (§11.6.4), PhoenixKey backend
+-- MUST send notification to enrolled email address within 24h.
+-- Email notification contains: cancel instructions + unique cancel code.
+-- If attacker initiated fraudulent Tier 5: legitimate owner receives
+-- email → can cancel via knowledge factors (Option A above).
+-- This is the primary detection+cancel mechanism replacing hw_pub.
+
+I-TIER5-CANCEL-1 [N]: Tier 5 recovery initiation MUST trigger email
+  notification to enrolled email within 24h (backend responsibility).
+I-TIER5-CANCEL-2 [N]: Tier 5 cancel MUST NOT require hw_pub signature.
+  Standard TAAD_cancel_recovery (hw_pub based) remains available
+  but is not the primary path for Tier 5.
+I-TIER5-CANCEL-3 [N]: Cancel proof requires SAME knowledge factors
+  as initiation proof. Attacker who initiated cannot cancel
+  without also knowing both password + email.
 ```
 
 ---
@@ -2455,6 +2750,10 @@ Collision: P(n DIDs) ≤ n²/2^257;  at n=10^12: P ≤ 5.4×10^{-54}
 | **v4.3 New ops** (End-of-Life) | Op_declare_death, Op_finalize_posthumous, Op_declare_incapacity, Op_restore_capacity, Op_initiate_dissolution, Op_complete_dissolution, Op_destroy_asset, Op_decommission_device, Op_remove_guardian_did | New contracts only |
 | **v4.3 New states** | Posthumous, Incapacitated, Dissolving, Archived, Decommissioned | Validator redeployment |
 | **v4.3 Additive** | §33 Emergency Vault (client-side), §34 Compliance (policy), §35 Architecture boundary | Doc/client only |
+| **v4.4 Schema** (datum additions) | TAADDatum: knowledge_factors, secondary_wallet_enrolled | Validator redeployment |
+| **v4.4 Validator logic** | Tier 5 path in select_recovery_tier; I-RECOVERY-4 enforcement at registration; TAAD_cancel_tier5 | Coordinated hard fork |
+| **v4.4 Spec clarifications** | §11.0 Recovery scope; I-RECOVERY-1..4; I-TIER5-PW-1..5; I-TIER5-CANCEL-1..3 | Doc update only |
+| **v4.4 Additive** | §11.6 Tier 5 (off-chain commitment, validator BLAKE2b only); §11.7 Tier 5 cancel | New contracts only |
 
 *Testnet: All Schema + Validator Logic changes deployed atomically. No live data → migration cost = 0.*
 
@@ -2499,6 +2798,14 @@ Collision: P(n DIDs) ≤ n²/2^257;  at n=10^12: P ≤ 5.4×10^{-54}
 | co-consent | Decision mode for minors aged CO_CONSENT_ONSET to MINOR_THRESHOLD; see §34.3 |
 | GDPRException | Art.17(3) exception to erasure right: LegalObligation, LegalDefense, etc.; see §34.1 |
 | liability_period_active | creator_liability_active(record, s): s < created_slot + LIABILITY_PERIOD_SLOTS[domain] |
+| KnowledgeFactors | Tier 5 recovery data: password_commitment + email_commitment + salts; see §11.6.2 |
+| Tier 5 | Knowledge-based recovery fallback; weakest tier; 21-day timelock; see §11.6 |
+| TIER5_TIMELOCK | 21 × 432,000 slots ≈ 21 days; mandatory for Tier 5 |
+| Argon2id_out | Off-chain output of Argon2id(password, salt); NEVER stored on-chain; see I-TIER5-PW-1 |
+| password_commitment | BLAKE2b-256(Argon2id_out ∥ salt₂); on-chain; cannot reverse to password |
+| Orphaned DID | Non-Person DID whose owner is Posthumous/Incapacitated/Dissolved; see §11.0.3 |
+| NonPerson_Recover | Owner-sig rotation for non-Person DID; no TAAD; no timelock; see §11.0.2 |
+| I-RECOVERY-4 | Mandatory: at least one of {secondary_wallet, guardians≥2, knowledge_factors} at creation |
 
 ---
 
@@ -2573,24 +2880,27 @@ Slot 201: DelegationToken_valid(dt, 201):
 
 ---
 
-*PhoenixKey Formal Mathematical Specification v4.3*
+*PhoenixKey Formal Mathematical Specification v4.4*
 *© 2026 Greensun Tech Corporation. Inventor: Nguyen Duc Thanh.*
 
-*Peer Review: 5 rounds v4.2 — Gemon (MIT Mathematics & EECS), Serat (Principal Security Architect). v4.3 pending peer review.*
-*47 fixes + 4 errata (v4.2) + v4.3: §32 Lifecycle Completeness, §33 Emergency Vault, §34 Privacy & Compliance, §35 Architecture Boundary; T28.1 Emergency Vault Key Isolation, T28.2 GDPR Tombstone Integrity; PersonDID extended (emergency_vault_key, guardian_did, birth_slot, jurisdiction, estate_config); TAADDatum extended (jurisdiction_flags, guardian_did, estate_config); 9 new Op_ transitions; 5 new DID states; 30+ new invariants.*
+*Peer Review: 5 rounds v4.2 — Gemon (MIT Mathematics & EECS), Serat (Principal Security Architect). v4.3–4.4: Sambo (Senior BA, MIT Sloan), Tuân (Validator Engineer). v4.4 security review pending.*
+
+*v4.4 additions: §11.0 Recovery Scope (TAAD = PersonDID only; non-Person recovery; orphan handling); §11.6 Tier 5 Knowledge-Based Recovery (Password + Email, Argon2id off-chain, BLAKE2b on-chain, I-TIER5-PW-1..5); §11.7 Tier 5 Cancel Mechanism (knowledge-factor cancel + email notification, not hw_pub); TAADDatum extended (knowledge_factors, secondary_wallet_enrolled); I-RECOVERY-1..4 (biometric not a recovery factor; mandatory minimum backup at registration).*
 
 *Normative: §1–§35, Appendices A–D, F.*
 *Non-normative: §28, Appendix E.*
 
 *Deferred to v5.0:*
 *— Mechanized proofs (Coq/Isabelle) for Theorems 27.1, 27.5, 27.7, 28.1, 28.2*
+*— ZK Groth16/Poseidon circuits for Tier 5 (replace commitment-reveal with ZK — Phase 2)*
 *— Theorem 27.3: device-loss + guardian-collusion formal reduction*
 *— Cross-chain bridge semantics*
 *— IoT Sensor offline attestation batch model*
-*— Formal reduction of Theorem 28.1 to HMAC-SHA256 PRF security*
-*— Jurisdiction policy governance protocol (on-chain JurisdictionPolicy updates)*
+*— Jurisdiction policy governance protocol*
+*— Tier 5 with ZK: password never appears in redeemer (Phase 2 migration path)*
 
 *Successor documents:*
 *— PhoenixKey DID Method Specification v1.0 (I-RESOLVER-1, resolver ancestry protocol)*
 *— PhoenixKey Cardano Validator Reference v1.0 (Aiken/PlutusV3)*
 *— PhoenixKey BA Spec v2.0 (business rules, user journeys)*
+*— PhoenixKey Validator PR: §11.0 non-Person recovery + §11.6 Tier 5 + I-RECOVERY-4 enforcement*
