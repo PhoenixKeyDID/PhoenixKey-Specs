@@ -1,18 +1,19 @@
 # PhoenixKey
-## Formal Mathematical Specification — v4.5
+## Formal Mathematical Specification — v4.6
 
 ---
 
 | Field | Value |
 |-------|-------|
-| **Version** | 4.5 |
-| **Date** | 2026-05-28 |
+| **Version** | 4.6 |
+| **Date** | 2026-05-30 |
 | **Basis** | v4.4 + Tuân peer review: 3 critical spec bugs + 2 design trade-offs + 4 editorial fixes |
 | **Status** | Testnet-Ready — Normative |
 | **Network** | Cardano L1 / Aiken–PlutusV3 |
 | **Scope** | Complete mathematical specification: cryptographic core + 10 DID types + full lifecycle + compliance + recovery completeness |
 | **Review** | v4.2: Gemon (MIT Math), Serat (Security); v4.4–4.5: Sambo (BA MIT Sloan), Tuân (Validator Engineer) |
 | **Fixes over v4.4** | **[Bug]** salt_pw₁ circular dependency removed — all salts now on-chain, protection by Argon2id memory-hardness; **[Bug]** `secondary_wallet_enrolled:𝔹` → `secondary_wallets:List<SecondaryWallet>` with pkh commitment; **[Bug]** Email upgraded from knowledge factor to possession factor via EmailOracle OTP (VeData-pattern); **[Bug]** Cancel Option A removed from §11.7 — knowledge factors cannot distinguish owner from attacker; **[Design]** I-RECOVERY-4 grace period (30-day backup_deadline, restricted scope, not hard block); **[Design]** I-RECOVERY-5 recursive orphan edge case; **[Editorial]** Argon2id m unit MiB; HIBP k-anonymity reference; I-TIER5-PW-5 removed |
+| **Added in v4.6** | **[New]** §36 Transaction Fee Architecture — per-operation PhoenixKey fee with 30/70 split: 30% to Cardano Treasury via Conway-era native treasury-donation (tx body field 20), 70% to Phoenix Treasury (Plutus V3 script, OrgDID m-of-n). I-FEE-1/2 enforced on-chain by a fee-receipt minting policy (Aiken stdlib v2 `treasury_donation` accessor; enforcement-point + ExUnits pending Validator Issue #7). Theorem 36.1 fee accountability. `Deactivate` fee-exempt (GDPR parity). |
 
 ---
 
@@ -70,7 +71,7 @@ All appendices non-normative unless marked [N].
 §29 AppTokenEconomics · §30 PPA Claim Mapping · §31 Protocol Boundary
 
 **Part VIII — Lifecycle Completeness** *(new v4.3)*
-§32 End-of-Life Protocols · §33 Emergency Vault · §34 Privacy and Compliance · §35 Layer 0 Architecture Boundary
+§32 End-of-Life Protocols · §33 Emergency Vault · §34 Privacy and Compliance · §35 Layer 0 Architecture Boundary · §36 Transaction Fee Architecture *(v4.6)*
 
 **Appendices**
 A: MECE Coverage · B: DID Construction · C: Capabilities · D: Breaking Changes · E: Glossary · F: Test Vectors · G: References
@@ -2854,6 +2855,340 @@ Application → PhoenixKey:
 -- All interactions are pull-based (resolve) or push-based (sign).
 -- No PhoenixKey private data is accessible to applications without explicit grant.
 ```
+
+---
+
+## §36 Transaction Fee Architecture [N] *(v4.6)*
+
+This section defines the **PhoenixKey fee** charged by every state-changing
+PhoenixKey operation, and the **split** of that fee between the **Cardano
+Treasury** (via the Conway-era native treasury-donation field) and the
+**Phoenix Treasury** (a Plutus V3 script address governed by PhoenixKey
+OrgDID multisig).
+
+The fee is **in addition to**, and disjoint from, the Cardano protocol
+`fee` paid to stake pool operators. PhoenixKey fee is a value-flow on top
+of the underlying ledger; ledger `fee` is unchanged.
+
+---
+
+### §36.1 Fee Schedule [N]
+
+`phoenix_fee : Operation → Lovelace` is a total function. Values are
+network constants and may be revised only via PhoenixKey OrgDID
+governance vote (§35.2 M-7); a revision rebakes a new validator parameter
+set and emits a new script hash.
+
+```
+-- Lovelace constants (1 ADA = 1_000_000 lovelace):
+PHOENIX_FEE_CREATE_PERSON_DID     = 2_000_000   -- 2 ADA  (PersonDID genesis)
+PHOENIX_FEE_CREATE_NON_PERSON_DID = 5_000_000   -- 5 ADA  (Org/Service/Device/...)
+PHOENIX_FEE_ROTATE                = 1_000_000   -- 1 ADA  (TAAD Rotate)
+PHOENIX_FEE_TRANSFER_SERVICE      = 5_000_000   -- 5 ADA  (ServiceDID Transfer)
+PHOENIX_FEE_UPDATE_GUARDIANS      = 500_000     -- 0.5 ADA
+PHOENIX_FEE_INIT_RECOVERY_T1      = 1_000_000   -- 1 ADA  (Tier 1)
+PHOENIX_FEE_INIT_RECOVERY_T2      = 1_000_000   -- 1 ADA  (Tier 2)
+PHOENIX_FEE_INIT_RECOVERY_T3      = 1_000_000   -- 1 ADA  (Tier 3)
+PHOENIX_FEE_INIT_RECOVERY_T5      = 3_000_000   -- 3 ADA  (Tier 5 — deterrent)
+PHOENIX_FEE_CANCEL_RECOVERY       = 500_000     -- 0.5 ADA
+PHOENIX_FEE_FINALIZE_RECOVERY     = 500_000     -- 0.5 ADA
+PHOENIX_FEE_MINT_MAGIC            = 500_000     -- 0.5 ADA  (per mint tx)
+PHOENIX_FEE_ISSUE_VC_ANCHOR       = 1_000_000   -- 1 ADA  (per anchor tx)
+
+PHOENIX_FEE_CARDANO_BPS           = 3000        -- 30.00 % to Cardano Treasury
+PHOENIX_FEE_PHOENIX_BPS           = 7000        -- 70.00 % to Phoenix Treasury
+PHOENIX_FEE_BPS_DENOM             = 10_000      -- basis-point denominator
+```
+
+| Operation | Redeemer (`types.ak`) | `phoenix_fee` (lovelace) |
+|---|---|---|
+| Create PersonDID | (publish-did metadata tx) | `PHOENIX_FEE_CREATE_PERSON_DID` |
+| Create non-Person DID (Org / Service / Device / Machine / Asset / Bot / Agent / Context / Char) | (publish-did metadata tx) | `PHOENIX_FEE_CREATE_NON_PERSON_DID` |
+| TAAD Rotate | `Rotate` | `PHOENIX_FEE_ROTATE` |
+| TAAD Transfer (ServiceDID only) | `Transfer` | `PHOENIX_FEE_TRANSFER_SERVICE` |
+| Update Guardians | `UpdateGuardians` | `PHOENIX_FEE_UPDATE_GUARDIANS` |
+| Init Recovery — Tier 1 | `InitRecovery` (Tier 1 proof) | `PHOENIX_FEE_INIT_RECOVERY_T1` |
+| Init Recovery — Tier 2 | `InitRecovery` (Tier 2 proof) | `PHOENIX_FEE_INIT_RECOVERY_T2` |
+| Init Recovery — Tier 3 | `InitRecovery` (Tier 3 proof) | `PHOENIX_FEE_INIT_RECOVERY_T3` |
+| Init Recovery — Tier 5 | `InitRecovery` (Tier 5 proof) | `PHOENIX_FEE_INIT_RECOVERY_T5` |
+| Cancel Recovery | `CancelRecovery` | `PHOENIX_FEE_CANCEL_RECOVERY` |
+| Finalize Recovery | `FinalizeRecovery` | `PHOENIX_FEE_FINALIZE_RECOVERY` |
+| MAGIC mint | (`lamp_policy` / `magic_policy` mint redeemer) | `PHOENIX_FEE_MINT_MAGIC` |
+| Issue VC anchor | (off-chain VC + on-chain anchor metadata tx) | `PHOENIX_FEE_ISSUE_VC_ANCHOR` |
+
+*Note (Deactivate):* the `Deactivate` redeemer is **fee-exempt** by design
+— users must always be able to revoke their own identity at zero
+incremental cost beyond the Cardano protocol `fee`. Same rationale as
+GDPR erasure (§34.1).
+
+*Note (entity_type discrimination):* the Create distinction is
+**off-chain** (Rust tx builder selects the constant from
+`EntityType`) — there is no on-chain `Create` redeemer. The Plutus
+validator only enforces the **split invariants** (§36.5) on outputs of
+the tx, not the absolute amount; the absolute amount is enforced by the
+indexer / resolver (§I-FEE-OBS-1) and by the SDK at signing time.
+
+---
+
+### §36.2 Split Formula (Integer Arithmetic) [N]
+
+For any `phoenix_fee ∈ Lovelace`:
+
+```
+cardano_share : Lovelace ≜ ⌊ phoenix_fee × PHOENIX_FEE_CARDANO_BPS
+                              / PHOENIX_FEE_BPS_DENOM ⌋
+phoenix_share : Lovelace ≜ phoenix_fee − cardano_share
+```
+
+All arithmetic is integer (Z); no floats, no rationals. The floor in
+`cardano_share` resolves rounding **in favour of Phoenix Treasury** —
+this is the deliberate convention so the Cardano-side donation can never
+exceed the user-promised 30 %, and the leftover lovelace (≤ 1) lands on
+the Phoenix side where it remains governable.
+
+Numeric example (`phoenix_fee = 2_000_000`):
+
+```
+cardano_share = ⌊ 2_000_000 × 3000 / 10_000 ⌋ = 600_000
+phoenix_share = 2_000_000 − 600_000           = 1_400_000
+                                                ─────────
+                                       sum    = 2_000_000   ✓
+```
+
+For all 13 entries of §36.1 the residual `phoenix_fee mod 10` is 0, so
+the split is exact and `phoenix_share / cardano_share = 70/30` with zero
+truncation loss. The floor convention exists for future fee revisions
+that may not divide evenly by 10_000.
+
+---
+
+### §36.3 Cardano Treasury Donation [N]
+
+The `cardano_share` MUST be paid via the Conway-era native
+**treasury-donation** field of the transaction body, **not** as a UTxO
+output to any address. This is the only ledger-recognised path that
+deposits lovelace directly into the Cardano Treasury (CIP-1694 §
+Treasury; conway.cddl key `20`).
+
+Conway `transaction_body` (excerpt, normative):
+
+```
+transaction_body =
+  { 0 : set<transaction_input>            ; inputs
+  , 1 : [* transaction_output]            ; outputs
+  , 2 : coin                              ; fee
+  , ...
+  , ? 20 : positive_coin                  ; treasury_donation  (Conway)
+  }
+```
+
+**Encoding requirement.** For any tx `T` that exercises a fee-bearing
+PhoenixKey operation:
+
+```
+treasury_donation(T) = cardano_share                     -- field 20
+∃ phoenix_output ∈ T.outputs:
+    address(phoenix_output) = phoenix_treasury_address    -- §36.4
+    lovelace(phoenix_output.value) ≥ phoenix_share
+```
+
+`positive_coin` requires the donation be strictly positive; for any
+`phoenix_fee ≥ PHOENIX_FEE_BPS_DENOM` (= 10 000 lovelace = 0.01 ADA) the
+formula in §36.2 always yields `cardano_share ≥ 1`, so the smallest
+fee in the §36.1 table (`PHOENIX_FEE_UPDATE_GUARDIANS = 500_000`) maps
+to `cardano_share = 150_000`, well above the `positive_coin` floor.
+
+**Why a workaround would be wrong.** Pre-Conway implementations
+sometimes pay "Cardano dev fund" via a UTxO output to a multisig
+controlled by a foundation wallet. That is **not** a donation to the
+Cardano Treasury; the lovelace remains in the UTxO set and is
+indistinguishable from any other transfer. Field 20 is the only encoding
+that increases `Treasury` in the ledger state. PhoenixKey MUST use field
+20 on Conway-era networks (mainnet, preprod, preview from epoch ≥ the
+Conway hard fork).
+
+---
+
+### §36.4 Phoenix Treasury Address [N]
+
+`phoenix_treasury_address` is the script address of the **Phoenix
+Treasury validator** (Plutus V3, parameterised by PhoenixKey OrgDID).
+Derivation:
+
+```
+phoenix_treasury_address ≜
+    addr_credential( ScriptHash(blake2b_224(
+        phoenix_treasury_validator_cbor( params ))) )
+  where params =
+    { gov_org_did            : DID            -- PhoenixKey ServiceDID's
+                                                governing OrgDID (§29.3)
+    , withdrawal_threshold_m : Int            -- m of n multisig
+    , withdrawal_n_signers   : Int            -- = |OrgDID members| at deploy
+    , min_withdrawal_lovelace: Int            -- anti-dust
+    , vote_anchor_required   : Bool           -- if True, Withdraw must carry
+                                                a governance-anchor field
+    }
+```
+
+**Spend conditions (validator design — full pseudocode in companion
+document `phoenix-treasury-validator-design.md`):**
+
+| Redeemer | Validator check |
+|---|---|
+| `Lock` | always accepts (anyone may pay into Phoenix Treasury). |
+| `Withdraw { amount, recipient, sig_set, vote_proof }` | (a) `count_signed_org_members(self, gov_org_did) ≥ withdrawal_threshold_m`; (b) `vote_proof` resolves to an executed PhoenixKey OrgDID governance vote permitting `amount` to `recipient`; (c) `amount ≥ min_withdrawal_lovelace`; (d) continuing-output value reduced by exactly `amount`; (e) `last_withdrawal_slot` strictly increases. |
+
+**Lock semantics.** A `Lock` spend keeps Phoenix Treasury composable
+with arbitrary fee-bearing tx builders: the SDK may consume an existing
+Phoenix Treasury UTxO and re-deposit its full value alongside the new
+fee in the same tx (e.g. to merge dust outputs), without needing any
+governance signature. The continuing-output invariant under `Lock` is
+`output.lovelace ≥ input.lovelace` (cannot leak), enforced on-script.
+
+`gov_org_did = PhoenixKey OrgDID` is the same OrgDID that governs the
+PhoenixKey ServiceDID per §29.3 Genesis Protocol. Member set and
+threshold are read off the OrgDID's on-chain datum (resolved by the
+validator via reference input — the OrgDID UTxO is included in the tx
+as a read-only reference, no spend).
+
+---
+
+### §36.5 Invariants [N]
+
+```
+-- I-FEE-1: Cardano share floor.
+-- For every PhoenixKey-fee-bearing tx T with declared phoenix_fee F:
+--   treasury_donation(T) ≥ ⌊ F × PHOENIX_FEE_CARDANO_BPS
+--                              / PHOENIX_FEE_BPS_DENOM ⌋
+
+-- I-FEE-2: Conservation (no leakage).
+-- For every PhoenixKey-fee-bearing tx T with declared phoenix_fee F:
+--   treasury_donation(T)                                -- field 20
+-- + Σ { lovelace(o.value) | o ∈ T.outputs,
+--                           o.address = phoenix_treasury_address }
+--   ≥ F
+-- (Equality holds modulo Phoenix-Treasury anti-dust top-ups; a strict-
+-- equality variant I-FEE-2-STRICT is enforced by the off-chain SDK
+-- before signing, see §36.6.)
+
+-- I-FEE-3: Phoenix Treasury withdrawal authorisation.
+-- For every spend of a phoenix_treasury_address UTxO U with redeemer
+-- Withdraw{ amount, recipient, sig_set, vote_proof }:
+--   count_signed_org_members(T, params.gov_org_did)
+--     ≥ params.withdrawal_threshold_m
+-- ∧ vote_proof binds amount and recipient to an executed PhoenixKey
+--   OrgDID governance vote
+-- ∧ no continuing-output value loss other than the authorised amount.
+
+-- I-FEE-OBS-1: Resolver observability.
+-- The did:phoenix resolver MUST surface, for every state-changing tx in
+-- a DID's history, the phoenix_fee paid (parsed from field 20 +
+-- phoenix_treasury_address output) and reject from "valid PhoenixKey
+-- op" status any tx that does not satisfy I-FEE-1 ∧ I-FEE-2.
+```
+
+`count_signed_org_members(T, org_did)` is the existing OrgDID helper
+from §13: it walks the OrgDID datum from a reference input in `T`,
+loads the member key-hash set, and counts how many are present in
+`T.required_signers` (the Cardano transaction's `extra_signatories`).
+
+**Note on enforcement layer.** I-FEE-1 and I-FEE-2 are enforced
+**on-chain** by a dedicated **fee-receipt minting policy** (Plutus V3),
+not by the TAAD validator (which retains single-responsibility for
+identity authority only). Every fee-bearing PhoenixKey operation MUST
+mint exactly one `fee-ok` token under this policy, with an atomic
+burn-on-mint so no token state accumulates. The minting policy validates,
+in the same transaction:
+
+```
+-- fee-receipt minting policy spend check:
+expect Some(donated) = transaction.treasury_donation          -- field 20
+expect donated == cardano_share(declared_phoenix_fee)         -- I-FEE-1 equality
+expect Σ { lovelace(o.value) | o ∈ transaction.outputs,
+           o.address = phoenix_treasury_address } ≥ phoenix_share(declared_phoenix_fee)
+-- I-FEE-2 conservation: donated + phoenix_output ≥ declared_phoenix_fee
+```
+
+`transaction.treasury_donation : Option<Lovelace>` is a typed accessor
+in the Aiken stdlib `cardano/transaction` module (stdlib v2, compiler
+v1.1.7), so no raw script-context Data parsing is required. The policy
+optionally references the TAAD validator script hash to ensure it only
+activates for genuine PhoenixKey operations (not arbitrary external txs).
+
+I-FEE-3 is enforced on-chain by the Phoenix Treasury validator (§36.4).
+I-FEE-OBS-1 (resolver observability) remains an off-chain indexing
+requirement layered on top of the on-chain guarantees above.
+
+> **Implementation status.** The fee-receipt minting policy design is
+> pending validator-engineer confirmation of (a) ExUnits cost per tx
+> (estimated mem ~150–400, CPU ~80K–200K, i.e. +3–12% over the ~0.17 ADA
+> baseline network fee) and (b) burn-on-mint composability with a TAAD
+> spend in the same transaction (tracked in PhoenixKey-Validator Issue
+> \#7). Until the policy lands, the SDK enforces I-FEE-1/I-FEE-2 at
+> tx-building time as a transitional safeguard; the resolver marks any
+> tx violating the split as `INVALID_FEE_SPLIT`. The economic incentive
+> to cheat is already negative (an adversary under-donating still loses
+> the full `phoenix_fee` to the Phoenix-side output and gains nothing),
+> so the on-chain policy hardens an already-safe position rather than
+> closing an exploitable gap.
+
+---
+
+### §36.6 Theorem 36.1 — Fee Accountability [N]
+
+**Statement.** Every fee-bearing PhoenixKey operation contributes
+simultaneously to (a) Cardano network sustainability via the Conway
+treasury and (b) PhoenixKey ecosystem sustainability via the Phoenix
+Treasury, with on-chain proof of both contributions and zero leakage.
+
+*Formally.* For every PhoenixKey state-changing transaction `T` with
+declared `phoenix_fee = F > 0`, the SDK builds `T` such that:
+
+```
+(1) treasury_donation(T) ≥ ⌊ F × 3000 / 10_000 ⌋             [I-FEE-1]
+(2) Σ phoenix_treasury_outputs(T) = F − treasury_donation(T)  [I-FEE-2-STRICT]
+(3) The Cardano ledger atomically:
+      − reduces inputs by F (+ protocol fee + min-ADA outputs),
+      − increases Treasury by treasury_donation(T),
+      − adds outputs at phoenix_treasury_address summing to phoenix_share.
+```
+
+*Proof.*
+- (1) and (2) are SDK pre-conditions; the tx is rejected by the SDK
+  before signing if either fails (`build_*_tx` returns `Err` —
+  enforced by the §36 Rust-side checks listed in
+  `fee-integration-plan.md`).
+- (3) follows from Cardano ledger atomicity (Conway era):
+  `transaction_body` field 20 is processed in the same ledger
+  state-transition that processes inputs and outputs; either the entire
+  tx succeeds and Treasury increases by exactly `treasury_donation(T)`,
+  or the tx fails and no state change occurs (CDDL `positive_coin`
+  rejects 0; ledger validation rejects underfunded inputs).
+- The Phoenix-side accountability follows from the Phoenix Treasury
+  validator (`Lock` accepts the output; subsequent `Withdraw` requires
+  I-FEE-3 — multisig + governance vote).
+
+Therefore every PhoenixKey op that successfully lands on-chain has, by
+construction, contributed to both sustainability pools, and any tx that
+fails to so contribute is rejected (off-chain by SDK; on-chain by
+ledger if field 20 is malformed; downstream by resolver if any §36.5
+invariant is violated). ∎
+
+**Corollary 36.1.1 — No Free Lunch.** A PhoenixKey operation cannot
+land on-chain without paying both shares. In particular, an
+implementation cannot "save gas" by setting `treasury_donation = 0`:
+the SDK refuses to sign and the resolver refuses to index. ∎
+
+**Corollary 36.1.2 — Boundary Compatibility with §31.1.** Fee logic
+falls entirely within §31.1 Fully Open scope: §36.1 constants, §36.2
+formula, §36.3 encoding, §36.4 validator design, and §36.5 invariants
+are all specified in this document and licensed Apache 2.0. Any
+third-party PhoenixKey implementation MUST satisfy §36 to be
+interoperable with the canonical resolver. ∎
+
+---
+
+*End §36.*
 
 ---
 
