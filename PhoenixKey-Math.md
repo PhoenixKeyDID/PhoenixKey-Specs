@@ -17,6 +17,24 @@
 
 ---
 
+> **⚠️ Implementation status vs specification.** "Normative" means this
+> document is **binding on conformant implementations** — it does **not**
+> mean every section is deployed on-chain today. Current state at v4.6:
+>
+> | Area | Spec | Status today |
+> |---|---|---|
+> | Crypto primitives (HKDF, Ed25519, BLAKE2b, P-256 verify, CIP-1852) | §1, §6, §8 | ✅ Implemented (rust_core) |
+> | DID Document publish (metadata label 6789) | §2 | ✅ Implemented (PhoenixKey-PoC) — verified live on preprod + preview |
+> | TAAD UTxO state machine + Rotate redeemer | §10 | ⏳ Validator compiles; tx-builder on a feature branch, not yet merged |
+> | Tiered recovery (Tier 1–5) | §11 | ⏳ Spec-only — no recovery code path yet |
+> | §36 fee architecture (30/70 split, Phoenix Treasury) | §36 | ⏳ Spec-only — enforcement pending Validator Issue #7 |
+>
+> The **PhoenixKey-PoC** repo demonstrates the implemented subset end-to-end
+> on public testnets. Sections marked ⏳ are normative targets, **not yet
+> live**. This table is the authoritative answer to "is X deployed?".
+
+---
+
 ## Abstract
 
 PhoenixKey is a decentralized identity and asset management system on Cardano that eliminates seed phrase memorization through hardware-secured key generation and tiered recovery. This document is the definitive mathematical specification. v4.5 closes four spec bugs identified in v4.4 peer review: (1) salt_pw₁ circular dependency removed — all salts on-chain, protection via Argon2id memory-hardness; (2) boolean secondary_wallet field replaced with SecondaryWallet commitment list; (3) email upgraded from knowledge to possession factor via EmailOracle OTP; (4) cancel Option A removed. Additionally: grace-period enforcement (I-RECOVERY-4 revised), recursive orphan (I-RECOVERY-5), editorial fixes.
@@ -3136,13 +3154,23 @@ requirement layered on top of the on-chain guarantees above.
 
 ### §36.6 Theorem 36.1 — Fee Accountability [N]
 
-**Statement.** Every fee-bearing PhoenixKey operation contributes
-simultaneously to (a) Cardano network sustainability via the Conway
-treasury and (b) PhoenixKey ecosystem sustainability via the Phoenix
-Treasury, with on-chain proof of both contributions and zero leakage.
+> **Implementation status.** The §36 fee mechanism is **specified but not
+> yet implemented** as of v4.6 — no fee-bearing code path exists on `main`
+> in any repository, and the enforcement design (fee-receipt minting policy
+> + reference-SDK checks) is pending Validator Issue #7. The theorem below
+> states a property of the *specified* design that a conformant
+> implementation MUST satisfy once built. It is **not** an assertion about
+> currently deployed code.
+
+**Statement.** Under a conformant implementation of the §36 fee mechanism,
+every fee-bearing PhoenixKey operation contributes simultaneously to
+(a) Cardano network sustainability via the Conway treasury and
+(b) PhoenixKey ecosystem sustainability via the Phoenix Treasury, with
+on-chain proof of both contributions and zero leakage.
 
 *Formally.* For every PhoenixKey state-changing transaction `T` with
-declared `phoenix_fee = F > 0`, the SDK builds `T` such that:
+declared `phoenix_fee = F > 0`, a conformant implementation builds `T`
+such that:
 
 ```
 (1) treasury_donation(T) ≥ ⌊ F × 3000 / 10_000 ⌋             [I-FEE-1]
@@ -3154,10 +3182,12 @@ declared `phoenix_fee = F > 0`, the SDK builds `T` such that:
 ```
 
 *Proof.*
-- (1) and (2) are SDK pre-conditions; the tx is rejected by the SDK
-  before signing if either fails (`build_*_tx` returns `Err` —
-  enforced by the §36 Rust-side checks listed in
-  `fee-integration-plan.md`).
+- (1) and (2) are conditions a conformant implementation MUST enforce —
+  at minimum off-chain (the reference SDK rejects the tx before signing,
+  `build_*_tx` returns `Err`) and, once the fee-receipt minting policy
+  lands (Validator Issue #7), on-chain (the policy fails the mint if
+  either is violated). **Both enforcement layers are pending** — see the
+  Implementation status note above and the §36.5 enforcement note.
 - (3) follows from Cardano ledger atomicity (Conway era):
   `transaction_body` field 20 is processed in the same ledger
   state-transition that processes inputs and outputs; either the entire
