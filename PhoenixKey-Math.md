@@ -13,7 +13,7 @@
 | **Scope** | Complete mathematical specification: cryptographic core + 10 DID types + full lifecycle + compliance + recovery completeness |
 | **Review** | v4.2: Gemon (MIT Math), Serat (Security); v4.4–4.5: Sambo (BA MIT Sloan), Tuân (Validator Engineer) |
 | **Fixes over v4.4** | **[Bug]** salt_pw₁ circular dependency removed — all salts now on-chain, protection by Argon2id memory-hardness; **[Bug]** `secondary_wallet_enrolled:𝔹` → `secondary_wallets:List<SecondaryWallet>` with pkh commitment; **[Bug]** Email upgraded from knowledge factor to possession factor via EmailOracle OTP (VeData-pattern); **[Bug]** Cancel Option A removed from §11.7 — knowledge factors cannot distinguish owner from attacker; **[Design]** I-RECOVERY-4 grace period (30-day backup_deadline, restricted scope, not hard block); **[Design]** I-RECOVERY-5 recursive orphan edge case; **[Editorial]** Argon2id m unit MiB; HIBP k-anonymity reference; I-TIER5-PW-5 removed |
-| **Added in v4.6** | **[New]** §36 Transaction Fee Architecture — per-operation PhoenixKey fee with 30/70 split: 30% to Cardano Treasury via Conway-era native treasury-donation (tx body field 20), 70% to Phoenix Treasury (Plutus V3 script, OrgDID m-of-n). I-FEE-1/2 enforced on-chain by a fee-receipt minting policy (Aiken stdlib v2 `treasury_donation` accessor; enforcement-point + ExUnits pending Validator Issue #7). Theorem 36.1 fee accountability. `Deactivate` fee-exempt (GDPR parity). |
+| **Added in v4.6** | **[New]** §36 Transaction Fee Architecture — per-operation PhoenixKey fee with 30/70 split: 30% to Cardano Treasury via Conway-era native treasury-donation (tx body field 20), 70% to Phoenix Treasury (Plutus V3 script, OrgDID m-of-n). **Fees are on-chain adjustable parameters** (`FeeParams` reference UTxO) updatable by **DAO governance vote OR an algorithmic module** — no script-hash rebake. **PersonDID create fee = 0 at launch** (user-acquisition incentive; zero-fee ops skip the fee mechanism, like `Deactivate`). I-FEE-1/2 enforced on-chain by a fee-receipt minting policy (Aiken stdlib v2 `treasury_donation` accessor; enforcement-point + ExUnits pending Validator Issue #7). Theorem 36.1 fee accountability. |
 
 ---
 
@@ -2890,61 +2890,108 @@ of the underlying ledger; ledger `fee` is unchanged.
 
 ---
 
-### §36.1 Fee Schedule [N]
+### §36.1 Fee Schedule — On-Chain Adjustable Parameters [N]
 
-`phoenix_fee : Operation → Lovelace` is a total function. Values are
-network constants and may be revised only via PhoenixKey OrgDID
-governance vote (§35.2 M-7); a revision rebakes a new validator parameter
-set and emits a new script hash.
+`phoenix_fee : Operation → Lovelace` is a total function whose values are
+**on-chain adjustable parameters**, NOT compile-time constants. They are
+held in a `FeeParams` record at a single governance-controlled reference
+UTxO (`fee_params_ref`) and read by the fee-receipt minting policy (§36.5)
+via a CIP-0031 reference input. Adjusting any fee therefore updates the
+`FeeParams` datum **without** rebaking the validator/policy script and
+**without** changing any script hash or address.
 
 ```
--- Lovelace constants (1 ADA = 1_000_000 lovelace):
-PHOENIX_FEE_CREATE_PERSON_DID     = 2_000_000   -- 2 ADA  (PersonDID genesis)
-PHOENIX_FEE_CREATE_NON_PERSON_DID = 5_000_000   -- 5 ADA  (Org/Service/Device/...)
-PHOENIX_FEE_ROTATE                = 1_000_000   -- 1 ADA  (TAAD Rotate)
-PHOENIX_FEE_TRANSFER_SERVICE      = 5_000_000   -- 5 ADA  (ServiceDID Transfer)
-PHOENIX_FEE_UPDATE_GUARDIANS      = 500_000     -- 0.5 ADA
-PHOENIX_FEE_INIT_RECOVERY_T1      = 1_000_000   -- 1 ADA  (Tier 1)
-PHOENIX_FEE_INIT_RECOVERY_T2      = 1_000_000   -- 1 ADA  (Tier 2)
-PHOENIX_FEE_INIT_RECOVERY_T3      = 1_000_000   -- 1 ADA  (Tier 3)
-PHOENIX_FEE_INIT_RECOVERY_T5      = 3_000_000   -- 3 ADA  (Tier 5 — deterrent)
-PHOENIX_FEE_CANCEL_RECOVERY       = 500_000     -- 0.5 ADA
-PHOENIX_FEE_FINALIZE_RECOVERY     = 500_000     -- 0.5 ADA
-PHOENIX_FEE_MINT_MAGIC            = 500_000     -- 0.5 ADA  (per mint tx)
-PHOENIX_FEE_ISSUE_VC_ANCHOR       = 1_000_000   -- 1 ADA  (per anchor tx)
+-- FeeParams: on-chain record at fee_params_ref (governance UTxO).
+FeeParams ≜ {
+  fee_create_person_did     : Lovelace,   -- launch incentive: 0 (see below)
+  fee_create_non_person_did : Lovelace,
+  fee_rotate                : Lovelace,
+  fee_transfer_service      : Lovelace,
+  fee_update_guardians      : Lovelace,
+  fee_init_recovery_t1      : Lovelace,
+  fee_init_recovery_t2      : Lovelace,
+  fee_init_recovery_t3      : Lovelace,
+  fee_init_recovery_t5      : Lovelace,
+  fee_cancel_recovery       : Lovelace,
+  fee_finalize_recovery     : Lovelace,
+  fee_mint_magic            : Lovelace,
+  fee_issue_vc_anchor       : Lovelace,
+  cardano_bps               : ℕ,          -- split to Cardano Treasury (default 3000 = 30%)
+  bps_denom                 : ℕ,          -- = 10_000
+  policy_version            : ℕ,          -- monotone; increments each update
+  update_authority          : FeeUpdateAuthority,
+}
 
-PHOENIX_FEE_CARDANO_BPS           = 3000        -- 30.00 % to Cardano Treasury
-PHOENIX_FEE_PHOENIX_BPS           = 7000        -- 70.00 % to Phoenix Treasury
-PHOENIX_FEE_BPS_DENOM             = 10_000      -- basis-point denominator
+-- Two adjustment paths (governance selects which is active):
+FeeUpdateAuthority ≜
+  | DAO(gov_org_did: DID, threshold_m: ℕ, n: ℕ)
+      -- PhoenixKey OrgDID m-of-n governance vote sets new values (§13, §35.2).
+  | Algorithmic(formula_script: ScriptHash, oracle_refs: List<OutputReference>)
+      -- A governance-installed Plutus module derives fees from on-chain
+      -- signals (e.g. ADA/USD oracle, recent DID-creation rate, treasury
+      -- target). The formula itself is a governance-installed parameter;
+      -- the specific economic model is out of scope here (operational /
+      -- DAO decision), defaulting to DAO until an Algorithmic module is voted in.
 ```
 
-| Operation | Redeemer (`types.ak`) | `phoenix_fee` (lovelace) |
+**Genesis defaults (lovelace; revisable per above):**
+
+```
+fee_create_person_did     = 0           -- LAUNCH INCENTIVE: PersonDID free
+fee_create_non_person_did = 5_000_000   -- 5 ADA  (Org/Service/Device/...)
+fee_rotate                = 1_000_000   -- 1 ADA
+fee_transfer_service      = 5_000_000   -- 5 ADA  (ServiceDID Transfer)
+fee_update_guardians      = 500_000     -- 0.5 ADA
+fee_init_recovery_t1/t2/t3= 1_000_000   -- 1 ADA each
+fee_init_recovery_t5      = 3_000_000   -- 3 ADA  (Tier 5 — deterrent)
+fee_cancel_recovery       = 500_000     -- 0.5 ADA
+fee_finalize_recovery     = 500_000     -- 0.5 ADA
+fee_mint_magic            = 500_000     -- 0.5 ADA  (per mint tx)
+fee_issue_vc_anchor       = 1_000_000   -- 1 ADA  (per anchor tx)
+cardano_bps               = 3000        -- 30%; phoenix share = bps_denom − cardano_bps
+bps_denom                 = 10_000
+```
+
+| Operation | Redeemer (`types.ak`) | `phoenix_fee` field |
 |---|---|---|
-| Create PersonDID | (publish-did metadata tx) | `PHOENIX_FEE_CREATE_PERSON_DID` |
-| Create non-Person DID (Org / Service / Device / Machine / Asset / Bot / Agent / Context / Char) | (publish-did metadata tx) | `PHOENIX_FEE_CREATE_NON_PERSON_DID` |
-| TAAD Rotate | `Rotate` | `PHOENIX_FEE_ROTATE` |
-| TAAD Transfer (ServiceDID only) | `Transfer` | `PHOENIX_FEE_TRANSFER_SERVICE` |
-| Update Guardians | `UpdateGuardians` | `PHOENIX_FEE_UPDATE_GUARDIANS` |
-| Init Recovery — Tier 1 | `InitRecovery` (Tier 1 proof) | `PHOENIX_FEE_INIT_RECOVERY_T1` |
-| Init Recovery — Tier 2 | `InitRecovery` (Tier 2 proof) | `PHOENIX_FEE_INIT_RECOVERY_T2` |
-| Init Recovery — Tier 3 | `InitRecovery` (Tier 3 proof) | `PHOENIX_FEE_INIT_RECOVERY_T3` |
-| Init Recovery — Tier 5 | `InitRecovery` (Tier 5 proof) | `PHOENIX_FEE_INIT_RECOVERY_T5` |
-| Cancel Recovery | `CancelRecovery` | `PHOENIX_FEE_CANCEL_RECOVERY` |
-| Finalize Recovery | `FinalizeRecovery` | `PHOENIX_FEE_FINALIZE_RECOVERY` |
-| MAGIC mint | (`lamp_policy` / `magic_policy` mint redeemer) | `PHOENIX_FEE_MINT_MAGIC` |
-| Issue VC anchor | (off-chain VC + on-chain anchor metadata tx) | `PHOENIX_FEE_ISSUE_VC_ANCHOR` |
+| **Create PersonDID** | (publish-did metadata tx) | `fee_create_person_did` — **0 at launch** |
+| Create non-Person DID (Org / Service / Device / Machine / Asset / Bot / Agent / Context / Char) | (publish-did metadata tx) | `fee_create_non_person_did` |
+| TAAD Rotate | `Rotate` | `fee_rotate` |
+| TAAD Transfer (ServiceDID only) | `Transfer` | `fee_transfer_service` |
+| Update Guardians | `UpdateGuardians` | `fee_update_guardians` |
+| Init Recovery — Tier 1 / 2 / 3 | `InitRecovery` (tier proof) | `fee_init_recovery_t{1,2,3}` |
+| Init Recovery — Tier 5 | `InitRecovery` (Tier 5 proof) | `fee_init_recovery_t5` |
+| Cancel / Finalize Recovery | `CancelRecovery` / `FinalizeRecovery` | `fee_cancel_recovery` / `fee_finalize_recovery` |
+| MAGIC mint | (`lamp_policy` / `magic_policy` mint redeemer) | `fee_mint_magic` |
+| Issue VC anchor | (off-chain VC + on-chain anchor metadata tx) | `fee_issue_vc_anchor` |
 
-*Note (Deactivate):* the `Deactivate` redeemer is **fee-exempt** by design
-— users must always be able to revoke their own identity at zero
-incremental cost beyond the Cardano protocol `fee`. Same rationale as
-GDPR erasure (§34.1).
+*Note (PersonDID = 0 at launch):* PersonDID creation fee is **0** as a
+user-acquisition incentive. PersonDID is the root of trust and the entry
+point for human users; a zero fee removes onboarding friction. Governance
+(DAO or Algorithmic) may raise it later via a `FeeParams` update — no
+script redeploy needed. While a fee is `0`, the operation is handled
+exactly like `Deactivate` (next note): no donation, no Phoenix output, no
+fee-receipt mint.
 
-*Note (entity_type discrimination):* the Create distinction is
-**off-chain** (Rust tx builder selects the constant from
-`EntityType`) — there is no on-chain `Create` redeemer. The Plutus
-validator only enforces the **split invariants** (§36.5) on outputs of
-the tx, not the absolute amount; the absolute amount is enforced by the
-indexer / resolver (§I-FEE-OBS-1) and by the SDK at signing time.
+*Note (zero-fee ops):* whenever `phoenix_fee = 0` (PersonDID at launch, or
+the `Deactivate` redeemer which is permanently fee-exempt for GDPR-erasure
+parity, §34.1), the fee mechanism is **skipped entirely** — no
+`treasury_donation` (Conway field 20 requires `positive_coin > 0`), no
+Phoenix Treasury output, no fee-receipt mint. The split invariants (§36.5)
+are vacuously satisfied.
+
+*Note (entity_type discrimination):* the Create distinction is **off-chain**
+(the tx builder selects the field from `EntityType`) — there is no on-chain
+`Create` redeemer. The fee-receipt minting policy (§36.5) reads the active
+`FeeParams` from `fee_params_ref` and enforces the split on a non-zero fee;
+the absolute per-operation amount is asserted off-chain (SDK) and observed
+by the resolver (I-FEE-OBS-1).
+
+*Note (governance update integrity):* every `FeeParams` update MUST
+increment `policy_version` and be authorised per `update_authority`
+(DAO m-of-n signatures, or a valid Algorithmic-module spend). Clients read
+the current `FeeParams` from `fee_params_ref` at build time; an update is a
+single spend of that UTxO producing a new `FeeParams` datum.
 
 ---
 
@@ -2953,9 +3000,11 @@ indexer / resolver (§I-FEE-OBS-1) and by the SDK at signing time.
 For any `phoenix_fee ∈ Lovelace`:
 
 ```
-cardano_share : Lovelace ≜ ⌊ phoenix_fee × PHOENIX_FEE_CARDANO_BPS
-                              / PHOENIX_FEE_BPS_DENOM ⌋
+cardano_share : Lovelace ≜ ⌊ phoenix_fee × FeeParams.cardano_bps
+                              / FeeParams.bps_denom ⌋
 phoenix_share : Lovelace ≜ phoenix_fee − cardano_share
+-- cardano_bps, bps_denom read from the active FeeParams (§36.1).
+-- When phoenix_fee = 0 ⇒ cardano_share = phoenix_share = 0 (fee-exempt op).
 ```
 
 All arithmetic is integer (Z); no floats, no rationals. The floor in
@@ -3001,7 +3050,7 @@ transaction_body =
 ```
 
 **Encoding requirement.** For any tx `T` that exercises a fee-bearing
-PhoenixKey operation:
+PhoenixKey operation **with `phoenix_fee > 0`**:
 
 ```
 treasury_donation(T) = cardano_share                     -- field 20
@@ -3010,11 +3059,21 @@ treasury_donation(T) = cardano_share                     -- field 20
     lovelace(phoenix_output.value) ≥ phoenix_share
 ```
 
-`positive_coin` requires the donation be strictly positive; for any
-`phoenix_fee ≥ PHOENIX_FEE_BPS_DENOM` (= 10 000 lovelace = 0.01 ADA) the
-formula in §36.2 always yields `cardano_share ≥ 1`, so the smallest
-fee in the §36.1 table (`PHOENIX_FEE_UPDATE_GUARDIANS = 500_000`) maps
-to `cardano_share = 150_000`, well above the `positive_coin` floor.
+`positive_coin` requires the donation be strictly positive. For any
+`phoenix_fee ≥ FeeParams.bps_denom` (= 10 000 lovelace = 0.01 ADA) the
+§36.2 formula yields `cardano_share ≥ 1`; e.g. the smallest non-zero
+default `fee_update_guardians = 500_000` maps to `cardano_share = 150_000`,
+well above the floor.
+
+**Zero-fee operations** (PersonDID at launch with `fee_create_person_did
+= 0`, and the permanently fee-exempt `Deactivate`): `phoenix_fee = 0` ⇒
+`cardano_share = 0`. Field 20 (`positive_coin`) **MUST be omitted**
+(0 is not a valid `positive_coin`), no Phoenix Treasury output is
+required, and no fee-receipt mint is performed. The tx carries only the
+Cardano protocol fee. Should governance later raise
+`fee_create_person_did` above 0 via a `FeeParams` update, PersonDID
+creation automatically becomes fee-bearing under this same rule — no
+script change.
 
 **Why a workaround would be wrong.** Pre-Conway implementations
 sometimes pay "Cardano dev fund" via a UTxO output to a multisig
@@ -3075,9 +3134,10 @@ as a read-only reference, no spend).
 
 ```
 -- I-FEE-1: Cardano share floor.
--- For every PhoenixKey-fee-bearing tx T with declared phoenix_fee F:
---   treasury_donation(T) ≥ ⌊ F × PHOENIX_FEE_CARDANO_BPS
---                              / PHOENIX_FEE_BPS_DENOM ⌋
+-- For every PhoenixKey-fee-bearing tx T with declared phoenix_fee F > 0:
+--   treasury_donation(T) ≥ ⌊ F × FeeParams.cardano_bps
+--                              / FeeParams.bps_denom ⌋
+-- (F = 0 ⇒ fee-exempt op: field 20 omitted, no Phoenix output — §36.3.)
 
 -- I-FEE-2: Conservation (no leakage).
 -- For every PhoenixKey-fee-bearing tx T with declared phoenix_fee F:
