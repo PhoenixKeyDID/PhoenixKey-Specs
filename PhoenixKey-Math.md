@@ -13,7 +13,7 @@
 | **Scope** | Complete mathematical specification: cryptographic core + 10 DID types + full lifecycle + compliance + recovery completeness |
 | **Review** | v4.2: Gemon (MIT Math), Serat (Security); v4.4–4.5: Sambo (BA MIT Sloan), Tuân (Validator Engineer) |
 | **Fixes over v4.4** | **[Bug]** salt_pw₁ circular dependency removed — all salts now on-chain, protection by Argon2id memory-hardness; **[Bug]** `secondary_wallet_enrolled:𝔹` → `secondary_wallets:List<SecondaryWallet>` with pkh commitment; **[Bug]** Email upgraded from knowledge factor to possession factor via EmailOracle OTP (VeData-pattern); **[Bug]** Cancel Option A removed from §11.7 — knowledge factors cannot distinguish owner from attacker; **[Design]** I-RECOVERY-4 grace period (30-day backup_deadline, restricted scope, not hard block); **[Design]** I-RECOVERY-5 recursive orphan edge case; **[Editorial]** Argon2id m unit MiB; HIBP k-anonymity reference; I-TIER5-PW-5 removed |
-| **Added in v4.6** | **[New]** §36 Transaction Fee Architecture — per-operation PhoenixKey fee with 30/70 split: 30% to Cardano Treasury via Conway-era native treasury-donation (tx body field 20), 70% to Phoenix Treasury (Plutus V3 script, OrgDID m-of-n). **Fees are on-chain adjustable parameters** (`FeeParams` reference UTxO) updatable by **DAO governance vote OR an algorithmic module** — no script-hash rebake. **PersonDID create fee = 0 at launch** (user-acquisition incentive; zero-fee ops skip the fee mechanism, like `Deactivate`). I-FEE-1/2 enforced on-chain by a fee-receipt minting policy (Aiken stdlib v2 `treasury_donation` accessor; enforcement-point + ExUnits pending Validator Issue #7). Theorem 36.1 fee accountability. |
+| **Added in v4.6** | **[New]** §36 Transaction Fee Architecture — per-operation PhoenixKey fee with 30/70 split: 30% to Cardano Treasury via Conway-era native treasury-donation (tx body field 20), 70% to Phoenix Treasury (Plutus V3 script, OrgDID m-of-n). **Fees are on-chain adjustable parameters** (`FeeParams` reference UTxO) updatable by **DAO governance vote OR an algorithmic module** — no script-hash rebake. **PersonDID create fee = 0 at launch** (user-acquisition incentive; zero-fee ops skip the fee mechanism, like `Deactivate`). I-FEE-1/2 enforced on-chain by a fee-receipt minting policy (Aiken stdlib v2 `treasury_donation` accessor; enforcement-point + ExUnits pending Validator Issue #7). Theorem 36.1 fee accountability. **[Reconcile §29]** §29 clarified as PhoenixKey-side DID-mapping layer; reward math is canonical MAGIC AppEconomics v2.1 (`computeW` 5-factor + 30% cap), DID-agnostic — legacy v1.0-SA `holder_share_bps` superseded. |
 
 ---
 
@@ -2111,7 +2111,24 @@ The on-chain state post-erasure is `TombstoneRecord = {record_id = H(content_r),
 
 ## §29 AppTokenEconomics Integration [N]
 
-### §29.1 Required Changes to AppTokenEconomics v1.0-SA
+> **Reconciliation with MAGIC AppEconomics v2.1 (canonical).** The reward
+> COMPUTATION engine is **MagicLampNetwork/MAGIC AppEconomics v2.1**:
+> `computeW = V_d × Φ_util × Φ_users × Φ_dispute × κ_tier × Φ_age`, with
+> iterative distribution capped at `MAX_SINGLE_APP_REWARD_BPS` (30%). That
+> engine is **DID-agnostic** and lives in the MAGIC repo — it is shared by any
+> DID method, not just PhoenixKey. This §29 is **only the PhoenixKey-side
+> DID-mapping layer**: it defines which DID / ServiceDID is the app actor that
+> the v2.1 engine credits (ATE-1/2/3), and the Genesis protocol (§29.3).
+>
+> The legacy `holder_share_bps` / `C-TOKEN-CONFIG-2 ≥ 1000` reward semantics
+> referenced below come from the earlier "AppTokenEconomics v1.0-SA" draft and
+> are **superseded** by the v2.1 distribution cap. They are retained here only
+> for the type extensions (ServiceDID/OrgDID holder identities) that thread
+> PhoenixKey DIDs into the holder model. **Reward percentages MUST follow MAGIC
+> AppEconomics v2.1, not the v1.0-SA constants.** Boundary rule: PhoenixKey
+> supplies the DID↔actor mapping (and `Attr*`, §25); MAGIC owns the math.
+
+### §29.1 DID-mapping extensions to the holder model (was: "v1.0-SA changes")
 
 ```
 -- ATE-1: AppTokenConfig adds service_did:
