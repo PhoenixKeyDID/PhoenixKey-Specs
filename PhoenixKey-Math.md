@@ -221,6 +221,16 @@ DID_construct(type, creator, slot) → DID ≜
   hex(H(encode(type) ++ (creator ?? "root") ++ encode(slot) ++ rand_256))
   where rand_256 ← SecureRandom(256)
 
+-- Canonical encodings (NORMATIVE — all implementations MUST match byte-for-byte):
+--   encode(type) ≜ single byte = DIDType.code (Person=0x00, Org=0x01, Context=0x02,
+--                  Device=0x03, Machine=0x04, Asset=0x05, Bot=0x06, Agent=0x07,
+--                  Service=0x08, Character=0x09). NOT the UTF-8 type name.
+--   encode(slot) ≜ slot as 8-byte big-endian (u64 BE), fixed width.
+--   base32(slot) ≜ base32-nopad(8-byte-BE(slot)), lowercase → ALWAYS 13 chars
+--                  (NO leading-zero stripping). Round-trips with the resolver's
+--                  fixed-13 decoder. The method.md ABNF slot-component is fixed to
+--                  exactly 13 chars [a-z2-7]{13}, not variable-length.
+
 Collision: P(any two collide | n DIDs) ≤ n²/2^257 ≈ 5.4×10^{-54} at n=10^12
 ```
 
