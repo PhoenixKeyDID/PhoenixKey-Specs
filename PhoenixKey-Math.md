@@ -24,7 +24,7 @@
 > | Area | Spec | Status today |
 > |---|---|---|
 > | Crypto primitives (HKDF, Ed25519, BLAKE2b, P-256 verify, CIP-1852) | §1, §6, §8 | ✅ Implemented (rust_core) |
-> | DID Document publish (metadata label 6789) | §2 | ✅ Implemented (PhoenixKey-PoC) — verified live on preprod + preview |
+> | DID Document publish (metadata label 6789) | §2.5 | ✅ Implemented (PhoenixKey-PoC) — verified live on preprod + preview |
 > | TAAD UTxO state machine + Rotate redeemer | §10 | ⏳ Validator compiles; tx-builder on a feature branch, not yet merged |
 > | Tiered recovery (Tier 1–5) | §11 | ⏳ Spec-only — no recovery code path yet |
 > | §36 fee architecture (30/70 split, Phoenix Treasury) | §36 | ⏳ Spec-only — enforcement pending Validator Issue #7 |
@@ -37,7 +37,7 @@
 
 ## Abstract
 
-PhoenixKey is a decentralized identity and asset management system on Cardano that eliminates seed phrase memorization through hardware-secured key generation and tiered recovery. This document is the definitive mathematical specification. v4.5 closes four spec bugs identified in v4.4 peer review: (1) salt_pw₁ circular dependency removed — all salts on-chain, protection via Argon2id memory-hardness; (2) boolean secondary_wallet field replaced with SecondaryWallet commitment list; (3) email upgraded from knowledge to possession factor via EmailOracle OTP; (4) cancel Option A removed. Additionally: grace-period enforcement (I-RECOVERY-4 revised), recursive orphan (I-RECOVERY-5), editorial fixes.
+PhoenixKey is a decentralized identity and asset management system on Cardano that eliminates seed phrase memorization through hardware-secured key generation and tiered recovery. This document is the definitive mathematical specification. v4.5 closes four spec bugs identified in v4.4 peer review: (1) salt_pw₁ circular dependency removed — all salts on-chain, protection via Argon2id memory-hardness; (2) boolean secondary_wallet field replaced with SecondaryWallet commitment list; (3) email upgraded from knowledge to possession factor via EmailOracle OTP; (4) cancel Option A removed. Additionally: grace-period enforcement (I-RECOVERY-4 revised), recursive orphan (I-RECOVERY-5), editorial fixes. v4.6 adds §36 Transaction Fee Architecture (30/70 Cardano-Treasury / Phoenix-Treasury split, normative); the MVP forward-compatibility primitives — a `schema_version` field in the metadata-6789 DID Document and the TAADDatum, plus a reserved DID type-code range (§2.1–§2.2); §2.5 normative on-chain DID Document encoding (metadata label 6789); §13.1–§13.2 OrgDID create/governance operations; and §22.0/§22.3 a unified owner-graph (owner/roots/depth/Ancestors) with cycle and sovereign-root guards.
 
 **Key results:** Theorems 27.1–27.7, 28.1–28.2. TAAD ASM Invariants A-1..A-6. I-RECOVERY-1..5. I-TIER5-PW-1..4, I-TIER5-CANCEL-1..3.
 
@@ -63,7 +63,7 @@ All appendices non-normative unless marked [N].
 ## Table of Contents
 
 **Part I — Foundations**
-§1 Notation · §2 Universal DID Base · §3 Capability and Scope · §4 Authority Model · §5 Lifecycle
+§1 Notation · §2 Universal DID Base (§2.5 on-chain DID Document encoding — metadata 6789) · §3 Capability and Scope · §4 Authority Model · §5 Lifecycle (§5.1 state machine incl. Op_create_person)
 
 **Part II — Core Cryptography**
 §6 Key Hierarchy · §7 LampNet Distributed Storage · §8 Cardano Wallet · §9 Seed Export and Import
@@ -76,11 +76,11 @@ All appendices non-normative unless marked [N].
   - §11.6 Tier 5 (knowledge-based: password + email OTP) · §11.7 Tier 5 cancel mechanism
 
 **Part IV — DID Type Catalog**
-§12 PersonDID · §13 OrgDID · §14 ContextDID · §15 DeviceDID · §16 MachineDID
+§12 PersonDID · §13 OrgDID (§13.1 Op_create · §13.2 governance ops) · §14 ContextDID · §15 DeviceDID · §16 MachineDID
 §17 AssetDID · §18 BotDID · §19 AgentDID · §20 ServiceDID · §21 CharDID
 
 **Part V — Cross-Type Interactions**
-§22 Ownership Graph · §23 Delegation · §24 Revocation · §25 MAGIC Attribution
+§22 Ownership Graph (§22.0 owner function · §22.3 owner-mutation guard) · §23 Delegation · §24 Revocation · §25 MAGIC Attribution
 
 **Part VI — Security Analysis**
 §26 Global Invariants · §27 Theorems · §28 Attack Model
@@ -126,13 +126,18 @@ Map<K,V>     finite partial function
 H(x)         := BLAKE2b-256(x)  → {0,1}^256   (default)
 H_sha256(x)  := SHA-256(x)      → {0,1}^256
 
--- Digital signatures (Ed25519):
-Sign(sk, m)   → {0,1}^512
-Verify(pk, m, σ) → 𝔹
-pk = Ed25519.PubKey(sk)
+-- Digital signatures (curve-polymorphic — Sign/Verify DISPATCH on the key's curve,
+-- mirroring the implementation's single SignatureService.verify):
+--   Ed25519 (EdDSA): TAAD_Key, controller, guardians, oracles; σ = {0,1}^512 (64-byte R∥S).
+--   P-256 (ECDSA secp256r1): HW_Key — produced by iOS Secure Enclave / Android StrongBox
+--                            (these CANNOT produce Ed25519); σ = DER-encoded ECDSA.
+Sign(sk, m)   → σ                  -- {0,1}^512 for Ed25519; DER ECDSA for P-256
+Verify(pk, m, σ) → 𝔹              -- dispatches on curve(pk); so Verify(hw_pub,…) is a P-256 check
+Verify_P256(pk, m, σ) ≜ Verify(pk, m, σ) with pk a P-256 key   -- explicit spelling (genesis §5.1)
+pk = Ed25519.PubKey(sk) for Ed25519; pk = secp256r1 point for P-256
 
 -- Sentinel key values:
-NULL_KEY : Ed25519PubKey ≜ 0^256  -- all-zeros; used where no real key applies (e.g. Posthumous recovery)
+NULL_KEY : PubKey ≜ 0^256  -- curve-agnostic all-zeros sentinel (fits Ed25519 or P-256 fields, e.g. Posthumous pending_hw_pub); means "no real key applies"
 NULL_PKH : {0,1}^224       ≜ 0^224  -- all-zeros payment key hash
 
 -- Key derivation:
@@ -231,6 +236,22 @@ DID_construct(type, creator, slot) → DID ≜
 --                  fixed-13 decoder. The method.md ABNF slot-component is fixed to
 --                  exactly 13 chars [a-z2-7]{13}, not variable-length.
 
+-- Type-code space [N] (forward-compat reserved range):
+--   0x00–0x09 : the 10 canonical types defined in §2.2
+--               (Person=0x00 … Character=0x09). FROZEN — never reassigned.
+--   0x0A–0x7F : RESERVED for future standard types. An implementation
+--               MUST NOT emit these until assigned in a later spec version.
+--   0x80–0xFF : vendor / experimental type codes for third-party
+--               (open-SDK) PhoenixKey extensions; not centrally assigned.
+-- Resolver rule [N]: a resolver encountering a type code it does not
+--   recognise (any value not assigned in its spec version, including
+--   0x0A–0xFF) MUST treat the DID as an opaque unknown-type entity —
+--   resolve and return its DID Document and owner-graph position
+--   normally, and MUST NOT raise an error or reject the DID solely
+--   because the type code is unknown. The unknown type still participates
+--   in the owner-graph; its ancestry MUST still terminate at a Person/Org
+--   root per I-OWN-7 (§22.0/§26).
+
 Collision: P(any two collide | n DIDs) ≤ n²/2^257 ≈ 5.4×10^{-54} at n=10^12
 ```
 
@@ -248,6 +269,7 @@ DIDType ≜
   | Agent      -- Layer 3: autonomous AI (TigerAgent, MagicClaw)
   | Service    -- Layer 3: digital service (OriLife, TonFarm)
   | Character  -- Layer 4: virtual entity (game character, avatar)
+  -- Codes 0x0A–0x7F reserved (future standard); 0x80–0xFF vendor — see §2.1.
 ```
 
 ### §2.3 DID Base Record [N]
@@ -261,6 +283,7 @@ SuspendedByInfo ≜
 DIDBase ≜ {
   did             : DID,
   type            : DIDType,
+  schema_version  : ℕ,                        -- record schema version; = 1 at v4.6 MVP (forward-compat; metadata-6789 §2.5 / TAADDatum §10.1 carry the same)
   owner           : Option<DID>,              -- None iff type = Person
   scope           : Set<Capability>,
   security_level  : SecurityLevel,
@@ -276,6 +299,18 @@ DIDBase ≜ {
 C-SEQ [N]: ∀ state transition: seq_after = seq_before + 1   (canonical, replaces old C-BASE-3)
 C-BASE-1:  type(did) = Person ↔ owner(did) = None
 C-BASE-2:  owner(did) ≠ did
+
+-- Owner field vs owner(·) function [N]: for type ∈ {Org, Context} the effective
+-- owner is DERIVED via §22.0 (owner(Org) ≜ parent, owner(Context) ≜ admin);
+-- the DIDBase.owner field above is unused for those two types — resolvers MUST
+-- compute owner via §22.0, never read DIDBase.owner directly for Org/Context.
+-- C-BASE-1 still holds (owner(Person) = None); C-BASE-2 still holds.
+
+C-SCHEMA-1 [N]: schema_version ≥ 1. A resolver MUST accept any schema_version ≥ its
+  own minimum and degrade gracefully on a higher, unknown version — never hard-error.
+-- schema_version parity [N]: the metadata-6789 DID Document (§2.5, the live MVP
+-- anchor), DIDBase.schema_version, and (v1.1) TAADDatum.schema_version MUST agree
+-- for one DID. = 1 at v4.6.
 ```
 
 ### §2.4 Security Levels [N]
@@ -296,6 +331,147 @@ SecurityLevel_score(level) → ℚ ≜
   | Software_HSM        → 2
   | Software            → 1
   | Owner_Delegated     → 0
+```
+
+### §2.5 DID Document On-Chain Encoding — Metadata Label 6789 [N]
+
+**Status:** transitional MVP. The DID Document is currently anchored in **Cardano
+transaction metadata** (CIP-10 custom label `6789`). The target is the TAAD UTxO
+datum (§10.1) — see §2.5.6. This subsection is NORMATIVE and reflects the bytes the
+implementation emits (PhoenixKey-PoC + PhoenixKey-Database, verified live on preprod,
+tx `6b8e15b0…`), with ONE addition at v4.6: the `schema_version` field (§2.5.6) — NEW;
+the encoder MUST emit it from v4.6, and pre-v4.6 live DIDs do not carry it (resolvers
+treat its absence as `schema_version = 1`).
+
+#### §2.5.1 Anchor and representation
+
+```
+DID_metadata_label  ≜ 6789        -- CIP-10 custom; distinct from 721 (CIP-25), 674 (CIP-20)
+metadata_chunk_limit ≜ 64         -- bytes per CBOR text string (Cardano protocol limit)
+DIDDocMetadata(d) : CBOR map      -- structured W3C map, NOT a {ver, doc:[chunks]} blob
+```
+
+The DID Document is a **structured W3C CBOR map** under label `6789`. Every W3C
+property is a directly-readable key (Universal Resolver / Veramo / Spruce interop
+without a PhoenixKey-specific decoder) — an open-SDK requirement.
+
+#### §2.5.2 Schema fields (NORMATIVE — key names match W3C DID Core byte-for-byte)
+
+```
+6789 : {
+  "@context"            : List<string>,    -- [DID-v1, ed25519-2020, phoenixkey-v1] (§2.5.4)
+  "id"                  : string,          -- did:phoenix:SLOT:HASH (§2.1)
+  "controller"          : string,          -- root PersonDID: = id (self); encoder omits field if null
+  "verificationMethod"  : List<VMethod>,   -- §2.5.3
+  "authentication"      : List<string>,    -- verification-method ids
+  "assertionMethod"     : List<string>,
+  "capabilityInvocation": List<string>,
+  "capabilityDelegation": List<string>,
+  "created"             : string,          -- OPTIONAL; ISO-8601; omitted if null
+  "updated"             : string,          -- OPTIONAL; ISO-8601; omitted if null
+  "schema_version"      : ℕ = 1,           -- §2.5.6 forward-compat
+}
+
+VMethod ≜ {
+  "id"                  : string,          -- did:phoenix:SLOT:HASH#hw-key-1 | #taad-key-1
+  "type"                : VMethodType,     -- §2.5.3
+  "controller"          : string,
+  "publicKeyMultibase"  : string,          -- "z" ++ base58btc(multicodec ++ pubkey) (§2.5.3)
+}
+```
+
+- W3C key names are camelCase (`verificationMethod`, `assertionMethod`,
+  `capabilityInvocation`, `capabilityDelegation`, `publicKeyMultibase`). The only
+  snake_case key is `schema_version` (a PhoenixKey extension outside W3C core).
+- `@context` is ALWAYS a CBOR list. `verificationMethod` is always present (≥1 in MVP).
+
+#### §2.5.3 Key-type detection and multibase encoding [N]
+
+The verification-method type is derived from the public-key hex length (the encoder
+does not accept a type from outside — prevents key/label drift):
+
+```
+detect_key_type(pubkey_hex) → VMethodType ≜
+  | len = 64                        → "Ed25519VerificationKey2020"         (Ed25519, 32 bytes)
+  | len = 66  ∧ prefix ∈ {02,03}    → "EcdsaSecp256r1VerificationKey2019"  (P-256 compressed, 33 bytes)
+  | len = 130 ∧ prefix = 04         → "EcdsaSecp256r1VerificationKey2019"  (P-256 uncompressed, 65 bytes)
+  | otherwise                       → ⊥ (reject; "unrecognized key format")
+
+multicodec(type) ≜
+  | Ed25519VerificationKey2020        → 0xed01   (varint bytes: 0xed 0x01)
+  | EcdsaSecp256r1VerificationKey2019 → 0x1200   (varint bytes: 0x80 0x24)
+
+publicKeyMultibase(pubkey, type) ≜ "z" ++ base58btc( multicodec(type) ++ pubkey_bytes )
+  -- "z" = multibase base58btc prefix; Bitcoin alphabet (no 0,O,I,l); no checksum.
+```
+
+- HW_Key is **P-256** (NIST secp256r1) — the curve produced by iOS Secure Enclave /
+  Android StrongBox. NOT secp256k1 (Bitcoin/Ethereum); PhoenixKey never uses secp256k1.
+  TAAD_Key is Ed25519.
+- Multibase is computed over the pubkey bytes verbatim (including the 02/03/04 prefix
+  for P-256); no prefix stripping.
+
+#### §2.5.4 @context (fixed) [N]
+
+```
+@context ≜ [ "https://www.w3.org/ns/did/v1",
+             "https://w3id.org/security/suites/ed25519-2020/v1",
+             "https://phoenixkey.me/context/v1" ]
+```
+
+Order is fixed. The `phoenixkey-v1` context (method spec §3) declares PhoenixKey
+extensions (including `schema_version`).
+
+#### §2.5.5 64-byte UTF-8-safe chunking [N]
+
+Cardano limits each CBOR text string to ≤ 64 bytes. Encoding obeys:
+
+```
+encode_string(v) ≜
+  | bytelen_utf8(v) ≤ 64   → v (single text string)
+  | bytelen_utf8(v) > 64   → CBOR list of chunks, each ≤ 64 bytes, SPLIT ON CODEPOINT
+                              (never split a multi-byte UTF-8 codepoint)
+
+encode_list_elem(e) ≜       -- element of a W3C list (@context, authentication, …)
+  | bytelen_utf8(e) ≤ 64   → e
+  | bytelen_utf8(e) > 64   → nested list of ≤ 64-byte chunks
+
+-- Splitting algorithm (NORMATIVE — matches splitUtf8): accumulate whole codepoints
+-- into the current chunk; if appending the next codepoint would exceed 64 bytes AND
+-- the chunk already holds ≥1 codepoint, close it and start a new chunk. A codepoint
+-- is never divided.
+```
+
+Resolution MUST concatenate chunks in order to recover the original value. A value may
+be (a) a single string, (b) a list-of-chunks (long string), or (c) within a W3C list,
+an element that is itself a list-of-chunks. The resolver handles all three.
+
+#### §2.5.6 Purpose mapping, schema_version, v1.1 target [N]
+
+```
+HW_Key  (#hw-key-1)   → authentication ∪ assertionMethod
+TAAD_Key (#taad-key-1) → capabilityInvocation ∪ capabilityDelegation
+
+-- Phase-1 fallback (taad_key = None — no TAAD_Key registered on-chain yet):
+--   #hw-key-1 covers ALL FOUR purposes (auth, assertion, capInvocation, capDelegation).
+
+schema_version ≜ 1   -- ℕ. Read FIRST; an unknown-higher version is handled best-effort
+                     -- per §2.5.2 (never hard-fail) — C-SCHEMA-1.
+```
+
+**v1.1 target (not enforced at MVP):** the DID Document is anchored in the TAAD UTxO
+datum (§10.1) carrying its own `schema_version`. When that UTxO exists it is the
+authoritative source over metadata-6789 (method.md §4.2); metadata-6789 then becomes a
+fast-read mirror for indexers not querying the UTxO.
+
+```
+I-DOC6789-1: the metadata `id` = DID §2.1, IMMUTABLE across rotation (rotation changes
+             verificationMethod/publicKeyMultibase, never `id`).
+I-DOC6789-2: each VMethod `type` = detect_key_type(pubkey); the encoder MUST reject a
+             pubkey not matching one of the three length forms (§2.5.3).
+I-DOC6789-3: schema_version (NEW at v4.6) — the encoder MUST emit it (= 1 at MVP); a
+             resolver treats an ABSENT schema_version as 1 (pre-v4.6 live DIDs) and
+             MUST NOT hard-fail on its absence or on an unknown-higher value (C-SCHEMA-1).
 ```
 
 ---
@@ -435,7 +611,7 @@ DelegationToken_valid(dt, s) ≜
 ```
 DIDState ≜
   | Active
-  | Rotating(pending_key: Ed25519PubKey, deadline: SlotNo, tier: ℕ)
+  | Rotating(pending_key: P256PubKey, deadline: SlotNo, tier: ℕ)   -- new HW_Key is P-256 (Secure Enclave)
   | Transferring(pending_owner: DID, deadline: SlotNo)
   | Suspended(by: SuspendedByInfo, until: Option<SlotNo>)
   | Revoked(at: SlotNo, by: DID)
@@ -462,7 +638,32 @@ Op_unsuspend(did: DID where type ≠ Person, s):
   Requires: TAAD_state_machine_valid(did, Cancel_Suspension, s)
             ∨ Auth_satisfied(owner(did), Cancel_Suspension, s)
   Effect:   suspended_by ← None; suspended_until ← None; seq++
+
+-- Op_create(PersonDID) (genesis — live; see §2.5, §12):
+Op_create_person(hw_pub: P256PubKey, taad_pub: Option<Ed25519PubKey>, genesis_sig, s):
+  Requires:
+    -- Genesis self-proof: HW_Key (P-256, Secure Enclave) signs the genesis string.
+    let msg = "PHOENIXKEY_GENESIS:" ++ hex(hw_pub)                  -- legacy, no-nonce
+            | "PHOENIXKEY_GENESIS:" ++ hex(hw_pub) ++ ":" ++ nonce  -- with nonce (anti-replay)
+    Verify_P256(hw_pub, msg, genesis_sig)
+    ∧ owner = None                                                  -- C-BASE-1, I-OWN-1
+    ∧ I-OWN-7 (Attr*-root ∈ {Person, Org}) — trivially holds since type = Person
+  Effect:
+    did ← DID_construct(Person, None, s)                            -- §2.1 (creator=None → "root" sentinel); IMMUTABLE across rotate
+    schema_version ← 1; hw_pub ← hw_pub; taad_key ← taad_pub        -- taad_key OPTIONAL (Phase-1 = None)
+    owner ← None; security_level ← Biometric_Hardware
+    scope ← {Full_Authority}; seq ← 0
+    publish DIDDocMetadata(did) to metadata label 6789 (§2.5)       -- HW→auth+assertion;
+                                                                    -- TAAD→capInv+capDel; Phase-1: HW all 4
 ```
+
+> **Op_create_person — genesis self-proof.** HW_Key is P-256 (Secure Enclave), not
+> Ed25519: genesis uses `Verify_P256`. Two message forms are accepted:
+> `"PHOENIXKEY_GENESIS:" ++ hex(hw_pub)` (legacy, matches live DIDs) and the
+> `++ ":" ++ nonce` variant (anti-replay). `taad_key` is optional — None at Phase-1,
+> where `#hw-key-1` covers all four purposes (§2.5.6). The DID (§2.1) is minted once at
+> genesis and is **immutable across every rotation** (rotation only swaps
+> `verificationMethod`). This is the live MVP entity (status table: §2 = ✅ Implemented).
 
 ### §5.2 Type-Specific Lifecycle
 
@@ -607,7 +808,9 @@ LT_Decode(droplets: List<Droplet>, k) → ByteArray | ⊥
 -- LocatorSecret: deterministic per (device, DID) pair:
 LocatorSecret = HKDF(HW_UID ∥ DID, "lampnet-locator-v1")
 -- NOT stored in cloud; re-derived from hardware UID + DID.
--- During recovery: included (encrypted) in recovery credential (§10.3).
+-- During recovery: included (encrypted) in the recovery credential carried by the
+-- §11 tiered-recovery protocol. (The full RecoveryCredential structure is specified
+-- in v1.1; MVP uses the §11 init/finalize flow directly.)
 
 -- Upload (at registration):
 Droplets = LT_Encode(EncSeed, k=50, n=1000)
@@ -619,7 +822,9 @@ EncSeed      = LT_Decode(raw_droplets, k=50)
 Master_KEK   = Dec(Device_KEK, EncSeed)
 
 -- Recovery on new device (§11 full protocol):
--- LocatorSecret recovered from recovery credential after TAAD verification.
+-- LocatorSecret recovered from the §11 recovery credential after TAAD verification.
+-- (RecoveryCredential as a standalone normative structure arrives in v1.1; MVP relies
+-- on the §11 protocol fields inline.)
 -- New Device_KEK derived with new Cloud_Secret + new HW_UID.
 -- New EncSeed = Enc(new_Device_KEK, Master_KEK) re-uploaded.
 
@@ -753,8 +958,9 @@ SecondaryWallet ≜ {
 
 TAADDatum ≜ {
   did                : DID,
+  schema_version     : ℕ,                  -- = 1; v1.1 on-chain target (TAADDatum is the v1.1 anchor; MVP anchors the DID Document in metadata-6789 §2.5). Forward-compat per §2.3 C-SCHEMA-1.
   controller_pkh     : {0,1}^224,
-  hw_pub             : Ed25519PubKey,
+  hw_pub             : P256PubKey,          -- HW_Key is P-256 (Secure Enclave / StrongBox CANNOT produce Ed25519); only TAAD_Key / controller is Ed25519
   seq                : ℕ,
   guardians          : List<GuardianConfig>,
   state              : TAADState,
@@ -776,7 +982,7 @@ TAADDatum ≜ {
 TAADState ≜
   | Active
   | Recovering {
-      pending_hw_pub     : Ed25519PubKey,
+      pending_hw_pub     : P256PubKey,       -- new-device HW_Key is P-256 (Secure Enclave)
       recovery_deadline  : SlotNo,
       verification_tier  : ℕ,      -- 1 | 2 | 3 | 5 | POSTHUMOUS_TIER
       crypto_proofs      : ByteArray,
@@ -1337,7 +1543,7 @@ Tier5Proofs ≜ {
 }
 
 tier_5_recovery(did: PersonDID, factors: KnowledgeFactors,
-                new_hw_pub: Ed25519PubKey,
+                new_hw_pub: P256PubKey,    -- new-device HW_Key is P-256 (Secure Enclave)
                 proofs: Tier5Proofs, s: SlotNo):
   Pre:
     TAADDatum.knowledge_factors ≠ None
@@ -1492,7 +1698,7 @@ I-TIER5-CANCEL-3 [N]: Cancel Option A (knowledge factors as cancel proof)
 PersonDID ≜ DIDBase where { type=Person, owner=None, security_level=Biometric_Hardware,
                              scope={Full_Authority} }
   extended by {
-    hw_pub         : Ed25519PubKey,   -- (*) HW_Key: Secure Enclave, biometric-gated
+    hw_pub         : P256PubKey,      -- (*) HW_Key: P-256, Secure Enclave, biometric-gated (verified via Verify, dispatches to P-256)
     taad_key       : Ed25519PubKey,   -- TAAD_Key: recoverable (only hash=controller_pkh on-chain)
     guardians      : List<GuardianConfig>,
     biometric_hash : {0,1}^256,       -- H(biometric enrollment template); never raw
@@ -1602,6 +1808,146 @@ Invariants:
   I-ORG-5: no circular membership
   I-ORG-6: admin_emergency_cap ⊊ scope(OrgDID)
   I-ORG-7: all emergency ops subject to admin_timelock_tier
+```
+
+### §13.1 Op_create(OrgDID) [N]  (MVP — founding owner-group)
+
+An OrgDID is born from a **founding owner-group**: a non-empty set of already-active
+PersonDIDs (and/or OrgDIDs) who jointly authorise genesis under the org's own
+`policy.threshold` via `Threshold_sig` (§13). The signing set IS the initial `members`.
+`parent` is optional (None ⇒ top-level / root Org).
+
+```
+Op_create(Org):
+  Inputs:
+    members  : Set<DID>,    -- founders; ∀ m: type(m) ∈ {Person, Org}
+    policy   : { threshold: ℕ, total: ℕ, time_window: ℕ },
+    parent   : Option<DID>,
+    org_class, legal_hash, admin_emergency,        -- §13 fields (admin_emergency optional)
+    slot     : SlotNo
+  Pre:
+    |members| ≥ 2                                                     -- I-ORG-9 (1 member can't meet threshold≥2)
+    ∧ ∀ m ∈ members: Active(m, slot) ∧ type(m) ∈ {Person, Org}        -- I-ORG-3
+    ∧ policy.threshold ≥ 2 ∧ policy.threshold ≤ |members|             -- I-ORG-1, I-ORG-2
+    ∧ policy.total = |members|
+    -- Inline founding m-of-n: Threshold_sig(did,…) reads seq(did)/members(did) of an
+    -- EXISTING did; the Org is not yet on-chain, so the founding signature is checked
+    -- directly over the prospective members:
+    ∧ ∃ S ⊆ members: |S| ≥ policy.threshold
+        ∧ ∀ m ∈ S: Active(m, slot)
+                   ∧ Verify(key(m, slot), H("OP_CREATE_ORG" ++ encode(slot)), sig_m)
+        ∧ all_sigs_within(S, policy.time_window, slot)
+    ∧ (parent = None) ∨ ( Active(parent, slot)
+                          ∧ CanOwn(type(parent), Org)                  -- §22.1, I-OWN-6
+                          ∧ scope(Org) ⊆ scope(parent)                 -- I-ORG-4 / I-OWN-3
+                          ∧ Org ∉ Ancestors(parent)                    -- G1 (§22.3): no cycle
+                          ∧ depth(parent) + 1 ≤ MAX_DELEGATION_DEPTH ) -- G3 / I-OWN-5
+    ∧ no_circular_membership(Org, members)                            -- I-ORG-5
+    ∧ G2: the new Org's owner-chain roots in {Person, Org}             -- I-OWN-7 (§22.3)
+  Effect:
+    DID_new = DID_construct(Org, parent ?? "root", slot)              -- §2.1
+    create OrgDID { did=DID_new, type=Org, schema_version=1,
+                    security_level=Threshold(policy.threshold, |members|),
+                    members, policy, parent, org_class, legal_hash, admin_emergency,
+                    created_slot=slot, seq=0 }
+    -- owner(DID_new) = parent (§22.0; parent=None ⇒ root Org, depth 0)
+    publish DIDDocMetadata(DID_new) to metadata label 6789 (§2.5): controller = DID_new;
+      record members + policy inline, or by reference hash if the encoded set exceeds
+      the metadata size budget.
+  Post:
+    I-ORG-1..7 hold; I-STR-1/2, I-OWN-5/6/7 hold; roots(G) updated if parent = None.
+```
+
+> **Scope note.** §13.1 covers PersonDID/OrgDID founders only (MVP). Founding by an
+> automated entity (Bot/Agent/Service holding a signing key) is deferred to v1.1.
+
+### §13.2 OrgDID Governance Operations [N]
+
+Member-set and policy mutations. All three require a constitutional supermajority of the
+CURRENT **living** members (`constitutional_threshold(n) = ⌊2n/3⌋ + 1`, F-14), signed
+within `policy.time_window`. `living(org, s)` excludes every member not Active at slot s
+(Posthumous, Revoked, Archived, Suspended) from the quorum denominator. Note the
+distinction: a **Suspended** member is excluded from `living` (cannot vote, not counted)
+but is NOT auto-removable — it recovers. Only Posthumous / Revoked / Archived members are
+auto-eligible for removal (`posthumous_or_revoked`, §13.2.1).
+
+```
+living(org, s) ≜ {m ∈ org.members | Active(m, s)}
+
+-- Auxiliary symbols used below (and by Threshold_sig, §13):
+signers              ≜ {m ∈ V | a valid signature by key(m, s) is present on this tx}   -- tx-level signer set; distinct from the proof_signers(·) function of §10 (A-5)
+key(m, s)            ≜ the current verification key of member m at slot s (its hw_pub / controller)
+all_sigs_within(S,w,s) ≜ all signatures from S were produced within a window of w slots ending at s
+no_circular_membership(org, M) ≜ org ∉ ⋃_{m∈M, type(m)=Org} ({m} ∪ transitive-members(m))
+
+-- ─── Op_add_member ───────────────────────────────────────────────────
+Op_add_member(org: OrgDID, new_m: DID, s):
+  Pre:
+    Active(org, s) ∧ type(new_m) ∈ {Person, Org} ∧ Active(new_m, s)   -- I-ORG-3
+    ∧ new_m ∉ org.members
+    ∧ |signers| ≥ constitutional_threshold(|living(org, s)|)
+       ∧ all_sigs_within(signers, policy.time_window, s)
+       ∧ signers ⊆ living(org, s)
+    ∧ ( type(new_m) ≠ Org ∨ ( org ∉ Ancestors(new_m)                  -- I-ORG-5 / G1
+                              ∧ new_m ∉ Ancestors(org) ) )
+  Effect:
+    org.members ← org.members ∪ {new_m};  org.policy.total ← |org.members|;  seq++
+  Post: I-ORG-1 holds (adding never breaks threshold ≤ |members|).
+
+-- ─── Op_remove_member ────────────────────────────────────────────────
+Op_remove_member(org: OrgDID, m: DID, s):
+  Pre:
+    Active(org, s) ∧ m ∈ org.members
+    ∧ ( ( |signers| ≥ constitutional_threshold(|living(org, s)|)      -- normal path
+          ∧ all_sigs_within(signers, policy.time_window, s)
+          ∧ signers ⊆ living(org, s) \ {m} )                          -- removee can't self-quorum
+        ∨ posthumous_or_revoked(m, s) )                               -- auto-eligible path (§13.2.1)
+    ∧ |org.members| − 1 ≥ org.policy.threshold                        -- I-ORG-1 preserved
+    ∧ |org.members| − 1 ≥ 2                                           -- I-ORG-9 floor
+  Effect:
+    org.members ← org.members \ {m};  org.policy.total ← |org.members|;  seq++
+    -- Hard floor: if removal would drop |members| below threshold, this Op fails its
+    -- Pre — the org MUST first (or atomically in the same tx) lower threshold via
+    -- Op_update_policy.
+  Post: I-ORG-1, I-ORG-2 hold; no quorum is computed over a dead-member denominator.
+
+-- ─── Op_update_policy ────────────────────────────────────────────────
+Op_update_policy(org: OrgDID, new_policy, s):
+  Pre:
+    Active(org, s)
+    ∧ |signers| ≥ constitutional_threshold(|living(org, s)|)
+       ∧ all_sigs_within(signers, policy.time_window, s) ∧ signers ⊆ living(org, s)
+    ∧ new_policy.threshold ≥ 2 ∧ new_policy.threshold ≤ |org.members| -- I-ORG-1/2
+    ∧ new_policy.total = |org.members|
+  Effect:
+    org.policy ← new_policy
+    org.security_level ← Threshold(new_policy.threshold, |org.members|)  -- §2.4 sync
+    seq++
+  Post: I-ORG-1, I-ORG-2 hold; SecurityLevel_score (§2.4) recomputed from new (m,n).
+```
+
+#### §13.2.1 Posthumous / Revoked Member Handling [N]
+
+A member PersonDID entering Posthumous (§32.1) or Revoked (§24), or a member OrgDID
+entering Archived (§32.3), can no longer sign (Active = False). To keep the org
+governable it becomes auto-eligible for removal:
+
+```
+posthumous_or_revoked(m, s) ≜
+    ¬Active(m, s)
+    ∧ ( (type(m) = Person ∧ state(TAAD(m), s) = Posthumous)   -- Person revocation handled by revoked_slot below
+        ∨ (type(m) = Org    ∧ m.state = Archived(_))   -- §32.3 Org dissolution state (constructor)
+        ∨ (revoked_slot(m) ≠ None ∧ revoked_slot(m) ≤ s) )
+
+-- Such m is excluded from living(org, s): it never inflates the
+-- constitutional_threshold denominator and never blocks a vote by abstention.
+-- Op_remove_member(org, m, s) is then valid WITHOUT m's signature (auto path),
+-- subject to the |members|−1 ≥ max(threshold, 2) floor.
+
+I-ORG-8 [N]: governance quorum is always computed over living(org, s), never the raw
+             members set — a dead member cannot deadlock the collective.
+I-ORG-9 [N]: |members| ≥ 2 ∧ policy.threshold ≥ 2 are preserved by every §13.2 Op
+             (an Org never decays into a single-signer or zero-quorum entity).
 ```
 
 ---
@@ -1865,6 +2211,37 @@ I-CHAR-1: PlayerCharacter → type(owner) = Person
 
 ## §22 Ownership Graph [N]
 
+### §22.0 Owner Function — Unified Ownership Graph [N]
+
+The ownership graph G(s) = (V, E) at slot s has V = {active DIDs at s} and a directed
+edge child → owner(child) for every non-root DID. Several DID types name their owner with
+a type-specific field (OrgDID.parent, ContextDID.admin); §22.0 unifies these into a SINGLE
+`owner(·)` so `depth(·)`, `Ancestors(·)`, `Attr*(·)` and the resolver are defined uniformly
+for every node.
+
+```
+owner : DID → Option<DID> ≜
+  | type(d) = Person   →  None                  -- root of trust (C-BASE-1)
+  | type(d) = Org      →  d.parent              -- None ⇒ top-level Org (also a root)
+  | type(d) = Context  →  d.admin               -- admin is the owning controller
+  | otherwise          →  d.owner               -- DIDBase.owner field (unchanged)
+
+-- For Org/Context, owner(d) is DERIVED, not DIDBase.owner. Implementations MUST
+-- resolve owner via §22.0, never read DIDBase.owner directly for Org/Context.
+
+roots(G(s)) ≜ {d ∈ V | Active(d, s) ∧ owner(d) = None}
+            = {active PersonDID} ∪ {active OrgDID with parent = None}
+
+Ancestors(d)   ≜ if owner(d) = None then ∅ else {owner(d)} ∪ Ancestors(owner(d))
+Descendants(d) ≜ {x ∈ V | d ∈ Ancestors(x)}
+
+depth(d) ≜ if owner(d) = None then 0 else depth(owner(d)) + 1
+
+-- Well-defined: depth, Ancestors terminate because G(s) is acyclic (I-STR-1) and
+-- finite-height (C-DEPTH ≤ MAX_DELEGATION_DEPTH). A top-level OrgDID (parent = None)
+-- has depth 0, identical to a PersonDID root.
+```
+
 ### §22.1 CanOwn Matrix
 
 ```
@@ -1891,10 +2268,43 @@ Key rationale:
 ### §22.2 Depth Constraint
 
 ```
-depth(PersonDID) = 0
-depth(did) = depth(owner(did)) + 1
-
+-- depth(·) defined in §22.0 along owner edges (PersonDID and top-level OrgDID are
+-- roots with depth 0). Restated bound:
 C-DEPTH: ∀ did: depth(did) ≤ MAX_DELEGATION_DEPTH = 10
+```
+
+### §22.3 Owner-Mutation Guard [N]
+
+Every operation that creates or changes an owner edge (Op_create with a parent,
+Op_transfer, Op_add_member adding an Org-as-member) MUST pass these guards. All checks
+are O(depth) ≤ MAX_DELEGATION_DEPTH via CIP-0031 reference inputs reading ancestor datums.
+
+```
+-- (G1) Acyclicity guard (procedural enforcement of I-STR-1):
+G1: for an edge child → new_owner being established:
+    new_owner ∉ ({child} ∪ Descendants(child))
+    ≡  child ∉ ({new_owner} ∪ Ancestors(new_owner))
+
+-- (G2) Sovereign-root guard (procedural enforcement of I-OWN-7):
+G2: Ancestors(new_owner) defined ∧ the root of the owner-chain has type ∈ {Person, Org}
+
+-- (G3) Depth guard (C-DEPTH after the edge):
+--   height(d) ≜ longest owner-chain below d (0 if d is a leaf / freshly created).
+G3: depth(new_owner) + 1 + height(child-subtree) ≤ MAX_DELEGATION_DEPTH
+
+-- Op_transfer Pre-conditions (transferable types per §5.2: Machine, Asset, Char):
+Op_transfer(did, to, s):
+  Pre:
+    Authority(owner(did), Write_DID(did), s)             -- current owner authorises
+    ∧ Active(to, s)                                      -- new owner active
+    ∧ CanOwn(type(to), type(did))                        -- §22.1 matrix (I-OWN-6)
+    ∧ scope(did) ⊆ scope(to)                             -- I-OWN-3 preserved
+    ∧ to ∉ Ancestors(did) ∧ did ∉ Ancestors(to)          -- G1: no finite cycle
+    ∧ to ≠ did                                           -- C-BASE-2
+    ∧ G2(new_owner = to) ∧ G3(new_owner = to)
+  Effect:
+    owner-edge(did) ← to;  seq++
+  -- After Effect, I-STR-1, I-STR-2, I-OWN-5, I-OWN-7 hold by G1/G3/G2.
 ```
 
 ---
@@ -1943,7 +2353,11 @@ Revoke(did, at, by):
 Attr*(did: DID) → DID ≜
   if type(did) ∈ {Person, Org, Service} then did
   else Attr*(owner(did))
-  -- Termination: G is a DAG; depth bounded by MAX_DELEGATION_DEPTH. PersonDID.owner = None. ∎
+  -- Termination: G is a DAG; depth bounded by MAX_DELEGATION_DEPTH; owner(PersonDID)=None
+  -- and owner(top-level OrgDID)=None (§22.0). ∎
+  -- Note: the Attr* stop set {Person, Org, Service} is the MAGIC-attribution sink,
+  -- DISTINCT from I-OWN-7's sovereign-root set {Person, Org}. A ServiceDID is an
+  -- attribution sink but its owner-chain (§22.0) still roots in Person/Org per I-OWN-7.
 
 MAGIC_attribution(op: BurnOp, s) → DID ≜ Attr*(primary_signer(op))
 ```
@@ -1977,6 +2391,9 @@ I-OWN-3: scope(did) ⊆ scope(owner(did))  [creation time]
 I-OWN-4: revoked(owner) → Authority(child) = False  [lazy, via §4.2]
 I-OWN-5: depth(did) ≤ 10
 I-OWN-6: CanOwn(type(owner), type(child)) = True
+I-OWN-7: Attr*-owner-chain of every DID terminates at a node whose type ∈ {Person, Org}
+         [no DID may root in a non-Person/non-Org node; checked at EVERY Op_create and
+          Op_transfer via §22.3 G2 — closes the "orphan rooted at non-sovereign type" gap]
 
 -- Authority:
 I-AUTH-1: Authority(did, op, s) → Active(did, s)  [except PersonDID_Privileged_Ops]
@@ -1987,9 +2404,11 @@ I-AUTH-4: Full_Authority ∈ scope(did) → type(did) = Person
 -- Sequence: C-SEQ: seq_after = seq_before + 1 per transition (replay prevention)
 
 -- Structural:
-I-STR-1: G(s) acyclic ∀ s
-I-STR-2: Each non-root DID has exactly one owner
-I-STR-3: Roots of G(s) = active PersonDIDs
+I-STR-1: G(s) acyclic ∀ s   [procedural enforcement: §22.3 G1 at create/transfer]
+I-STR-2: Each non-root DID has exactly one owner   [owner(·) is a function, §22.0]
+I-STR-3: roots(G(s)) = {active PersonDID} ∪ {active OrgDID with parent = None}
+         [per §22.0; a top-level OrgDID is a legitimate root — closes the gap where an
+          Org with parent = None had no owner yet was not recognised as a root]
 
 -- Resolver:
 I-RESOLVER-1 [N]: did:phoenix resolver MUST set deactivated(did,s) = True
@@ -3166,15 +3585,17 @@ as a read-only reference, no spend).
 --                              / FeeParams.bps_denom ⌋
 -- (F = 0 ⇒ fee-exempt op: field 20 omitted, no Phoenix output — §36.3.)
 
--- I-FEE-2: Conservation (no leakage).
+-- I-FEE-2 (≥, allows over-payment): Conservation (no leakage).
 -- For every PhoenixKey-fee-bearing tx T with declared phoenix_fee F:
 --   treasury_donation(T)                                -- field 20
 -- + Σ { lovelace(o.value) | o ∈ T.outputs,
 --                           o.address = phoenix_treasury_address }
 --   ≥ F
--- (Equality holds modulo Phoenix-Treasury anti-dust top-ups; a strict-
--- equality variant I-FEE-2-STRICT is enforced by the off-chain SDK
--- before signing, see §36.6.)
+-- (Equality holds modulo Phoenix-Treasury anti-dust top-ups. The strict-equality
+-- variant I-FEE-2-STRICT (=) is the off-chain SDK enforcement contract before signing;
+-- I-FEE-2 (≥) is the on-chain minting-policy check. ENFORCED: on-chain = I-FEE-2 (≥);
+-- off-chain SDK = I-FEE-2-STRICT (=). Both are v1.1 targets — §36 is spec-only at v4.6,
+-- see §36.6 status note.)
 
 -- I-FEE-3: Phoenix Treasury withdrawal authorisation.
 -- For every spend of a phoenix_treasury_address UTxO U with redeemer
@@ -3211,7 +3632,8 @@ expect Some(donated) = transaction.treasury_donation          -- field 20
 expect donated == cardano_share(declared_phoenix_fee)         -- I-FEE-1 equality
 expect Σ { lovelace(o.value) | o ∈ transaction.outputs,
            o.address = phoenix_treasury_address } ≥ phoenix_share(declared_phoenix_fee)
--- I-FEE-2 conservation: donated + phoenix_output ≥ declared_phoenix_fee
+-- I-FEE-2 (≥) on-chain conservation: donated + phoenix_output ≥ declared_phoenix_fee
+-- (the SDK additionally pins I-FEE-2-STRICT (=) before signing — see §36.5 note.)
 ```
 
 `transaction.treasury_donation : Option<Lovelace>` is a typed accessor
@@ -3582,14 +4004,16 @@ All links valid as of 2026-05-28. Click to open.
 
 ---
 
-*PhoenixKey Formal Mathematical Specification v4.5*
+*PhoenixKey Formal Mathematical Specification v4.6*
 *© 2026 Greensun Tech Corporation. Inventor: Nguyen Duc Thanh.*
 
 *Peer Review: 5 rounds v4.2 — Gemon (MIT Mathematics & EECS), Serat (Principal Security Architect). v4.3–4.4: Sambo (Senior BA, MIT Sloan), Tuân (Validator Engineer). v4.4 security review pending.*
 
 *v4.5 fixes: salt circular dependency, secondary_wallet boolean→list, email knowledge→possession, cancel Option A removed, grace period, recursive orphan, MiB, HIBP k-anon.*
 
-*Normative: §1–§35, Appendices A–D, F.*
+*v4.6 additions: §36 fee architecture (30/70 split); forward-compat — schema_version (metadata-6789 + TAADDatum), reserved DID type-code range; §2.5 on-chain DID Document encoding (metadata 6789); §13.1–§13.2 OrgDID create + governance; §22.0/§22.3 unified owner-graph + guards; cross-ref fixes (§10.3→§11 recovery-credential ref, I-FEE-2 naming); HW_Key type corrected to P-256 (Secure Enclave).*
+
+*Normative: §1–§36, Appendices A–D, F.*
 *Non-normative: §28, Appendix E.*
 
 *Deferred to v5.0:*
