@@ -5,7 +5,9 @@
 > **Convention backend bám thật:** `PhoenixKey-Database/.../controller/` (ActivationController, WalletController), `common/DataResponse.java`, `security/AuthenticatedUser.java`, `exception/ErrorCode.java`.
 > SPEC PROPOSAL — chờ anh Aladin + Long chốt. **v4 2026-07-06.**
 >
-> **⚠ v4 THAY v3.** v3 model borrow-only (GetLAMP=MƯỢN, LAMP mãi thuộc pot, user KHÔNG-bao-giờ sở-hữu, CloseBorrow trả-toàn-bộ-về-pot) — **BỎ.** Model đúng = **2 PHA**: GetLAMP chuyển D LAMP vào **VAULT CỦA USER** (khoá có-điều-kiện). **PHA-1 (ngày 1→1001):** sinh MAGIC (Gen ĐỌC-số-dư), anti-idle rút LAMP-chưa-kiếm về pot, user hưởng MAGIC (chưa sở-hữu LAMP). **PHA-2 (từ ngày 1002):** anti-idle DỪNG, phần LAMP sống sót **vest 1 LAMP/ngày thành SỞ HỮU user** → **rút/bán/tự-Gen** (endpoint mới `/vault/{did}/claim-vested`). Dashboard = **pha hiện tại + số ngày + conditional_lamp vs vested_unlocked + MAGIC + cảnh-báo-anti-idle (chỉ PHA-1)**.
+> **⚠ v4 THAY v3.** v3 model borrow-only (GetLAMP=MƯỢN, LAMP mãi thuộc pot, user KHÔNG-bao-giờ sở-hữu, CloseBorrow trả-toàn-bộ-về-pot) — **BỎ.** Model đúng = **2 PHA**: GetLAMP chuyển D LAMP vào **VAULT CỦA USER** (khoá có-điều-kiện). **PHA-1 (ngày 1→1001):** sinh MAGIC (Gen ĐỌC-số-dư), anti-idle rút LAMP-chưa-kiếm về pot, user hưởng MAGIC (chưa sở-hữu LAMP). **PHA-2 (từ ngày 1002):** phần LAMP sống sót **vest 1 LAMP/ngày thành SỞ HỮU user** → **rút/bán/tự-Gen** (endpoint mới `/vault/{did}/claim-vested`).
+>
+> **⚠ v4.1 ĐÍNH-CHÍNH (2026-07-07) — đồng bộ Feat-Math:** (1) **self-consumption HỢP-LỆ** (tốn-phí→Treasury), cổng chống-wash = **Registry-tiêu-tài-nguyên-thật**, BỎ điều-kiện counterparty → field `anti_idle` đổi thành `activity_gate` (cả 2 pha); (2) **D keyed per-PersonDID**; (3) **PHA-2 vest GATED-per-epoch + forfeit-1001-idle-epoch** (KHÔNG "anti-idle DỪNG hẳn"). Dashboard = **pha + số ngày + conditional_lamp vs vested_unlocked + MAGIC + activity-gate (cả 2 pha) + idle_epochs_p2 (PHA-2)**.
 
 ---
 
@@ -17,8 +19,9 @@
 
 **Model mới = 2 PHA:**
 - **GetLAMP → vault CỦA USER** (khoá có-điều-kiện). "Mượn" chỉ là **ngữ-nghĩa-UX** (khoản CÓ ĐIỀU KIỆN tới khi kiếm được).
-- **PHA-1 (ngày 1→1001):** `conditional_lamp` sinh **MAGIC** (Gen chỉ ĐỌC số dư, không đụng LAMP). User tiêu MAGIC dịch vụ. Idle → 1 LAMP về pot/ngày. User **CHƯA sở-hữu/không-rút** LAMP.
-- **PHA-2 (từ ngày 1002):** anti-idle DỪNG. Phần LAMP sống sót **vest 1 LAMP/ngày** `conditional_lamp → vested_unlocked` = user **SỞ HỮU thật** → **rút/bán/tự-Gen** (`claim-vested`).
+- **PHA-1 (ngày 1→1001):** `conditional_lamp` sinh **MAGIC** (Gen chỉ ĐỌC số dư, không đụng LAMP). User tiêu MAGIC dịch vụ **qua dịch-vụ đăng-ký-Registry** (self-consumption HỢP-LỆ). Idle → 1 LAMP về pot/ngày. User **CHƯA sở-hữu/không-rút** LAMP.
+- **PHA-2 (từ ngày 1002 — đính-chính 07-07):** daily-clawback DỪNG nhưng **vest GATED-per-epoch**: epoch tiêu-đủ (qua Registry) → mở-khoá **1 LAMP/ngày** `conditional_lamp → vested_unlocked` = user **SỞ HỮU thật** → **rút/bán/tự-Gen** (`claim-vested`); **1001 idle-epoch-liên-tục → forfeit** `conditional_lamp` chưa-mở-khoá về pot.
+- **Allocation D keyed per-PersonDID:** 1 người sinh-trắc = 1 suất; đa-địa-chỉ/đa-DID KHÔNG nhân suất.
 
 **Trạng thái tổng:** gần như TẤT CẢ endpoint là ⚪ **spec/chờ Long build**. SuperApp **dựng UI trước với mock**, nối API sau.
 
@@ -118,13 +121,13 @@ Mẫu public như `/wallet/{did}/balance` (`WalletController.java:33`). Hiển t
     "vest_start_slot": 0,
     "magic_generated_total": "12.50",
     "magic_balance_current": "4.20",
-    "anti_idle": {
-      "used_today": false,
+    "activity_gate": {
+      "used_this_period": false,
       "grace_active": false,
       "grace_days_left": 0,
       "min_magic_tx": null,
       "at_risk_lamp": 1,
-      "warning": "Hôm nay chưa dùng dịch vụ — cuối ngày 1 LAMP-điều-kiện sẽ về pot (số dư còn 999, MAGIC hàng ngày giảm theo). Đây là LAMP chưa-kiếm-được, không phải tài sản của bạn."
+      "warning": "Hôm nay chưa dùng dịch vụ (qua dịch-vụ đăng-ký-Registry) — cuối ngày 1 LAMP-điều-kiện sẽ về pot (số dư còn 999, MAGIC hàng ngày giảm theo). Đây là LAMP chưa-kiếm-được, không phải tài sản của bạn. Lưu ý: tiêu vào app-của-chính-bạn VẪN tính nếu app đăng-ký-Registry."
     }
   }
   ```
@@ -147,19 +150,26 @@ Mẫu public như `/wallet/{did}/balance` (`WalletController.java:33`). Hiển t
     "vest_remaining_days": 951,
     "magic_generated_total": "1240.00",
     "magic_balance_current": "9.10",
-    "anti_idle": null
+    "activity_gate": {
+      "used_this_period": true,
+      "epoch_active": true,
+      "idle_epochs_p2": 0,
+      "forfeit_at_epochs": 1001,
+      "min_magic_tx": null,
+      "note": "PHA-2 vest GATED: epoch tiêu-đủ (qua Registry) → mở-khoá 1 LAMP/ngày. 1001 epoch liên-tục không phát sinh → forfeit conditional_lamp chưa-mở-khoá về pot."
+    }
   }
   ```
 
   Chú thích:
   - `phase` = **1** (có-điều-kiện, ngày ≤1001) hoặc **2** (vesting-sở-hữu, ngày ≥1002). `days_elapsed` = `⌊(now − vest_start)/86400⌋`. `days_to_phase2` = `max(0, 1001 − days_elapsed)`.
-  - **`conditional_lamp`** = LAMP-điều-kiện **hiện tại** (khoá, sinh-MAGIC, PHA-1-anti-idle-rút; PHA-2-vest-dần-đi). **User KHÔNG rút được.**
-  - **`vested_unlocked`** = LAMP **đã-sở-hữu** chưa-rút (chỉ PHA-2, tăng 1/ngày). **User RÚT ĐƯỢC** qua `claim-vested`. `vested_claimed` = đã rút ra ví.
-  - `reclaimed_to_pot_lamp` = tổng anti-idle PHA-1 đã rút về pot.
+  - **`conditional_lamp`** = LAMP-điều-kiện **hiện tại** (khoá, sinh-MAGIC, PHA-1-anti-idle-rút; PHA-2-vest-dần-đi khi epoch-active, forfeit khi 1001-idle-epoch). **User KHÔNG rút được.**
+  - **`vested_unlocked`** = LAMP **đã-sở-hữu** chưa-rút (chỉ PHA-2, tăng 1/ngày **khi epoch-active**). **User RÚT ĐƯỢC** qua `claim-vested`. `vested_claimed` = đã rút ra ví.
+  - `reclaimed_to_pot_lamp` = tổng anti-idle PHA-1 + forfeit PHA-2 đã về pot.
   - `magic_generated_total` / `magic_balance_current` = MAGIC engine sinh (ĐỌC-số-dư) / MAGIC còn chưa tiêu (đơn vị MAGIC, chuỗi thập phân từ nanogic).
-  - `anti_idle` = **null trong PHA-2** (anti-idle DỪNG). Trong PHA-1: `used_today` (đã có ≥`MIN_MAGIC_TX` tiêu counterparty chưa), `grace_active` (còn 7 ngày onboarding), `min_magic_tx` (**null tới khi MAGIC-team gắn counterparty** §4), `at_risk_lamp` (=1 hoặc 0 nếu grace/đã-dùng/hết-số-dư).
+  - `activity_gate` (đính-chính 07-07) — **cả 2 pha** (thay `anti_idle` chỉ-PHA-1): `used_this_period` (đã tiêu ≥`MIN_MAGIC_TX` **qua dịch-vụ đăng-ký-Registry** chưa — **self-consumption HỢP-LỆ**, KHÔNG đòi counterparty≠owner), `grace_active` (PHA-1, 7 ngày onboarding), `min_magic_tx` (**null tới khi Registry-team có chuẩn danh-mục** §4). **PHA-1:** `at_risk_lamp` (=1 nếu idle → daily-clawback). **PHA-2:** `idle_epochs_p2` (epoch liên-tục không phát sinh), `forfeit_at_epochs=1001`, `epoch_active` (epoch này đã đủ để mở-khoá vest chưa).
 - **Error codes:** `USER_DID_NOT_FOUND` (2002).
-- **Trạng thái:** ⚪ chờ Long. `anti_idle` + `magic_*` phụ thuộc MAGIC-team (§4) — trước khi có: `magic_*` từ engine khi nối được; `anti_idle.used_today: null` (anti-idle chưa bật). `phase`/`conditional_lamp`/`vested_unlocked` tính được ngay từ validator (không chờ Gen).
+- **Trạng thái:** ⚪ chờ Long. `activity_gate` phụ thuộc **Registry-team** (chuẩn danh-mục dịch-vụ tiêu-tài-nguyên-thật §4) + `magic_*` phụ thuộc MAGIC-team — trước khi có: `magic_*` từ engine khi nối được; `activity_gate.used_this_period: null` (gate chưa bật). `phase`/`conditional_lamp`/`vested_unlocked`/`idle_epochs_p2` tính được ngay từ validator (không chờ Gen).
 
 ### 3. GET `/activation/vault/{did}/magic` — MAGIC-hàng-ngày (yield ĐỌC-số-dư)
 
@@ -324,11 +334,14 @@ Engine Gen **ĐỌC-số-dù** `(conditional_lamp + vested_unlocked)` → sinh M
   ├─ "LAMP đã-của-bạn (rút/bán được)": vested_unlocked            (PHA-2, nút [Rút LAMP])
   ├─ "MAGIC hàng ngày trên số dư": magic_generated_total + magic_balance_current
   │     └─ GET .../magic  vẽ dòng MAGIC-yield (Gen ĐỌC-số-dư)
-  ├─ [PHA-1] Cảnh báo anti-idle: nếu used_today=false & !grace
-  │     "Hôm nay chưa dùng — cuối ngày mất 1 LAMP-điều-kiện về pot (chưa-kiếm-được)"
-  │     (ẩn tới khi MAGIC-team gắn counterparty; ẩn hẳn trong PHA-2)
+  ├─ [PHA-1] Cảnh báo idle: nếu used_this_period=false & !grace
+  │     "Hôm nay chưa dùng dịch-vụ — cuối ngày mất 1 LAMP-điều-kiện về pot (chưa-kiếm-được)"
+  │     (ẩn tới khi Registry-team có chuẩn danh-mục dịch-vụ)
+  ├─ [PHA-2] Cảnh báo vest-gate: nếu epoch_active=false
+  │     "Epoch này chưa tiêu đủ — vest TẠM DỪNG. Bỏ-bê 1001 epoch → mất phần chưa-mở-khoá"
+  │     (hiện idle_epochs_p2 / 1001)
   ├─ [PHA-1] "Đã trả về pot X LAMP do idle": reclaimed_to_pot_lamp
-  ├─ [PHA-2] "Mỗi ngày +1 LAMP thành của bạn": vest_per_day, vest_remaining_days
+  ├─ [PHA-2] "Mỗi ngày +1 LAMP thành của bạn (khi epoch tiêu đủ)": vest_per_day, vest_remaining_days
   ├─ Nút [GetMAGIC] → màn mua CARP
   └─ [PHA-2] Nút [Rút LAMP đã-của-bạn] → POST /activation/claim-vested/build → ký → /claim-vested/submit
   └─ [PHA-1] (tuỳ chọn) [Từ-bỏ] → POST /activation/abandon-phase1/build (trả conditional về pot)
@@ -343,9 +356,9 @@ Engine Gen **ĐỌC-số-dù** `(conditional_lamp + vested_unlocked)` → sinh M
 **Nguyên tắc UX bám spec:**
 - Chỉ **1 nút GetLAMP**, user không cần hiểu tỷ giá (Feat-Math §1 (d)). ADA/phí do Feecover lo — KHÔNG hiển thị "phí ADA".
 - **Phân biệt rõ 2 loại LAMP trên UI:** `conditional_lamp` (khoá, PHA-1 chưa-của-user, sinh-MAGIC) vs `vested_unlocked` (PHA-2, **của user, rút-được**). ĐỪNG gộp một con số.
-- **PHA-1:** KHÔNG có nút rút LAMP (chưa sở-hữu). Nhấn "MAGIC hàng ngày" là thứ user hưởng. Anti-idle: ngôn ngữ "dùng hằng ngày để giữ" + "LAMP-điều-kiện chưa-kiếm-được", KHÔNG "phạt tài sản".
-- **PHA-2:** hiện nút **[Rút LAMP]** (`claim-vested`) — user sở-hữu thật, rút/bán/tự-Gen. Vest **nhỏ-giọt 1/ngày** (không mở hết cùng lúc).
-- Chuyển-pha (ngày 1001→1002): UI đổi banner từ "Đang kiếm" → "Đã hoàn thành cam-kết — LAMP đang thành của bạn 1/ngày".
+- **PHA-1:** KHÔNG có nút rút LAMP (chưa sở-hữu). Nhấn "MAGIC hàng ngày" là thứ user hưởng. Idle: ngôn ngữ "dùng dịch-vụ hằng ngày để giữ" + "LAMP-điều-kiện chưa-kiếm-được", KHÔNG "phạt tài sản". **Self-consumption qua app-của-mình VẪN tính** (nếu app đăng-ký-Registry).
+- **PHA-2:** hiện nút **[Rút LAMP]** (`claim-vested`) — user sở-hữu thật, rút/bán/tự-Gen. Vest **nhỏ-giọt 1/ngày + GATED-per-epoch** (epoch tiêu đủ mới mở-khoá; 1001-idle-epoch → forfeit). Hiển thị `idle_epochs_p2 / 1001` để user biết rủi-ro-forfeit.
+- Chuyển-pha (ngày 1001→1002): UI đổi banner từ "Đang kiếm" → "Đã hoàn thành cam-kết — tiếp-tục tiêu-thật mỗi epoch để LAMP thành của bạn 1/ngày".
 
 ---
 
@@ -354,13 +367,14 @@ Engine Gen **ĐỌC-số-dù** `(conditional_lamp + vested_unlocked)` → sinh M
 | Phụ thuộc | Chặn endpoint | Đội | Ghi chú |
 |---|---|---|---|
 | **Pot deploy** (nạp vốn ban đầu + bù dòng-vest-ra, §6.4/§6.5 Feat-Math) | 1a GetLAMP, 7 pot | LAMP-team + Long | Không pot → không tính D. PHA-2 LAMP rời-hệ → pot cần bù (sub-open). |
-| **Validator vault 2-pha** (`conditional_lamp`/`vested_unlocked`, ranh-giới-pha n=1001, anti-idle→pot PHA-1, **vest 1/ngày PHA-2**, **ClaimVested** ký-owner, Gen-đọc-số-dư-KHÔNG-spend-LAMP, `did_commit` gate) | 1a/1b, 2, 4a/4b/4c | Tuân (Aiken) | Tái dùng `LoyaltyHolding`. Khoá+vest+claim thuần build được ngay (không chờ Gen). |
-| **`did_commit` per-DID + counterparty field** | field `anti_idle` (endpoint 2) | **MAGIC-team (BLOCKER)** | `EngageDatum.did_commit=#""`. Không counterparty → G3 hở → KHÔNG bật anti-idle production. Tới đó `anti_idle.used_today=null`. |
+| **Validator vault 2-pha** (`conditional_lamp`/`vested_unlocked`, ranh-giới-pha n=1001, anti-idle→pot PHA-1, **vest-GATED-per-epoch + forfeit-1001-idle-epoch + `idle_epochs_p2` PHA-2**, **ClaimVested** ký-owner, Gen-đọc-số-dư-KHÔNG-spend-LAMP, `did_commit` gate) **[validator cần cập nhật cho PHA-2 gated]** | 1a/1b, 2, 4a/4b/4c | Tuân (Aiken) | Tái dùng `LoyaltyHolding`. Khoá+vest+claim thuần build được ngay (không chờ Gen). |
+| **Registry-chuẩn-dịch-vụ** (danh-mục dịch-vụ tiêu-tài-nguyên-thật + cổng duyệt) | field `activity_gate` (endpoint 2) | **Registry-team (BLOCKER)** | Đính-chính 07-07 THAY counterparty. Cổng chống-wash = Registry-tiêu-tài-nguyên-thật (self-consumption HỢP-LỆ). Chưa có chuẩn → `activity_gate.used_this_period=null`. |
+| **`did_commit` per-DID** | attribution vault (endpoint 2) | MAGIC-team | `EngageDatum.did_commit=#""`. Cho 1-DID-1-vault (I-ACT-10). *(field `counterparty` consume-event **BỎ** — đính-chính 07-07)* |
 | **Engine Gen ĐỌC-số-dư + hoà §3.7** | `magic_*` (endpoint 2/3), 6 gen-entry | **MAGIC/CARP-team (BLOCKER kiến trúc)** | /CARP chốt nguyên-lý "Gen đọc-số-dư không-đụng-LAMP" nhưng **chưa spell-out on-chain**; code cũ fire→Treasury lỗi-thời. Cần engine đọc-VaultDatum→drip→không-spend-LAMP (Feat-Math §3.7/§6.6). |
 | **Resolve API point-in-time** | anti-idle job | Long | DB hiện chỉ state-hiện-tại (Feat-Math §6.2). |
 | **GreenBack interface** | 5a/5b/5c GetMAGIC (backing) | CARP-team | CHỈ khai interface, không chạm peg. Fiat→CARP chạy trước; backing treo tới khi có. + shadow-price nếu PHA-2 bán năng-lực. |
 | **`fee_refill_lamp` + cân-đối vest-ra** | (nạp pot, không chặn UI) | LAMP + Long | Tham số chờ chốt (§6.5). Pilot: anti-idle + treasury đủ; PHA-2-vest-ra cần theo dõi. |
-| **`MIN_MAGIC_TX`** | ngưỡng `used_today` | anh Aladin (TẠM 07-06: 10% gen-able từ `conditional_lamp`) | Sub-open granularity gen-able. |
+| **`MIN_MAGIC_TX`** | ngưỡng `used_this_period` | anh Aladin (TẠM 07-06: 10% gen-able từ `conditional_lamp`) | Đo tiêu **qua dịch-vụ Registry** (07-07), KHÔNG counterparty. Sub-open granularity gen-able. |
 
 **Thứ tự SuperApp nên dựng UI:**
 1. **Ngay (mock đủ):** GetLAMP + Vault Dashboard 2-pha (1a/1b/2/7) — logic pha/conditional/vested tính từ validator, không chờ MAGIC/CARP.
@@ -394,8 +408,8 @@ Bám quy tắc hiện có (131x = Activation cũ, 132x = Wallet). Nhánh **135x 
 ## 6. Ghi trung thực cho reviewer
 
 - **KHÔNG endpoint nào live.** Toàn bộ spec — SuperApp dựng UI + mock, nối khi Long ship.
-- **Model = 2 PHA.** PHA-1 user hưởng MAGIC, KHÔNG sở-hữu/rút LAMP. PHA-2 phần sống sót vest thành **SỞ HỮU**, user **rút/bán/tự-Gen** (`claim-vested`). Dashboard nhấn **pha + conditional vs vested + MAGIC-hàng-ngày + anti-idle(PHA-1)**.
+- **Model = 2 PHA (đính-chính 07-07).** PHA-1 user hưởng MAGIC, KHÔNG sở-hữu/rút LAMP. PHA-2 phần sống sót vest thành **SỞ HỮU** — **GATED-per-epoch** (epoch tiêu-đủ mới mở-khoá; 1001-idle-epoch → forfeit), user **rút/bán/tự-Gen** (`claim-vested`). **Self-consumption HỢP-LỆ**, cổng chống-wash = **Registry-tiêu-tài-nguyên-thật** (không counterparty). D keyed **per-PersonDID**. Dashboard nhấn **pha + conditional vs vested + MAGIC-hàng-ngày + activity-gate(cả 2 pha) + idle_epochs_p2(PHA-2)**.
 - **Gen = ĐỌC-số-dư, KHÔNG đụng LAMP** (endpoint 3, WP §7.2 dòng 205, /CARP). Tự-động-nền, không UI "chọn Gen".
 - **Tên path là đề xuất** — chốt với Long trước khi hard-code.
-- **anti-idle + MAGIC field trả null/treo** cho tới khi MAGIC-team gắn counterparty + spell-out engine đọc-số-dư §3.7 (Feat-Math).
-- **[CẦN CHỐT]:** engine Gen đọc-số-dư on-chain (endpoint 3/6, Feat-Math §3.7); daily-vs-epoch MAGIC; pot bù dòng-vest-ra PHA-2 (§6.5); PHA-2-vest-sở-hữu khớp WP §7.2.
+- **activity-gate + MAGIC field trả null/treo** cho tới khi **Registry-team có chuẩn danh-mục dịch-vụ** + MAGIC-team spell-out engine đọc-số-dư §3.7 (Feat-Math). *(counterparty-gate BỎ — đính-chính 07-07)*
+- **[CẦN CHỐT]:** engine Gen đọc-số-dư on-chain (endpoint 3/6, Feat-Math §3.7); daily-vs-epoch MAGIC + độ-dài-epoch cho gate PHA-2; pot bù dòng-vest-ra PHA-2 (§6.5); chuẩn danh-mục Registry dịch-vụ-tiêu-tài-nguyên-thật.
