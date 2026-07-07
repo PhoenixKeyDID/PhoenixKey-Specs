@@ -15,19 +15,20 @@
 > PhoenixKey-Math.md.
 >
 > **Mô hình: Triple Token** (LAMP · MAGIC · CARP) — KHÔNG phải Dual (2 token),
-> KHÔNG phải one-token native (HopNhat lỗi thời). Nguồn canonical:
-> `MAGIC/SPEC/MagicLamp-3Token-DacTa-Vi.md`.
+> KHÔNG phải one-token native (HopNhat lỗi thời). **Nguồn canonical:
+> `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md`** (NGUỒN CHÂN LÝ đơn-vị + peg,
+> anh chốt 2026-07-06; `MagicLamp-3Token-DacTa-Vi.md` bản cũ ĐÃ BỊ ĐÈ, không dùng).
 >
 > 🔴 **SỬA MÔ HÌNH MAGIC (2026-07-01) — đọc trước A.3.** Bản trước ghi premium "tính
 > bằng MAGIC" như thể MAGIC là token chi trực tiếp vào pot qua `collectToTreasury(MAGIC)`.
 > Điều đó SAI và làm luồng tiền premium/pot **không nối được**. Mô hình đúng (bám
-> `MAGIC/SPEC/MagicLamp-3Token-DacTa-Vi.md` + `MAGIC-paymaster/ConsumeMAGIC` +
+> `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` + `MAGIC-paymaster/ConsumeMAGIC` +
 > `PhoenixKey-Feecover-Feat-Math.md`):
 > - **MAGIC = Điều Ước = số dư tài khoản trong Vault** (đơn-vị-kế-toán / thước sức mua),
 >   **KHÔNG phải native token, KHÔNG policy-id, non-transferable, decay theo thời hạn.**
 >   Tiêu MAGIC = `BurnBatch` giảm `current_amount` trong datum Vault, KHÔNG `tx.mint`.
 > - **Thanh toán = CARP** (Tấm Thảm — đồng-thanh-khoản chuyển-nhượng-được). MAGIC chỉ
->   định GIÁ. `P*=1`: 1 CARP = 1 MAGIC sức mua (`3Token §1.3`, KHÔNG neo fiat). Premium
+>   định GIÁ. `P*=1`: 1 CARP = 1 MAGIC sức mua (Whitepaper §5, KHÔNG neo fiat). Premium
 >   **định giá bằng MAGIC, TRẢ bằng CARP**.
 > - **Premium KHÔNG dùng `collectToTreasury`** (đường đó đã bỏ cho phí Feecover — cả MAGIC
 >   lẫn CARP, `Feecover §6`). Nó chảy **cùng cơ chế Feecover đã định nghĩa**: user tiêu qua
