@@ -5,6 +5,30 @@
 
 ---
 
+## ⚠ v2-REGISTRY UPDATE (2026-07-07) — ĐÈ phần authorization/policy/recipient của thân bài
+
+> **Điều tra 07-07 (đối chiếu code thật):** thân bài dưới viết theo **v1-anchor** (LAMP đọc anchor TAAD → `controller_pkh` + status Active) + **apply-param per-OrgDID** + **mint ra ví**. **CODE THẬT đã chuyển sang v2-registry** — 3 điểm sau ĐÈ thân bài. Nguồn: `LAMP/Genesis/onchain/validators/{lamp_mint.ak, registry.ak}` (branch `feat/lamp-mint-compose-anchor-cap`, HEAD `6fbb6db`). Header `registry.ak`: *"THAY mô hình v1 (đọc controller_pkh trực tiếp từ anchor TAAD). LAMP KHÔNG còn đọc anchor; nó đọc REGISTRY NFT"*.
+
+**(V2-1) Authorization: Registry NFT ref-input, KHÔNG đọc anchor TAAD.**
+LAMP mint gate bằng cách đọc **Registry NFT** (`RegistryDatum{ token_tag → Authority }`) qua reference input, gọi `registry.validate_mint(policy_id, token_name, registry_nft_policy, registry_nft_name, token_tag, tx)`. `Authority` = `SinglePkh{pkh}` | `MultiSig{pkhs, threshold}` | `Revoked` (→ fail). ĐÈ §4 (a)(b)(c) [anchor + controller_pkh + Active]. → LAMP không còn đọc anchor; ràng buộc "OrgDID Active" dời sang **write-side validator của Registry** (ai được tạo/sửa entry). Rotate khoá = **sửa entry registry** (không redeploy policy).
+
+**(V2-2) 1 POLICY-ID LAMP CHUNG — KHÔNG apply-param per-OrgDID.** ĐÈ §0 dòng 16-18 + §5 toàn bộ.
+`lamp_mint` apply-param theo **token** (`token_name`/`dist_cap`/`token_tag`) → policy-id khác nhau **giữa các token** (tLAMP/LAMP/FARM), NHƯNG **KHÔNG khác giữa các OrgDID**. 12 param của `lamp_mint` KHÔNG có `anchor_nft_name`/`anchor_nft_policy` (tiền đề §5 sai từ gốc) — có `registry_nft_policy` + `registry_nft_name` + `token_tag`. Phân biệt org xảy ra **runtime** qua Registry NFT `name = blake2b_256(governing_did)`. → 1 policy-id LAMP tĩnh lưu ở backend (bỏ cột `org_dids.lamp_mint_policy_cbor` per-org §5); mỗi OrgDID phải có **entry `token_tag:"LAMP"`** trong Registry của mình TRƯỚC khi mint (Core dựng qua `registry_mint` deploy+update, controller-DID-ký). Khớp memory hệ: 1-policy-chung, per-org qua ref-input runtime.
+
+**(V2-3) Mint → KHO `dist_treasury`, KHÔNG ra ví.** ĐÈ §1 dòng 140 + §6 (recipient). `lamp_mint.ak:199` ép **A-DEST: toàn bộ Δ rót vào KHO** (`dist_treasury`); ví user nhận LAMP ở **bước vesting-release riêng** (không thuộc tx mint này). → bỏ `recipient_address` khỏi endpoint mint; T1/T2 kỳ vọng LAMP xuất hiện ở **địa chỉ KHO**, không phải ví recipient.
+
+**(V2-4) m-of-n THÁO được (v2 giải blocker v1).** ĐÈ §5 dependency (dòng 280) + LMINT-8. Threshold OrgDID → entry `MultiSig{pkhs, M}` trong Registry; gom M chữ ký member (mỗi member 1 pkh trong `MultiSig.pkhs`). KHÔNG cần native-multisig/aggregated-key/m-anchor như §5 lo. m-of-n offchain (§3 gom chữ ký) giữ nguyên; on-chain map thẳng vào `MultiSig`.
+
+**GIỮ NGUYÊN (thân bài đúng):** kiến trúc offchain (mobile build+ký Master_KEK-on-device, backend relay+submit), intent `LAMP_MINT` (§2), gom m-of-n offchain (§3), SupplyState cap 36B compose (§1.5 — cap ĐÚNG, chỉ redeemer/route theo branch), fail-fast (§4 backend gate rẻ).
+
+**🔴 #8 CHỈ ĐÓNG ĐƯỢC SAU KHI LAMP team (blocker liên-repo — xem message `_msg-to-LAMP-registry-orgdid-mint.md`):**
+1. **Merge branch `feat/lamp-mint-compose-anchor-cap` → main** (hiện `lamp_mint.ak` v2 CHƯA có trên main).
+2. **Cấp write-side Registry validator** (tạo/sửa Registry UTxO) + CBOR + hash — LAMP repo hiện chỉ có `registry.ak` read-side.
+3. **Cấp KHO `dist_treasury` + `kho_nft`** trên Preview (địa chỉ, policy+name, authority) + deploy 4 script theo runbook.
+4. Chốt tên `token_tag` (code) vs `action_tag` (`DID-Authorization-Registry-DRAFT`) trước khi Core dựng builder.
+
+---
+
 ## §0 — PHÂN LOẠI + quyết định + vấn đề
 
 **PHÂN LOẠI:** OFFCHAIN → PR giao **Long** (`PhoenixKey-Database`, backend Java).
@@ -12,10 +36,10 @@ Ranh giới: Claude/Agent KHÔNG tự sửa backend — spec này là bản giao
 
 **Vấn đề (1 dòng):** hôm nay **không có endpoint offchain nào mint LAMP ký bằng OrgDID** — catalog đã xác nhận (`PhoenixKey-API-Catalog.md` liệt kê `/identity/org/create` nhưng không có `mint-lamp`); `/activation` chỉ phát 1001 LAMP ban đầu qua **faucet** (`lamp_policy`), KHÔNG phải mint-gated-OrgDID. On-chain đã đủ (`build_mint_lamp_via_did` có test, `lamp_mint.ak` là policy) — chỉ thiếu lớp offchain nối chúng lại.
 
-**QUYẾT ĐỊNH ĐÃ CHỐT (anh Aladin, 2026-07-02):**
-- **`lamp_mint` (OrgDID-gated per-OrgDID) là policy mint LAMP CANONICAL.** LAMP cố định 36 tỷ, KHÔNG burn — mọi mint đi qua đường này.
+**QUYẾT ĐỊNH ĐÃ CHỐT (anh Aladin, 2026-07-02):** ⚠ *"per-OrgDID" + "applied per-OrgDID" ĐÃ ĐÈ bởi V2-2 (1 policy-id chung, gate qua Registry NFT). Đọc phần v2-UPDATE ở đầu.*
+- **`lamp_mint` là policy mint LAMP CANONICAL** (~~OrgDID-gated per-OrgDID~~ → **1 policy chung, gate qua Registry NFT ref-input**, V2-1/V2-2). LAMP cố định 36 tỷ, KHÔNG burn — mọi mint đi qua đường này.
 - **`lamp_policy` (faucet) chỉ là interim/testnet**, dùng cho `/activation` để phát LAMP kích hoạt ban đầu. KHÔNG canonical.
-- Config `LAMP_POLICY_CBOR_HEX` (hoặc tương đương) = **applied `lamp_mint` parameterised per-OrgDID** (xem §5). Tên biến giữ nguyên để tương thích, nhưng giá trị = script `lamp_mint` đã áp tham số, KHÔNG phải `lamp_policy`.
+- ~~Config `LAMP_POLICY_CBOR_HEX` = applied `lamp_mint` per-OrgDID~~ → **1 policy-id LAMP tĩnh** (apply-param theo token, không theo OrgDID); org phân biệt runtime qua Registry NFT (V2-2, ĐÈ §5).
 
 **Đã có vs còn thiếu:**
 
@@ -239,10 +263,11 @@ Thêm khối `mint_authorization` vào payload lưu Redis cho intent `LAMP_MINT`
 - (Phòng thủ, optional) fetch anchor UTxO qua `orgDid → TAAD script addr` → xác nhận tx `signed_tx_cbor` tham chiếu đúng anchor đó, chưa bị revoke off-chain.
 
 ### Validator/policy on-chain check (nguồn chân lý — KHÔNG lặp lại ở backend)
-`lamp_mint` policy (đọc anchor TAAD làm reference input, CIP-31) tự enforce:
-- **(a)** tx mang reference input giữ đúng anchor NFT của OrgDID.
-- **(b)** tx được ký bởi `controller_pkh` (trong `extra_signatories`) — key derive từ Master_KEK.
-- **(c)** anchor datum `status == Active` (OrgDID chưa bị revoke on-chain).
+⚠ **ĐÈ bởi V2-1 (đầu file):** code thật đọc **Registry NFT**, KHÔNG đọc anchor TAAD. (a)(b)(c) dưới là mô-tả v1 lỗi-thời — giữ để đối chiếu.
+`lamp_mint` policy (~~đọc anchor TAAD~~ → **đọc Registry NFT ref-input**, `registry.validate_mint`) tự enforce:
+- **(a)** ~~tx mang reference input giữ anchor NFT của OrgDID~~ → tx mang **Registry NFT ref-input** (`name = blake2b_256(org_did)`) chứa entry `token_tag:"LAMP"`.
+- **(b)** `authority_satisfied` theo entry: `SinglePkh{pkh}` (1 chữ ký) | `MultiSig{pkhs, threshold}` (m chữ ký ∈ pkhs) — thay cho `controller_pkh` đơn.
+- **(c)** entry KHÔNG `Revoked` (thay cho "anchor status Active"); ràng-buộc-Active dời sang write-side Registry validator.
 
 **Validator SupplyState (spend, redeemer `Advance`) — cửa chốt CAP, §1.5:**
 - **(d)** tx spend SupplyState NFT + recreate SupplyState' cùng script address với thread NFT.
@@ -252,9 +277,11 @@ Thêm khối `mint_authorization` vào payload lưu Redis cho intent `LAMP_MINT`
 
 ---
 
-## §5 — Config: `LAMP_POLICY_CBOR_HEX` = applied `lamp_mint` per-OrgDID
+## §5 — ~~Config: `LAMP_POLICY_CBOR_HEX` = applied `lamp_mint` per-OrgDID~~ (LỖI-THỜI — ĐÈ bởi V2-2)
 
-### Vấn đề tham số hoá
+> ⚠ **TOÀN BỘ §5 LỖI-THỜI (đầu file V2-2).** Tiền đề "`lamp_mint` apply-param per-OrgDID theo `anchor_nft_name`" SAI: code không có param anchor. Đúng: **1 policy-id LAMP tĩnh** (apply-param theo token), org phân biệt runtime qua **Registry NFT** `name=blake2b_256(org_did)`. Thay cột `org_dids.lamp_mint_policy_cbor` per-org bằng: (a) 1 config `lamp_mint_policy_id` tĩnh toàn hệ; (b) mỗi OrgDID có **entry Registry `token_tag:"LAMP"`** (Core dựng qua `registry_mint`, controller-DID-ký) TRƯỚC khi mint. m-of-n → `MultiSig{pkhs,M}` (V2-4, tháo dependency dưới). Phần dưới giữ để đối chiếu lịch-sử.
+
+### Vấn đề tham số hoá (v1 — lỗi-thời)
 `lamp_mint.ak` có **12 tham số**, trong đó có `anchor_nft_policy` + `anchor_nft_name` — mà `anchor_nft_name` **derive từ DID** (mỗi OrgDID một anchor NFT khác nhau). ⇒ script `lamp_mint` **applied** ra **policy id khác nhau cho mỗi OrgDID**. Không có một `LAMP_POLICY_CBOR_HEX` toàn cục dùng chung cho mọi org.
 
 ### Quyết định (4 trục — dài hạn / first-principles / tối ưu / user)
@@ -322,7 +349,7 @@ Biến hiện có: `phoenixkey.cardano.lamp-policy-id` (đã có trong `applicat
 **⚠️ GAP builder (cần Core bổ sung — chặn mint đúng cap on-chain):**
 - `build_mint_lamp_via_did()` (mint_lamp.rs) hiện **CHỈ** mint + ref-input anchor, **CHƯA compose SupplyState** (chưa spend SupplyState NFT với redeemer `Advance`, chưa recreate SupplyState', chưa mint route `DistributionVest`). Phải khớp `mintBuilder.ts` (CONTRACT §5) thì cap 36 tỷ mới được ép. Đây là **on-chain/Core**, KHÔNG phải Long — nhưng chặn test T1/T2 tới lúc sửa xong. Ghi open item #6.
 
-**Ghi chú phí MAGIC (Payyou):** tx mint này **về sau có thể chịu phí dịch vụ MAGIC** (mô hình Payyou — tính-trên-MAGIC, trả bằng CARP về provider-vault). PR này KHÔNG gộp phí — mint chạy trần trước. Khi Payyou wire vào, thêm 1 output/relay phí ở tầng build (mobile) + tính phí ở backend. Ghi làm hạng mục kế tiếp, không chặn PR này.
+**Ghi chú phí MAGIC (Feecover):** tx mint này **về sau có thể chịu phí dịch vụ MAGIC** (mô hình Feecover — tính-trên-MAGIC, trả bằng CARP về provider-vault). PR này KHÔNG gộp phí — mint chạy trần trước. Khi Feecover wire vào, thêm 1 output/relay phí ở tầng build (mobile) + tính phí ở backend. Ghi làm hạng mục kế tiếp, không chặn PR này.
 
 ### Open items cần anh / Tuân / Core chốt
 1. **[CHẶN m-of-n] Cơ chế tham số hoá `lamp_mint` per-OrgDID + ánh xạ threshold → controller_pkh** (§5 dependency). `lamp_mint` enforce `must_be_signed_by(controller_pkh)` đơn — với OrgDID threshold, `controller_pkh` là native-multisig? aggregated key? Cần Core/LAMP chốt trước khi T2 chạy được. **Single-owner (T1) không bị chặn** — có thể ship trước.
