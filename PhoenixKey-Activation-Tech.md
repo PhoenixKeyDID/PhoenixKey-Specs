@@ -9,7 +9,7 @@
 > - `spec-proposals/PhoenixKey-Activation-Feat-Math.md` v4.1 (§3 toán, §4 invariant, §5 ranh-giới, §6 phụ-thuộc)
 > - `spec-proposals/PhoenixKey-Activation-API-for-SuperApp.md` (API endpoint SuperApp)
 >
-> **Trạng-thái code (evidence THẬT, `aiken check` 2026-07-07):** `total: 172, passed: 172, failed: 0`; riêng `phoenixkey/activation_logic` = **69/69 pass**. Validator hash (apply-param placeholder trong `plutus.json`) = `5a7bae679f2444e8496bc80cac24e4e7f2740c35a62dd8c9201ec95e`.
+> **Trạng-thái code (evidence THẬT, `aiken check` 2026-07-07):** `total: 173, passed: 173, failed: 0`; riêng `phoenixkey/activation_logic` = **69/69 pass**. Validator hash (apply-param placeholder trong `plutus.json`) = `5a7bae679f2444e8496bc80cac24e4e7f2740c35a62dd8c9201ec95e`.
 >
 > **✅ `plutus.json` ĐÃ v4.1-current (verify 07-07):** export datum **9-field** + redeemer **5-nhánh spend** (có `ForfeitPhase2`) + 2 mint-gate — khớp code `.ak`. `aiken build` chạy lại KHÔNG tạo diff ⟹ blueprint backend/Core dùng là ĐÚNG. (Ghi-chú: hash `d115dbb…` trong session-note cũ là bản v4 lỗi-thời — bỏ; hash đúng ở trên.) **⚠ Còn 1 lệch cần Tuân sửa (backend, KHÔNG chặn build):** comment đầu file `activation_logic.ak:34,53` vẫn ghi "7 field / 4 redeemer" (bản v4) trong khi struct/enum thực-tế đã 9-field/5-redeemer — chỉ là comment lỗi-thời, không đổi CBOR. Neo: `activation_logic.ak:110-140`.
 
@@ -348,7 +348,7 @@ Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code
 
 | Tầng | Việc | Đội | Trạng-thái |
 |---|---|---|---|
-| **On-chain (Aiken)** | validator vault 2-pha v4.1: 5 redeemer spend + 2 mint-gate, đồng-hồ NGÀY+EPOCH, vest-gated + forfeit + `idle_epochs_p2`, ClaimVested owner-sig. + validator pot (`dist_treasury` kế-thừa). *(AbandonPhase1 nếu cần thoát-sớm)* | **Tuân** | **XONG 172/172 test + red-team, PR #18.** *(còn: apply-param builder + `plutus.json` rebuild)* |
+| **On-chain (Aiken)** | validator vault 2-pha v4.1: 5 redeemer spend + 2 mint-gate, đồng-hồ NGÀY+EPOCH, vest-gated + forfeit + `idle_epochs_p2`, ClaimVested owner-sig. + validator pot (`dist_treasury` kế-thừa). *(AbandonPhase1 nếu cần thoát-sớm)* | **Tuân** | **XONG 173/173 test + red-team, PR #18.** *(còn: apply-param builder + `plutus.json` rebuild)* |
 | **Backend (Java)** | GetLAMP orchestration (đọc pot→D→apply-param→build genesis); **anti-idle job NGÀY** (PHA-1, keeper-sig Reclaim); **vest job PHA-2** (kiểm epoch-active + đếm gap `last_tick_epoch` → VestToOwner / ForfeitPhase2, keeper-sig); ClaimVested build/submit; GetMAGIC; keeper wallet. `curl` verify sau deploy. | **Long** | ⚪ chờ |
 | **Core / Enclave** | keygen vân tay (Master_KEK); ký GenesisVault (owner-witness) + ClaimVested (controller qua anchor); UI 1-nút GetLAMP + dashboard 2-pha | **Core** | ⚪ chờ |
 | **MAGIC/CARP-team** | engine Gen ĐỌC-số-dư (reference-input VaultDatum → drip MAGIC → **KHÔNG spend LAMP**); `did_commit` per-DID | MAGIC/CARP | **BLOCKER kiến-trúc §3.7** — nguyên-lý chốt, on-chain chưa spell-out |
@@ -391,7 +391,7 @@ validator ───┘        │
 
 **Đã có (verify THẬT `aiken check` 2026-07-07):**
 ```
-OVERALL: total=172  passed=172  failed=0   (kind: unit 172)
+OVERALL: total=173  passed=173  failed=0   (kind: unit 173)
 phoenixkey/activation_logic: total=69  pass=69  fail=0
 ```
 Bao-phủ (`activation_logic.ak:788-811` — bảng ca):

@@ -1,6 +1,6 @@
 # Đánh giá GAMING (kinh-tế/incentive) — Activation v4.1 · 2026-07-07
 
-> **Phạm vi:** phân-tích mechanism-design / adversary-tokenomics của **Activation v4.1** (PhoenixKey GetLAMP, model 2-PHA GATED). Săn cách user/nhóm khai-thác incentive để **RÚT giá-trị mà KHÔNG tiêu-dịch-vụ-thật**. Đây là lỗ **kinh-tế/incentive** — KHÁC red-team money-drain on-chain (đã sạch, 172/172 test + 9 bất-biến, [[redteam-guardian-dup-live-poc]]).
+> **Phạm vi:** phân-tích mechanism-design / adversary-tokenomics của **Activation v4.1** (PhoenixKey GetLAMP, model 2-PHA GATED). Săn cách user/nhóm khai-thác incentive để **RÚT giá-trị mà KHÔNG tiêu-dịch-vụ-thật**. Đây là lỗ **kinh-tế/incentive** — KHÁC red-team money-drain on-chain (đã sạch, 173/173 test + 9 bất-biến, [[redteam-guardian-dup-live-poc]]).
 >
 > **Nguồn đã đọc (không bịa):**
 > - `spec-proposals/PhoenixKey-Activation-Feat-Math.md` v4.1 (model + §3 toán + §4 I-ACT + §7 tham số + §9 self-adversarial).
@@ -200,7 +200,7 @@ Phân loại: **lỗ-KINH-TẾ-THẬT (sập/rút-ròng):** GV1, GV2, GV5 (+GV6 
 
 **v4.1 CHẶN TỐT (không tô hồng — đây là thật):**
 - Cung-LAMP-tức-thời: rào 1001 ngày + vest nhỏ-giọt, validator ép trần luỹ-kế `vest_ok`(5) — **GV4 🟢 chặn cứng on-chain**.
-- Money-drain on-chain: anti-drain (`nonlamp_preserved`+`only_expected_policies`) + đích-đúng (`lamp_to_addr` pot/owner) — red-team sạch, 172/172 test.
+- Money-drain on-chain: anti-drain (`nonlamp_preserved`+`only_expected_policies`) + đích-đúng (`lamp_to_addr` pot/owner) — red-team sạch, 173/173 test.
 - Epoch-timing: gap-đo forfeit ungameable — **GV8 🟢**.
 - Sybil **đa-địa-chỉ**: vô-ích (D per-PersonDID) — đúng [[no-sybil-concern]] ở tầng đa-address.
 

@@ -5,7 +5,7 @@
 > **Nguồn chân-lý = CODE, không phải văn:** mọi bất-biến ở đây neo trực-tiếp về `file:hàm` trong validator. Khi văn ≠ code → **code thắng**. Nếu auditor thấy chênh, báo lỗi CODE hoặc lỗi SPEC, không tự hoà.
 >
 > **Code neo (nguồn chân-lý):**
-> - `PhoenixKey-Validator/lib/phoenixkey/activation_logic.ak` — toàn bộ toán + cơ-chế-ép (`*_ok`). Trạng-thái: **69/69 test riêng module `activation_logic`** (nằm trong **172/172 test pass toàn-dự-án**) **+ red-team sạch** (auditor tự chạy `aiken check` để xác nhận).
+> - `PhoenixKey-Validator/lib/phoenixkey/activation_logic.ak` — toàn bộ toán + cơ-chế-ép (`*_ok`). Trạng-thái: **69/69 test riêng module `activation_logic`** (nằm trong **173/173 test pass toàn-dự-án**) **+ red-team sạch** (auditor tự chạy `aiken check` để xác nhận).
 > - `PhoenixKey-Validator/validators/activation_vault.ak` — thin validator (dispatch 5 spend redeemer + 2 mint redeemer).
 >
 > **Phạm-vi money-safety đặc-tả này CHỨNG:** LAMP không tự-sinh; conditional-LAMP không rời sang user; vested-LAMP đã-sở-hữu bất-khả-xâm-phạm; forfeit chỉ về pot. **NGOÀI phạm-vi (giả-định tin-cậy, ghi rõ §8):** keeper trung-thực (attest active/idle đúng), engine Gen `§3.7` chưa spell-out on-chain, uniqueness PersonDID (sinh-trắc Enclave), pot-validator (`dist_treasury`) tự gác quyền cấp LAMP.

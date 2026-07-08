@@ -18,7 +18,7 @@
 
 **Ba thứ đã BỎ.** (a) Model VND-Genie cũ (nạp 200k VND) — nay miễn phí; (b) v2 unlock-bán-ngay — tạo cung chực-bán; (c) v3 mượn-không-sở-hữu — không có phần-thưởng cho người kiên-trì.
 
-**Trạng thái một dòng.** Validator lõi **XONG** (172/172 test toàn-dự-án, 69/69 riêng activation_logic, + red-team sạch, PR chờ Tuân duyệt); spec chờ anh chốt; backend + Core ký đang chờ; **2 blocker kiến-trúc** ở đội MAGIC/CARP (engine Gen đọc-số-dư) và Registry (chuẩn dịch-vụ tiêu-tài-nguyên-thật).
+**Trạng thái một dòng.** Validator lõi **XONG** (173/173 test toàn-dự-án, 69/69 riêng activation_logic, + red-team sạch, PR chờ Tuân duyệt); spec chờ anh chốt; backend + Core ký đang chờ; **2 blocker kiến-trúc** ở đội MAGIC/CARP (engine Gen đọc-số-dư) và Registry (chuẩn dịch-vụ tiêu-tài-nguyên-thật).
 
 > 🔴 **CỔNG GO/NO-GO (đọc trước khi duyệt bật production):** validator an-toàn nhưng **KHÔNG được mở GetLAMP-PersonDID trên production tới khi PA2 UniquenessThread + Registry-chuẩn land.** Hiện PersonDID giả-mạo được + cổng chống-wash chưa tồn tại → kẻ tấn-công có thể rút-ròng nhiều lần D (chi tiết §7 + verdict gaming). Enterprise/Org/Service DID (có parent-sig) KHÔNG dính lỗ này.
 
@@ -54,7 +54,7 @@
 ## 4. Trạng-thái triển-khai (xong / đang / chặn)
 
 ### ✅ XONG (có evidence)
-- **Validator vault 2-pha** (`activation_vault.ak` + `activation_logic.ak`) — rework theo v4.1: `conditional_lamp`/`vested_unlocked`, ranh-giới-pha ngày 1001, anti-idle-reclaim PHA-1, **vest-GATED-per-epoch** + **forfeit-1001-idle-epoch**, ClaimVested ký-owner, Gen-đọc-số-dư-không-spend. **172/172 test pass + red-team sạch** (PR Validator #18). Đo idle bằng GAP (lazy), không counter tăng-dần.
+- **Validator vault 2-pha** (`activation_vault.ak` + `activation_logic.ak`) — rework theo v4.1: `conditional_lamp`/`vested_unlocked`, ranh-giới-pha ngày 1001, anti-idle-reclaim PHA-1, **vest-GATED-per-epoch** + **forfeit-1001-idle-epoch**, ClaimVested ký-owner, Gen-đọc-số-dư-không-spend. **173/173 test pass + red-team sạch** (PR Validator #18). Đo idle bằng GAP (lazy), không counter tăng-dần.
 
 ### 🟡 ĐANG / CHỜ DUYỆT
 - **Spec Feat-Math + gaming-eval** — PR #16, chờ anh chốt 4 điểm [CẦN CHỐT] (xem §6).
@@ -98,7 +98,7 @@
 
 ## 7. Ghi trung-thực (không over-claim)
 
-- **Đã-build vs spec vs blocker phân-biệt rõ:** chỉ validator vault lõi là ĐÃ-BUILD (172/172 + red-team sạch). Backend/Core/pot đang. Engine Gen + Registry là BLOCKER chờ đội khác.
+- **Đã-build vs spec vs blocker phân-biệt rõ:** chỉ validator vault lõi là ĐÃ-BUILD (173/173 + red-team sạch). Backend/Core/pot đang. Engine Gen + Registry là BLOCKER chờ đội khác.
 - **Whitepaper-gap khai-báo:** "GetLAMP / pot / 2-pha / vest-sở-hữu-sau-1001-ngày / phí-thu-bằng-LAMP" KHÔNG có trong whitepaper — là **directive Activation-layer anh Aladin**. WP §7.2/§7.3 + /CARP hậu-thuẫn **nguyên-lý Gen-đọc-số-dư** rõ ràng, nhưng /CARP CHƯA spell-out cơ-chế on-chain (mới có nguyên-lý, chưa có validator).
 - **Keeper MVP:** tin system-authority tới khi có consume-event Registry thật — nợ MVP có chủ-đích, đóng khi B2 xong.
 - **🔴 ĐIỀU-KIỆN-TIÊN-QUYẾT chặn production (verdict gaming v4.1, `_activation-gaming-evaluation-v41.md`):** **KHÔNG mở GetLAMP-PersonDID production tới khi PA2 UniquenessThread + Registry-chuẩn-dịch-vụ land.** Lý do: (GV1) PersonDID hiện **giả-mạo được** (anchor P-256 không verify on-chain — [[anchor-uniqueness-limit]]) → "1 người 1 suất" CHƯA đúng; (GV2) cổng chống-wash = Registry-tài-nguyên-thật **chưa tồn tại** (`has_counterparty_consume`=False). Cộng-hưởng GV1×GV2 = N-DID-giả × wash-vỏ = **rút-ròng N×full-vault ~ phí-tx**. Validator on-chain ĐÚNG (red-team sạch), lỗ nằm ở **giả-định-tầng-trên chưa-thoả**.
