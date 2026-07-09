@@ -14,6 +14,7 @@
 | **Review** | v4.2: Gemon (MIT Math), Serat (Security); v4.4–4.5: Sambo (BA MIT Sloan), Tuân (Validator Engineer) |
 | **Fixes over v4.4** | **[Bug]** salt_pw₁ circular dependency removed — all salts now on-chain, protection by Argon2id memory-hardness; **[Bug]** `secondary_wallet_enrolled:𝔹` → `secondary_wallets:List<SecondaryWallet>` with pkh commitment; **[Bug]** Email upgraded from knowledge factor to possession factor via EmailOracle OTP (VeData-pattern); **[Bug]** Cancel Option A removed from §11.7 — knowledge factors cannot distinguish owner from attacker; **[Design]** I-RECOVERY-4 grace period (30-day backup_deadline, restricted scope, not hard block); **[Design]** I-RECOVERY-5 recursive orphan edge case; **[Editorial]** Argon2id m unit MiB; HIBP k-anonymity reference; I-TIER5-PW-5 removed |
 | **Added in v4.6** | **[New]** §36 Transaction Fee Architecture — per-operation PhoenixKey fee with 30/70 split: 30% to Cardano Treasury via Conway-era native treasury-donation (tx body field 20), 70% to Phoenix Treasury (Plutus V3 script, OrgDID m-of-n). **Fees are on-chain adjustable parameters** (`FeeParams` reference UTxO) updatable by **DAO governance vote OR an algorithmic module** — no script-hash rebake. **PersonDID create fee = 0 at launch** (user-acquisition incentive; zero-fee ops skip the fee mechanism, like `Deactivate`). I-FEE-1/2 enforced on-chain by a fee-receipt minting policy (Aiken stdlib v2 `treasury_donation` accessor; enforcement-point + ExUnits pending Validator Issue #7). Theorem 36.1 fee accountability. **[Reconcile §29]** §29 clarified as PhoenixKey-side DID-mapping layer; reward math is canonical MAGIC AppEconomics v2.1 (`computeW` 5-factor + 30% cap), DID-agnostic — legacy v1.0-SA `holder_share_bps` superseded. |
+| **Pending v4.7 (this patch)** | **[Bug, Errata CID-6]** §3.3 (new): defines capability subsumption `⊑` — a preorder where `c ⊑ Full_Authority` for all `c`, backward-compatible with plain set-⊆. §4.4 `DelegationToken_valid` and §23 `Op_delegate`/sub-delegation switched from `⊆` to `⊑`: previously a PersonDID (`scope={Full_Authority}` per C-SCOPE-3) could not delegate *any* concrete capability, since `{Read_DID(Asset)} ⊆ {Full_Authority}` is False under plain set membership — blocking all PersonDID-issued delegation through §4.4/§23 while §4.2 `Authority` already handled `Full_Authority` via an ad-hoc disjunct (internal inconsistency). Scope of this patch is deliberately narrow: only §1.1 (notation), §3.3 (new), §4.4, §23, and TV-6 changed. §3.2/§4.2/§19/§20 and all proofs referencing set-⊆ properties (cascade scope, Theorem 27.1) are **not** touched by this patch — **[CẦN CHỐT]** whether/how those should also move to `⊑` is a separate follow-up (see `spec-proposals/ServiceDID-SelfService-and-Delegation-DRAFT.md` §3.3 for the wider proposal this patch was extracted from). **Formal version-number bump (title/header) intentionally deferred** — this patch touches 2 sections; maintainer should decide whether to bump to v4.7 now or bundle with a larger release. |
 
 ---
 
@@ -114,6 +115,7 @@ Map<K,V>     finite partial function
 
 |S|          cardinality
 ⊆, ∈, ∪, ∩, ∅   standard set operations
+⊑            capability subsumption ("is covered by") — see §3.3 [N, v4.7]
 ∀, ∃, ∧, ∨, ¬, →   logical operators
 ≜            definitional equality
 (a ?? b)    ≜  if a ≠ None then a else b
@@ -328,6 +330,51 @@ C-SCOPE-2: Full_Authority ∈ scope(d) → type(d) = Person
 C-SCOPE-3: scope(PersonDID) = {Full_Authority}
 ```
 
+### §3.3 Capability Subsumption ⊑ [N, v4.7]
+
+> **Errata CID-6 (v4.7).** §4.4 `DelegationToken_valid` and §23 `Op_delegate`
+> historically checked `granted_cap ⊆ scope(from, s)` using plain set
+> membership. Because `C-SCOPE-3` gives `scope(PersonDID) = {Full_Authority}`
+> (a single opaque token, not the set of everything it grants), a PersonDID
+> could never pass that check for any concrete capability:
+> `{Read_DID(Asset)} ⊆ {Full_Authority}` is **False**, since `Read_DID(Asset)`
+> is not literally the element `Full_Authority`. Net effect: the DID with the
+> most authority (PersonDID) was the one DID type that could not delegate
+> *any* specific capability through §4.4/§23 — while §4.2 `Authority` already
+> special-cased `Full_Authority` via an ad-hoc disjunct (`op ∈ scope(did) ∨
+> Full_Authority ∈ scope(did)`, `:367`), leaving the model internally
+> inconsistent. This section fixes it by replacing plain set-⊆ with a
+> subsumption (refinement) relation `⊑` at the two delegation check sites
+> (§4.4, §23). Scope beyond those two sites — e.g. re-expressing §3.2
+> C-SCOPE-1, §4.2 Authority's disjunct, or §19/§20 owner-scope invariants in
+> terms of `⊑` — is **not** part of this fix and is left for a future spec
+> pass if desired; those sites already function correctly today because they
+> either special-case `Full_Authority` explicitly (§4.2) or are unaffected by
+> this bug (§19/§20 do not gate PersonDID-authored delegation).
+
+```
+-- c1 ⊑ c2  ≜  "c2 subsumes c1": whoever holds c2 can do everything c1 permits.
+
+c ⊑ Full_Authority                                  ∀ c   -- Full_Authority subsumes every cap
+c ⊑ c                                                      -- reflexive
+
+-- capability-specific refinement (parametrized capabilities only get
+-- narrower under ⊑; unparametrized capabilities fall back to identity):
+Read_DID(t)  ⊑ Read_DID(t)
+Sign_Tx(v1)  ⊑ Sign_Tx(v2)          ⟺ v1 ≤ v2
+-- all other capability constructors: c1 ⊑ c2 ⟺ c1 = c2 (identity),
+-- unless a future revision defines a narrower refinement rule for them.
+
+-- lifted to sets (used at all delegation check sites):
+A ⊑ B  ≜  ∀ a ∈ A : ∃ b ∈ B : a ⊑ b     -- every cap in A is subsumed by some cap in B
+```
+
+`⊑` is a **preorder** (reflexive + transitive), which sub-delegation chains
+rely on. Plain set-⊆ is the special case of `⊑` where no capability subsumes
+a distinct one — so every delegation valid under the old `⊆` check remains
+valid under `⊑` (backward compatible); `⊑` only *admits* new cases, via the
+`c ⊑ Full_Authority` clause.
+
 ---
 
 ## §4 Authority Model [N]
@@ -407,7 +454,13 @@ DelegationToken ≜ {
 DelegationToken_valid(dt, s) ≜
   Verify(current_key(dt.from), H(dt.fields_excl_sig), dt.signature)
   ∧ s ∈ [dt.valid_from, dt.valid_until]
-  ∧ dt.granted_cap ⊆ scope(dt.from, s)        -- F-37: CURRENT scope at validation time
+  ∧ dt.granted_cap ⊑ scope(dt.from, s)        -- F-37: CURRENT scope at validation time
+                                               -- v4.7 (Errata CID-6): ⊆ → ⊑ (§3.3) so a
+                                               -- PersonDID (scope={Full_Authority}) can
+                                               -- delegate a concrete capability; ⊆ was
+                                               -- always False here since Full_Authority
+                                               -- is a single opaque token, not the set of
+                                               -- everything it grants.
   ∧ dt.depth_remaining ≤ MAX_DELEGATION_DEPTH - depth(dt.from)
   ∧ nonce_not_used_on_chain(dt.nonce, dt.from)
 
@@ -1894,14 +1947,14 @@ C-DEPTH: ∀ did: depth(did) ≤ MAX_DELEGATION_DEPTH = 10
 ```
 Op_delegate(from, to, cap, valid_until, sub_del, s) → DelegationToken:
   Pre: Authority(from, Deploy_Agent(cap) ∨ Deploy_Bot(cap), s)
-       ∧ cap ⊆ scope(from, s)         -- current scope (F-37)
+       ∧ cap ⊑ scope(from, s)         -- current scope (F-37); v4.7 (Errata CID-6): ⊆ → ⊑ (§3.3)
        ∧ valid_until > s
        ∧ depth(to) ≤ MAX_DELEGATION_DEPTH
        ∧ CanOwn(type(from), type(to))
        ∧ nonce_not_used_on_chain(nonce, from)    -- F-22
 
--- Sub-delegation: granted_cap ⊆ parent token's granted_cap; valid_until' ≤ valid_until.
--- depth_remaining decremented per delegation hop.
+-- Sub-delegation: granted_cap ⊑ parent token's granted_cap (v4.7, Errata CID-6:
+-- ⊆ → ⊑, §3.3); valid_until' ≤ valid_until. depth_remaining decremented per hop.
 ```
 
 ---
@@ -3501,9 +3554,14 @@ No call to Auth_satisfied(owner(P), ...) because owner(P) = None ✓
 Slot 100: O issues DelegationToken to B: granted_cap={Mint_Token}
 Slot 200: scope(O) ← {Sign_Tx} (Mint_Token removed)
 Slot 201: DelegationToken_valid(dt, 201):
-  dt.granted_cap ⊆ scope(O, 201)?
-  = {Mint_Token} ⊆ {Sign_Tx}? → False → token invalid ✓
+  dt.granted_cap ⊑ scope(O, 201)?         -- v4.7: ⊆ → ⊑ (§3.3, Errata CID-6)
+  = {Mint_Token(p)} ⊑ {Sign_Tx(v)}?
+  = Mint_Token(p) ⊑ Sign_Tx(v)? → False (different capability constructors;
+    §3.3 only defines refinement within the same constructor, or via the
+    universal c ⊑ Full_Authority clause — neither applies here) → token invalid ✓
   F-37 blocks stale delegation even without explicit revocation ✓
+  (Same result as pre-v4.7 ⊆ check — ⊑ only ADDS the Full_Authority case,
+  it never turns a previously-invalid check into valid for unrelated caps.)
 ```
 
 ---
