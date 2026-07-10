@@ -136,6 +136,24 @@ Công thức chi (`expected_amount`): SYS = `min(loss, cap_sys)` (không co-pay)
 - **Reject:** committee ký, ≥ `committee_threshold` khoá **khác nhau** trong
   `extra_signatories` (dedup qua `list.unique`).
 
+## 2.5 🟡 Siết hẹp P9 — stake_credential + payee VerificationKey-cred (CHỜ-LÀM, rẻ, trước-merge)
+
+P9 (`sole_output_value_at(outputs, payee_cred) == Some(escrow_val)`) hiện chỉ khớp
+**`payment_credential`**, bỏ qua `stake_credential`; và `payee_cred` giả định output đích
+luôn mang **`Script`**-credential. Hai chỗ hẹp cần đóng trước merge (rẻ, không đổi kiến trúc):
+
+- **(a) `stake_credential` bị bỏ:** hiện chỉ ép đúng payment-cred tại output payee, không ép
+  stake-cred. Cần siết thêm (khớp cả cặp payment+stake) HOẶC ghi rõ trong `protectme_types.ak`
+  rằng bỏ-qua-stake là **cố ý** (ví dụ nếu payee luôn none-stake theo thiết kế ví Phượng hoàng).
+  Chưa quyết — đội on-chain xác nhận rồi chốt.
+- **(b) `payee_cred` giả định luôn `Script`-cred:** ví Phượng hoàng ở **L1 công khai**
+  ([multiaddress-custody-model] — L1 base công khai payment+stake) có thể là
+  **VerificationKey-credential**, không phải Script. `sole_output_value_at` cần hỗ trợ cả hai
+  dạng credential cho payee, không chỉ Script.
+
+**Vị trí:** `protectme_logic.ak:payout_ok` (P9) + `protectme_types.ak` (định nghĩa
+`payee_cred`). **Không chặn-merge** như beacon (§3/§8.1) nhưng nên làm trước-merge vì rẻ.
+
 ---
 
 # 3. Beacon one-shot per claim_id — THÊM (chặn-merge)
@@ -409,7 +427,12 @@ Off-chain (backend, đội backend) dàn dựng; validator ép trên chain. Năm
   apply-param. **KHÔNG chặn** nếu beacon đã đóng #2/#6/F3. Beacon làm policy độc lập trước
   (§3.3 ghi chú), gộp sau.
 
-## 8.4 Phụ thuộc MAGIC/CARP ([PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md) §2)
+## 8.4 🟢 Rẻ, trước-merge — siết P9 (stake_credential + payee VerificationKey-cred)
+
+- **Không chặn-merge** như beacon, nhưng nên làm **trước-merge** vì rẻ (không đổi kiến trúc).
+- Chi tiết: §2.5.
+
+## 8.5 Phụ thuộc MAGIC/CARP ([PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md) §2)
 
 - **CARP** = đơn vị chi/thu; `carp_policy`/`carp_name` trong `ProtectmeConfig`. Phụ thuộc
   CARP là `accepted_asset` Phoenix Treasury (đội backend xác nhận policy-id thật lúc deploy).
@@ -418,7 +441,7 @@ Off-chain (backend, đội backend) dàn dựng; validator ép trên chain. Năm
 - **Premium** qua Feecover (`service_id="protectme.*"`, `app_id="feecover"`) → bucket
   `protectme_pot_user` qua `FeecoverEpochSettle`, KHÔNG `collectToTreasury`.
 
-## 8.5 Phụ thuộc bằng chứng (đọc, không đổi)
+## 8.6 Phụ thuộc bằng chứng (đọc, không đổi)
 
 - **Anti-drain log** (Withdrawal-Limit) + **vault UTxO scan** = oracle `loss_eligible`
   (A.6/B.5). Resolver đội backend **đọc**, KHÔNG đổi validator custody. `loss_eligible`/`policy`
@@ -442,6 +465,7 @@ chính sách (maintainer + đội backend + DAO). Neo kiểm-chứng theo hạng
 | provenance escrow (CARP từ bucket) | `protectme_logic.ak` (F3 header) — cần beacon |
 | uniqueness claim_id on-chain (#6/F3) | `protectme_beacon.ak` (viết mới, §3) |
 | beacon burn ghép vào payout/reject | §3.2 |
+| siết P9 (stake_credential + payee VerificationKey-cred) | `protectme_logic.ak:payout_ok` (§2.5, §8.4) |
 | escrow ← bucket (B.6) | đội backend + maintainer (§8.2) |
 | hai bucket Treasury + release-gate | đội backend (§7) |
 | premium/Feecover wiring | đội backend (§8.4) |

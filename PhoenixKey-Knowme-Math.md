@@ -89,7 +89,7 @@ Predicate = { id, path, op ∈ {GE,LE,EQ,IN,RANGE}, arg, ctx? }
 
 ---
 
-## 4. Bảng bất-biến `I-KNOW-1 .. I-KNOW-10`
+## 4. Bảng bất-biến `I-KNOW-1 .. I-KNOW-11`
 
 | ID | Bất-biến (hình-thức) | Cơ-chế-ép | Neo / Nguồn |
 |---|---|---|---|
@@ -103,6 +103,7 @@ Predicate = { id, path, op ∈ {GE,LE,EQ,IN,RANGE}, arg, ctx? }
 | **I-KNOW-8** | **Ràng-buộc nội-dung tài-liệu:** `docHash = H(plaintext)` nằm trong commitment ⟹ đổi 1 byte plaintext → đổi docHash → đổi commitment → vỡ membership. `cid` chỉ là con-trỏ, KHÔNG thay `docHash`. | `docDigest` (Đ-5) | **[SPEC]** Knowme-Feat-Math §11 INV-K1 |
 | **I-KNOW-9** | **Không plaintext ra ngoài:** chỉ `Envelope` (ciphertext ECIES) + CID rời máy; server chỉ giữ ciphertext. | `eciesSeal` trước khi `LampNetStore.put` | `crypto.ts:eciesSeal`, `lampnet.ts:cidOf/put` — WIRING vào luồng DocumentClaim/sd[] là **[SPEC]** INV-K2 |
 | **I-KNOW-10** | **Least-disclosure tài-liệu:** người nhận chỉ có Envelope + opener của đúng tài-liệu đã chọn; phần còn lại là commitment ẩn trong `sd[]`. | re-seal per-recipient + Presentation | **[SPEC]** INV-K5 |
+| **I-KNOW-11** | **Lịch-sử bất-biến (versioning):** mọi cập-nhật tài-liệu = một `append_version` Strata mới; bản cũ giữ nguyên, proof field-level của một tài-liệu vẫn đúng dưới root mới; anchor đơn-điệu theo `seq` ⟹ không neo-lại phiên-bản cũ để "khôi-phục" giấy-tờ đã bị thay (chống rollback). | kế-thừa bất-biến Strata (KHÔNG redefine ở đây): hash-link, seq đơn-điệu, append-only, field-privacy, chống-rollback | **[SPEC]** Knowme-Feat-Math §5, §11 INV-K4 (alias Strata `_CONTRACT.md` INV-E1, E2, E3, E5, E6, E7) |
 
 **Bất-biến Mức 3 (ZK) — GHI RÕ NGUỒN** (alias từ `KYC-KYB-ZK §B.8`, không tái-định-nghĩa):
 - `I-KYC-PRIVATE` — proof lộ **đúng một bit** (`result`) về `predicate.path`; không lộ value/trường khác.
@@ -248,6 +249,7 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 7. **Canonical cross-language (T-3):** sort-key TS ≡ Java? (chống membership-vỡ)
 8. **[SPEC] docHash-bind (I-KNOW-8):** người nhận băm lại bytes giải-mã, so `docHash`? `cid` KHÔNG thay `docHash`?
 9. **[SPEC] Mức 3:** π chứa `w`? (phải KHÔNG); `ZkVerify` gọi mạng issuer? (phải KHÔNG).
+10. **[SPEC] Versioning (I-KNOW-11):** mỗi cập-nhật tài-liệu tạo `append_version` Strata mới (không sửa in-place)? Anchor `seq` chỉ tăng, neo-lại phiên-bản cũ bị từ-chối (chống rollback)?
 
 ---
 
@@ -265,6 +267,7 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 | I-KNOW-8 docHash-bind | **[SPEC]** Feat-Math §11 INV-K1 |
 | I-KNOW-9 no-plaintext | **[SPEC]** INV-K2 |
 | I-KNOW-10 least-disclosure doc | **[SPEC]** INV-K5 |
+| I-KNOW-11 lịch-sử bất-biến (versioning) | **[SPEC]** Feat-Math §5, §11 INV-K4 (alias Strata `_CONTRACT.md` INV-E1,E2,E3,E5,E6,E7) |
 | I-KYC-PRIVATE/UNLINKABLE/... | **[SPEC]** KYC-KYB-ZK §B.8 |
 
 ---

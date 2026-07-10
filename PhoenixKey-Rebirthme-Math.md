@@ -85,6 +85,53 @@ recover() ⟹ Master_KEK ← BIP39_ToEntropy(24 từ); vidx ← TAADDatum.vault_
 ```
 Fail-closed: sai KEK / tamper → GCM tag fail → lỗi, không trả plaintext sai (`lampnet.rs:497-520`).
 
+### 2.5 Bộ khoá pool & vòng đời KES (từ Pool-Ops §B.1–B.4, phục-vụ I-POOL-*/I-KES-* §4.M)
+
+```
+ColdKey  = (cold_sk : Ed25519Priv, cold_vk : Ed25519Pub)        -- node operator key
+VrfKey   = (vrf_sk  : VrfPriv,      vrf_vk  : VrfPub)            -- Praos leader election
+KesKey_p = (kes_sk_p: KesPriv@p,    kes_vk  : KesPub)            -- p = KES period gốc của khoá
+
+pool_id  = blake2b_224( cold_vk )                                -- định danh pool on-chain
+
+kes_period(slot) = ⌊ slot / SLOTS_PER_KES_PERIOD ⌋               -- period hiện hành từ SLOT CHAIN
+                                                                   -- SLOTS_PER_KES_PERIOD, MAX_KES_EVOL đọc từ genesis, KHÔNG hardcode
+
+OpCert = { kes_vk : KesPub, kes_period_start : ℕ, counter : ℕ, sigma : Ed25519Sig }
+
+make_opcert(cold_sk, kes_vk, period, counter) :=
+  OpCert{ kes_vk, kes_period_start := period, counter,
+          sigma := Ed25519.Sign( cold_sk, kes_vk ‖ counter ‖ period ) }
+
+valid_opcert(oc, cold_vk) ⟺
+      Ed25519.Verify( cold_vk, oc.kes_vk ‖ oc.counter ‖ oc.kes_period_start, oc.sigma )
+    ∧ oc.kes_period_start = kes_period(now_slot)       -- I-KES-PERIOD
+    ∧ oc.counter = last_counter(pool_id) + 1            -- I-KES-COUNTER, monotonic +1
+```
+`last_counter(pool_id)` đọc bền từ `PoolAnchor` (dưới), KHÔNG từ bộ nhớ phiên.
+
+```
+PoolAnchor = {
+  pool_id, cold_vk, vrf_vk, kes_vk_current,
+  op_counter     : ℕ,        -- counter cao nhất đã cấp — nguồn chân lý monotonic
+  kes_period     : ℕ,
+  cid_cold, cid_vrf,          -- LampNet CID, cố định suốt đời pool
+  cid_kes,                    -- CẬP NHẬT mỗi rotation
+  updated_slot   : SlotNo
+}
+```
+
+State machine (vòng đời khoá pool):
+```
+∅ ──create_pool──▶ Registered ──▶ KesActive(p, counter) ──evolve/expire──▶ KesStale
+                                       │ rotate_kes (counter+1, re-distribute LampNet TRƯỚC kích hoạt) │
+                                       └──────────────────────────◀──────────────────────────────────┘
+                                  ──▶ Retiring ──▶ Retired
+```
+`rotate_kes` sinh **KES key hoàn toàn mới** (không `evolve()` khoá cũ) — mỗi rotation gắn `kes_vk` mới + `counter` mới, đơn-giản-hoá custody. Phân-tán (cold/VRF/KES skey) dùng CHUNG pipeline §2.4 (ECIES qua khoá dẫn-xuất từ `Master_KEK`, `data_class="recovery"`); artefact xuất cho node KHÔNG BAO GIỜ gồm `cold_sk` (I-POOL-NODE-BOUNDARY).
+
+Nguồn: `PhoenixKey-Pool-Operations-and-KES-Rotation-Feat-Math.md §B.1–B.6`. Thẩm quyền tạo/xoay tái dùng `auth_satisfied(did, action_tag)` chung (§2.1), `action_tag ∈ {pool_create, pool_rotate_kes, pool_update, pool_retire}` — không sao chép predicate riêng.
+
 ---
 
 ## 3. Bất-biến sổ-sách LÕI (conservation)
@@ -220,6 +267,93 @@ Mô hình: guardian có **trọng-số** (weight) + **vai** (APPROVER / ATTESTER
 | **I-DIDSTAKE-NOREGDUP** | Nhánh register gộp StakeReg+Delegation+VoteDeleg; delegate-only KHÔNG lặp StakeReg. | — |
 | **I-DIDSTAKE-ROUTE** | Withdraw định-tuyến qua Grant `route_stake_reward` sống (revocable). | — |
 
+**Bối-cảnh (DID-Stake Feat §A, tóm-tắt cho auditor).** Vấn-đề gốc: mô-hình ví
+seed thường ghép cứng payment + stake vào cùng khoá → muốn PhoenixKey giúp-delegate
+buộc phải đưa quyền chạm khoá đang giữ vốn. Ledger Plomin/Conway còn ép thêm: stake
+credential PHẢI đã vote-delegate mới được withdraw reward — delegate "kiểu cũ" (chỉ
+stake-delegate) thấy reward tích nhưng rút FAIL on-chain (bẫy thật). DID-Stake dùng
+**địa-chỉ ghép (Frankenstein)**: `payment` vẫn là khoá seed cũ của user (PhoenixKey
+không bao giờ chạm vốn — stake credential trong Cardano không có quyền chi), còn
+`stake` là `Script(did_stake)` gated theo controller DID hiện-tại. Một stake
+credential chỉ delegate được một pool tại một thời-điểm → đa-ISPO cần **N stake
+credential** (`salt`/`k` phân-biệt), PhoenixKey multiplex N luồng cho user nhưng
+mỗi luồng vẫn always-exit độc-lập. Claim/redeem chương-trình (vd Early TIGER
+Delegation) chỉ thuộc phần KÝ của PhoenixKey; luật phân-phối/token = ngoài phạm-vi
+(team LAMP).
+
+**Cấu-trúc địa-chỉ ghép (DID-Stake §B.1):**
+```
+stake_cred(did, k)  = Script( hash( did_stake(anchor_policy, blake2b_256(did), k) ) )   -- k = 0..N-1, N = số luồng đa-ISPO
+
+franken_addr(did, k) = Address{ payment = <payment cred SEED CŨ user>,   -- KHÔNG do PhoenixKey kiểm-soát
+                                 stake   = stake_cred(did, k) }
+
+exit_addr(user)      = Address{ payment = seed cũ, stake = stake cũ của user }   -- đích always-exit
+```
+`payment` của địa-chỉ ghép là khoá seed cũ → mọi UTxO ở đó chỉ seed cũ chi được;
+`stake_cred(did,k)` chỉ điều-khiển staking, KHÔNG điều-khiển chi.
+
+**Predicate `did_stake` (DID-Stake §B.2 — chạy ở hai `ScriptPurpose`, KHÔNG có `Spend`):**
+```
+AnchorOK(tx, did) ⟺ ∃! ref ∈ tx.reference_inputs : ref mang anchor NFT của did ∧ ref.datum.status = Active
+
+AuthSatisfied(tx, did) ⟺ auth_satisfied(tx, did, "did_stake")   -- helper chung (= §2.1 anchor_controller_ok, action_tag khác)
+      Single:   controller_pkh(did) ∈ tx.extra_signatories
+    | Registry: entry(action_tag="did_stake", grantor=did) trong DID Authorization Registry (ref-input thứ hai)
+                thoả Authorization (SinglePkh | MultiSig{pkhs,threshold}); signer tương-ứng ∈ tx.extra_signatories
+                                                                       -- Revoked ⇒ fail
+
+did_stake_valid(tx, did) ⟺ AnchorOK(tx, did) ∧ AuthSatisfied(tx, did)
+```
+`status ≠ Active` ⇒ `AnchorOK = false` ⇒ từ-chối MỌI thao-tác staking (đóng-băng —
+chống chiếm phiên khôi-phục để đổi pool/hút reward); tương-đương I-DIDSTAKE-ACTIVE.
+
+**Ràng-buộc cert (DID-Stake §B.3 — thực-thi I-DIDSTAKE-PLOMIN/NOREGDUP):**
+```
+-- Nhánh register (lần đầu cho stake_cred(did,k)):
+certs ⊇ { StakeRegistration(stake_cred(did,k)),
+          StakeDelegation(stake_cred(did,k), target_pool),
+          VoteDelegation(stake_cred(did,k), drep := Abstain) }        -- Abstain = mặc-định an-toàn
+
+-- Nhánh delegate-only (đã register — top-up / đổi pool):
+certs ⊇ { StakeDelegation(stake_cred(did,k), target_pool')
+        ∧ ( VoteDelegation(stake_cred(did,k), drep) NẾU chưa từng vote-delegate ) }   -- KHÔNG StakeRegistration lặp
+```
+Mỗi cert `Publish` đều qua `did_stake_valid(tx, did)`. `drep` mặc-định `Abstain`,
+user đổi được sang DRep cụ-thể / `NoConfidence` qua thao-tác vote-delegate riêng
+(cũng gated bởi `did_stake_valid`).
+
+**Withdraw — reward routing (DID-Stake §B.4, thực-thi I-DIDSTAKE-ROUTE):**
+```
+Withdraw(reward_account = stake_cred(did,k)) hợp-lệ ⟺
+    did_stake_valid(tx, did)
+  ∧ ∃ Grant g : g.action = "route_stake_reward" ∧ g.grantor_did = did
+              ∧ g.revocable ∧ g sống (chưa thu-hồi, còn hạn)
+              ∧ output reward của tx ĐÚNG đích g.resource (= địa-chỉ ISPO HOẶC địa-chỉ user)
+```
+Tiền-điều-kiện ledger (Plomin): withdraw chỉ thành-công nếu `stake_cred(did,k)` ĐÃ
+vote-delegate (B.3) — nếu chưa, ledger từ-chối TRƯỚC khi validator chạy; builder
+phải bảo-đảm vote-delegation tồn-tại trước lần withdraw đầu. Nguồn/loại token trả
+(ADA vs LAMP; LAMP từ đâu) = ngoài phạm-vi PhoenixKey.
+
+**Luận-điểm an-toàn vốn cho auditor (DID-Stake Feat §A.4 — vì sao pre-audit dễ).**
+Bề-mặt rủi-ro-audit của VỐN = 0: trong Cardano, một stake credential script KHÔNG
+BAO GIỜ được hỏi ý-kiến khi **chi** một UTxO (việc chi do payment credential quyết
+hoàn-toàn); `did_stake` chỉ chạy ở `Publish`/`Withdraw`, KHÔNG có purpose `Spend`
+(= I-ADDR-STAKE-NOSPEND). Dù `did_stake` có lỗi logic gì đi nữa, kẻ tấn-công KHÔNG
+THỂ rút vốn qua nó — chi vốn đòi chữ-ký của `payment = seed cũ`, khoá này không bao
+giờ nằm trong tay PhoenixKey. → Auditor chỉ cần xác-minh MỘT mệnh-đề hẹp: "`did_stake`
+không cho-phép chi vốn" — đúng theo **cấu-trúc ledger**, không phụ-thuộc độ phức-tạp
+của validator. Trần thiệt-hại tối-đa nếu staking-authority bị lạm-dụng = phần
+**reward tích-luỹ một chu-kỳ**, KHÔNG phải toàn-bộ principal — khác định-tính với
+mô-hình "ví giữ-vốn-bằng-script" (ở đó một lỗi validator = mất vốn); ở đây lỗi
+validator tệ nhất chỉ là sai định-tuyến reward một chu-kỳ, và always-exit
+(I-DIDSTAKE-EXIT) gỡ được ngay, không phụ-thuộc PhoenixKey còn hoạt-động hay không.
+
+> **[DEP-1]** `did_stake.ak` chưa build (M3 lộ-trình) — bảng I-DIDSTAKE-* trên và
+> predicate B.1–B.4 là đặc-tả chờ hiện-thực-hoá on-chain, KHÔNG có neo dòng code
+> thật; khi build xong cần bổ-sung neo test như mẫu `did_payment.ak` (§5.1).
+
 ### 4.K Di-cư ví cũ (kế-thừa Legacy-Migration §A.7 — I-MIGR-*)
 
 | Mã | Mô tả | Neo / ghi-chú |
@@ -231,6 +365,13 @@ Mô hình: guardian có **trọng-số** (weight) + **vai** (APPROVER / ATTESTER
 | **I-MIGR-DEAD** | Mất extension hẳn ⇒ bất-khả tuyệt-đối; KHÔNG hứa khôi-phục. | — |
 
 ### 4.L Connector CIP-30 + on-ramp chữ-ký (kế-thừa Connector §B.7 + Connect-Onramp — I-CONN-*, CONNECT-*, CORE-*)
+
+> Bảng dưới CHỈ giữ bất-biến tổng-hợp (Connector §B.7). Cơ-chế đầy-đủ — hai hướng
+> dApp (PhoenixKey là dApp vs PhoenixKey expose CIP-30), sequence diagram `enable()`,
+> công-thức CKDpub derivation watch-only (`acct_xvk` → payment/stake/DRep pub, M2),
+> bảng ánh-xạ method→khoá/Grant (§B.3), pseudocode `authorize(session,op,tx)` (§B.4)
+> và `verify_session`/`verify_login` (§B.5), CIP-45 pairing (§A.4) — ở
+> `PhoenixKey-Connector-CIP30-Feat-Math.md` (MECE: file này không định-nghĩa lại).
 
 | Mã | Mô tả | Neo / ghi-chú |
 |---|---|---|
@@ -246,7 +387,70 @@ Mô hình: guardian có **trọng-số** (weight) + **vai** (APPROVER / ATTESTER
 | **CONNECT-S1..S3** | An-ninh: không đường mandate→chi UTxO ví cũ; khoá lộ ⇒ tối-đa ghi-có LAMP về chính phoenix_addr; thu-hồi tức-thì. | — |
 | **CORE-MIGR-1..5 / CORE-CLAIM-1..6 / CORE-SIGN-1..4** | Builder Delegator (unsigned migration Lace-ký; claim controller/Lace mode; multi-witness merge). | đội on-chain |
 
+**Định-nghĩa hình-thức `AuthorizationMandate` + `verify_mandate` (Connect-Onramp §1, phục-vụ CONNECT-M1..M4):**
+
+```
+AuthorizationMandate ≜ Grant {
+  wallet_address : Bech32Addr,   -- payment addr ví ngoài (Lace/Yoroi) đã ký
+  phoenix_did    : DID,          -- lightweight DID (§2.1 dưới) — grantor
+  scope          : "lamp_program",
+  program_ids    : List<String>, -- [] = mọi program của issuer
+  nonce          : Bytes32,      -- server cấp, chống phát-lại
+  valid_from     : UnixTime,
+  valid_until    : UnixTime,     -- BẮT BUỘC hữu-hạn
+  revocable      : true,
+  domain         : Origin,       -- neo server-side khi phát nonce, KHÔNG client tự khai
+  cose_sign1     : Bytes,        -- COSE_Sign1 (CIP-8, Ed25519) ví ngoài trả
+}
+
+mandate_payload ≜ canonical_json({
+  t:"phoenixkey.mandate.v1", addr:wallet_address, did:phoenix_did, scope:"lamp_program",
+  progs:program_ids, nonce:nonce_hex, iat:valid_from, exp:valid_until, dom:domain
+})
+
+verify_mandate(m):
+  1. (payload, sig, pubkey) = cose_sign1_parse(m.cose_sign1)
+  2. require payload == canonical(m.mandate_payload)                -- không tráo nội-dung
+  3. require cose_verify(pubkey, payload, sig) == OK                -- Ed25519 COSE_Sign1 (I-CONN-6)
+  4. require addr_matches_pubkey(m.wallet_address, pubkey)          -- payment_cred(addr)==blake2b_224(pubkey)
+  5. require m.domain ∈ ALLOWED_ORIGINS                             -- domain-binding
+  6. require valid_from ≤ now ≤ valid_until
+  7. require lookup_nonce(m.nonce).status == Unused                 -- chống phát-lại
+  8. bind: store Grant{grantor=m.phoenix_did, wallet_address=m.wallet_address, ...}
+```
+
+Bước 4 = "bind" mấu-chốt: khoá ký = khoá chi của `wallet_address` → gắn cứng `wallet_address ↔ phoenix_did` do chính chủ khoá ngoài tự-khẳng-định-có-kiểm-chứng (KHÔNG suy `phoenix_did` từ nguồn khác).
+
+**Lightweight DID neo-địa-chỉ (Connect-Onramp §2.1, MỚI — cho user ví-ngoài không có Secure Enclave):**
+```
+phoenix_did_ext(wallet_address) = "did:phoenix:ext:" ‖ blake2b_224(payment_cred(wallet_address))
+```
+Tất định từ `wallet_address` (idempotent, cùng ví → cùng DID); controller ban đầu = khoá ví ngoài (verify qua COSE_Sign1, cùng `taad_cose_sign1_verify`). Backend KHÔNG giữ private key. Nâng cấp lên PersonDID đầy-đủ = rotate/merge controller khi user tốt-nghiệp (§5 Connect-Onramp).
+
+**Ghi-có LAMP — hai chế độ xác-nhận kiểm-soát-địa-chỉ mỗi epoch (CONNECT-E1..E3):**
+- **Chế độ A (mandate-đủ):** mandate còn hạn + `program_id ∈ program_ids` + chưa thu-hồi ⇒ đủ tính tham-gia epoch, không cần ký lại.
+- **Chế độ B (thách-thức tươi):** program đòi re-prove mỗi epoch; server cấp `challenge` (nonce+epoch), user ký `signData` nhẹ (`"phoenixkey.epoch.proof.v1"`), verify như trên. Chọn A/B là điều-khoản program (LAMP team), không hard-code ở Connect.
+
+LAMP ghi-có luôn route `claim_address = phoenix_addr(phoenix_did)` (KHÔNG bao giờ về `wallet_address`) — CONNECT-E2; leaf Snapshot-Merkle `(claim_address, amount, epoch)` theo `LAMP-DISTRIBUTION-SPEC §2/§6`.
+
+**FFI Core MỚI (verify §7.1 Connect-Onramp, giao cho W11):**
+```rust
+pub fn cose_sign1_verify(cose_sign1_hex: &str) -> Option<CoseVerified>;
+// CoseVerified { payload_hex: String, pubkey_hex: String } — Ed25519 CIP-8, KHÔNG P-256 (I-CONN-6)
+pub fn addr_matches_pubkey(addr_bech32: &str, pubkey_hex: &str) -> bool;
+// payment_cred(addr) == blake2b_224(pubkey); hỗ trợ base/enterprise/reward addr
+
+#[no_mangle] pub unsafe extern "C" fn taad_cose_sign1_verify(cose_sign1_hex: *const c_char) -> *mut c_char;
+// JSON {"ok":bool,"payload_hex":..,"pubkey_hex":..}; null nếu lỗi (KHÔNG panic qua FFI)
+#[no_mangle] pub unsafe extern "C" fn taad_addr_matches_pubkey(addr_bech32: *const c_char, pubkey_hex: *const c_char) -> u8;
+```
+Khác `taad_cose_sign1_build` (Delegator-Core §1.5 Phase-2, PhoenixKey LÀ bên ký) — đây là chiều VERIFY (PhoenixKey nhận chữ-ký ví ngoài). Dùng crate COSE (`coset`) + `ed25519-dalek` (đã có `sign.rs`) + `Blake2b224` (`phoenix_address.rs:39`, đã có).
+
+**Ranh-giới an-ninh (CONNECT-S1..S3, đối-chiếu §6 Connect-Onramp):** không tồn-tại đường mandate→chi UTxO ví-ngoài (Cardano không có account-abstraction); mandate KHÔNG phải bearer-token (verify luôn resolve trạng-thái sống+hạn+nonce); khoá ví-ngoài lộ ⇒ kẻ tấn-công tối-đa ký mandate mới ghi-có LAMP về CHÍNH `phoenix_addr` của DID đó (route cố-định CONNECT-E2, không đổi hướng được) + rủi-ro chi-ví-ngoài-chưa-migrate (vốn có, không do Connect mở rộng bề mặt tấn-công).
+
 ### 4.M Vận-hành pool + xoay KES (kế-thừa Pool-Ops §B.8 — I-POOL-*, I-KES-*)
+
+Định-nghĩa hình-thức (bộ khoá, `OpCert`, `PoolAnchor`, state machine) ở §2.5.
 
 | Mã | Mô tả | Neo / ghi-chú |
 |---|---|---|
@@ -359,6 +563,7 @@ Open ──OpenLarge──► [PendingLargeWithdrawal] ──(FinalizeLarge sau 
 - **[CẦN CHỐT-W9]** GuardianConfig (trọng-số/vai) vào `TAADDatum` cần `schema_version` + headroom (Feat §1) — thuộc Core Anchorme/Validator; module này dẫn-chiếu.
 - **[CẦN CHỐT-W10]** Pool-Ops: **[VERIFY]** thư-viện KES/VRF Rust khả-dụng (rủi-ro chính, cần PoC sớm — Pool §C.7 OPEN-P3); `pool_anchor` on-chain schema [OPEN-P1].
 - **[CẦN CHỐT-W11]** 2 FFI Core mới cho on-ramp: `taad_cose_sign1_verify`, `taad_addr_matches_pubkey` (Connect-Onramp §7).
+- **[CẦN CHỐT-W12]** Đa-pool một DID: một người vận-hành N pool — counter store + indexer phải phân-biệt theo `pool_id` (schema `PoolAnchor` §2.5 đã hỗ-trợ per-pool, cần xác-nhận indexer backend) (Pool §C.7 OPEN-P4).
 
 ---
 
@@ -383,5 +588,6 @@ Open ──OpenLarge──► [PendingLargeWithdrawal] ──(FinalizeLarge sau 
 ## Nguồn
 
 Nguồn thiết-kế nội-bộ (không công khai).
-Math canonical (dẫn-chiếu, KHÔNG sửa): `PhoenixKey-Math.md` §6, §7, §9, §10, §11, §33.
+Math canonical (dẫn-chiếu, KHÔNG sửa): `PhoenixKey-Math.md` §6, §7, §9, §10, §11, §33;
+`PhoenixKey-Connector-CIP30-Feat-Math.md` (§4.L — cơ-chế CIP-30/CIP-45 đầy-đủ).
 Code: `PhoenixKey-Validator/validators/did_payment.ak`, `lib/phoenixkey/{auth_logic,taad_logic}.ak`; `rust_core/src/{lampnet,crypto,sign}.rs`.

@@ -254,6 +254,65 @@ Ký-hiệu: `d_in`/`d_out` = datum vào/ra; `lamp_in`/`lamp_out` = LAMP oildrop 
 | ForfeitPhase2 | **keeper** | vault → pot (conditional) | `pot_address` | PHA-2, gap≥1001ep |
 | CloseVault | (kèm spend) | burn NFT | — | đóng |
 
+### 3.7 Kiến-trúc SCALE engine Gen/MAGIC — off-chain accounting + Merkle-anchor (giải BLOCKER §3.7)
+
+> Trả lời câu hỏi "cập nhật hàng triệu MAGIC/giây trên vault toàn cầu có tải nổi không, phí nhiều không?" — phân tích first-principles, **chưa code**, cần chốt §3.7d trước khi engine Gen production.
+
+**(a) Vì sao 1-L1-tx-mỗi-sự-kiện bất-khả-thi:**
+- Cardano L1: block interval ~20s (`f=0.05`), throughput thực tế **~vài chục tx/giây (bậc 10¹)**. "Hàng triệu balance-delta/giây" vượt trần **10⁴–10⁵ lần**.
+- **Hot-UTxO contention độc-lập với throughput**: VAULT là **1 UTxO** (bất-biến kiến-trúc §1.2) — eUTXO chỉ cho **một** tx chi nó mỗi block. Nếu nhiều sự-kiện MAGIC cùng chạm 1 vault trong 1 block → serialize, throughput per-vault sụp về ~0,05 update/giây. GenDrip theo mẫu **spend+recreate y-hệt** (§3.1) mang đúng rủi ro này nếu dùng ở tần-suất cao — đây là lý do khuyến-nghị reference-input đã ghi ở §3.1 KHÔNG chỉ là tối-ưu, mà là **điều-kiện sống-còn** để Gen chạy tần-suất cao.
+
+**(b) Kiến-trúc giải: off-chain accounting per-provider + settlement định-kỳ (Merkle-anchor) + sharding.** Không đặt balance-delta lên L1 theo sự-kiện; gộp:
+```
+Off-chain (per provider/App):
+  signed event log (append-only) — leaf = H(did_key ‖ Δmagic ‖ nonce ‖ user_cosign_sig ‖ prev_commit)
+  → Lazy-MMR accumulator (single-writer per DID-shard, WAL durable)
+  → current_root cập-nhật mỗi append (KHÔNG chạm L1)
+                    │  [trigger: epoch-end]
+                    ▼
+On-chain (1 tx/provider/epoch):
+  settlement: datum commit {anchored_root, epoch, net_CARP} + CARP→Treasury
+  (VAULT LAMP-preserved — GenDrip KHÔNG đổi conditional/vested, chỉ tầng MAGIC ngoài ghi root)
+```
+- **Sharding theo DID**: `hash(did_key) mod K` → mỗi DID thuộc đúng 1 accumulator shard, single-writer nên không cần consensus phân-tán cho số-dư 1 user; K shard chạy song-song, K× throughput.
+- **Sharding theo provider**: mỗi App/Platform vault độc-lập, không hot-spot chung.
+- Kết quả: **O(N) on-chain → O(1) on-chain/provider/epoch**, verify 1 sự-kiện = inclusion proof O(log N) off-chain.
+
+**(c) Tamper-evidence (chống accounting authority gian-lận sổ off-chain):**
+
+| Cơ-chế | Chống gì |
+|---|---|
+| User cosign mỗi delta (`user_cosign_sig`) | operator bịa "user tiêu X" |
+| Leaf bind `prev_commit` (hash-chain) | operator xoá/đảo thứ-tự delta |
+| Merkle/MMR root anchor L1 mỗi epoch | operator sửa sổ sau khi công-bố |
+| Nonce đơn-điệu per-DID | replay một delta |
+| Operator bond + fraud-proof window | operator gian-lận `net_CARP` cuối epoch |
+
+⟹ Operator có thể **DoS** (từ-chối ghi) hoặc **withhold** (giấu delta) nhưng **KHÔNG forge/rewrite** được một delta đã cosign+anchor.
+
+**(d) Ước-tính phí (bậc độ-lớn, giả-định N_provider~1.000, epoch=5 ngày~73 epoch/năm):** thiết-kế gộp-lô ~**1,5×10⁴ ADA/năm toàn mạng** (≈`5×10⁻¹⁰` ADA/event — coi như miễn-phí on-chain); thiết-kế naive per-event ước ~`5×10¹²` ADA/năm và **vẫn không chạy nổi** vì trần throughput (a). Chênh ~9 bậc độ-lớn/sự-kiện. Chi-phí thật nằm ở off-chain compute (accumulator/WAL — phân-bổ tuyến-tính theo shard), KHÔNG ở L1.
+
+**(e) Tham-khảo lớp anchoring sẵn có (VeData Mosaic)** — Lazy-MMR (accumulate off-chain, anchor theo trigger) + Strategy C (chu-kỳ 4–8h, ~0,001 ADA/record) khớp gần đúng với "hạch-toán cuối epoch". Ranh-giới đề-xuất nếu dùng: **Mosaic = anchoring layer (root commit)**, **MAGIC = accounting layer (số-dư + cosign + CARP)** — không đẩy balance semantics sang Mosaic.
+
+**(f) Test bắt-buộc trước khi tuyên-bố Gen production sẵn-sàng** (evidence output thật, không chỉ structure):
+
+| Test | Pass-condition |
+|---|---|
+| T-THROUGHPUT | accumulator sustain ≥10.000 signed-delta/s, p99<50ms, 0 mất khi crash-recovery |
+| T-SHARD | K shard × tổng 10⁶ delta/s, linear scale, không cross-shard balance race |
+| T-ANCHOR-COST | settlement tx thật trên preprod ≤0,2 ADA/tx, 1 tx/provider/epoch |
+| T-TAMPER | 4 kịch-bản (bịa không cosign / đảo thứ-tự / replay nonce / sửa sổ sau anchor) đều bị reject/phát-hiện |
+| T-DOUBLESPEND | user tiêu vượt số-dư trong-epoch (concurrent 1 shard) → single-writer reject, 0 balance âm |
+| T-RECONCILE | cuối epoch: net MAGIC→CARP đúng, CARP về Treasury khớp tổng, `lamp_out==conditional'+vested'` không đổi qua GenDrip |
+
+**Giới-hạn/rủi-ro mở (chưa chốt — không phải blocker kiến-trúc, là quyết-định vận-hành):**
+- **Thẩm-quyền kế-toán off-chain**: App/Platform operator giữ sổ + cosign user + bond — mô-hình này cần anh duyệt.
+- **Finality độ-trễ epoch**: số-dư trong-epoch là *provisional*; Feecover phải chấp-nhận optimistic accounting (tin sổ ngay, reconcile cuối epoch) hoặc dùng Hydra fast-path cho thanh-toán lớn.
+- **N_provider + epoch cadence thật** để chốt con số phí (§3.7d dùng 1.000 provider giả-định, không phải cam-kết).
+- **Có mời VeData Mosaic tư-vấn interface `append/anchor/proof` không** — khuyến-nghị có, tránh tự dựng lại lớp anchoring.
+
+Nguồn phân-tích đầy-đủ: `spec-proposals/PhoenixKey-MAGIC-Vault-Scale-Analysis.md` (v0.1 DRAFT, 2026-07-01).
+
 ---
 
 ## 4. Luồng end-to-end

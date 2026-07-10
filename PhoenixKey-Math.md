@@ -67,7 +67,7 @@ All appendices non-normative unless marked [N].
 §17 AssetDID · §18 BotDID · §19 AgentDID · §20 ServiceDID · §21 CharDID
 
 **Part V — Cross-Type Interactions**
-§22 Ownership Graph · §23 Delegation · §24 Revocation · §25 MAGIC Attribution
+§22 Ownership Graph (§22.3 Taxonomy Rationale: Bot/Agent/"Robot") · §23 Delegation (§23.1 DID Authorization Registry) · §24 Revocation · §25 MAGIC Attribution
 
 **Part VI — Security Analysis**
 §26 Global Invariants · §27 Theorems · §28 Attack Model
@@ -291,6 +291,15 @@ Capability ≜
   -- Identity:
   | Read_DID(target_type: DIDType) | Write_DID(target: DID)
   | Issue_VC(schema: ByteArray)    | Verify_Attestation
+  | Read_Evidence(asset: DID, archetype_set: Option<Set<ArchetypeId>>,
+                  time_window: Option<(SlotNo, SlotNo)>)
+                                   -- đọc dữ-liệu-bằng-chứng (evidence record) của 1
+                                   -- AssetDID, giới hạn theo tập archetype + khoảng
+                                   -- slot. `ArchetypeId` là MÃ THAM CHIẾU archetype
+                                   -- do RealStamp/VeData định nghĩa — PhoenixKey KHÔNG
+                                   -- định nghĩa format record (ranh giới §35.2 [MN-2]).
+                                   -- Enforcement lúc ĐỌC thuộc VeData; PhoenixKey chỉ
+                                   -- là authority/lifecycle lúc CẤP (Op_delegate Pre).
 
   -- Asset:
   | Attest_Asset(class: AssetClass)
@@ -435,7 +444,22 @@ DelegationToken ≜ {
   signature          : {0,1}^512,
   sub_delegatable    : 𝔹,
   depth_remaining    : ℕ,
+  data_scope         : Option<DataScope>,  -- [N, v4.7] chi-tiết-hoá phạm-vi cho cap
+                                            -- kiểu Read_Evidence; None cho mọi cap khác.
 }
+
+DataScope ≜ {
+  archetype   : Set<ArchetypeId>,   -- rỗng ⇒ mọi archetype
+  time_range  : (SlotNo, SlotNo),
+  asset       : Option<DID>,        -- None ⇒ áp cho asset trong granted_cap gốc
+}
+
+-- token con không được vượt phạm vi cha (archetype/time_window/asset đều phải
+-- refine, không được mở rộng):
+DataScope_refines(ds, asset0, arch0, tw0) ≜
+  (ds.asset = Some(asset0) ∨ ds.asset = None)
+  ∧ (arch0 = None ∨ ds.archetype ⊆ arch0.unwrap())
+  ∧ ds.time_range ⊆ tw0
 
 DelegationToken_valid(dt, s) ≜
   Verify(current_key(dt.from), H(dt.fields_excl_sig), dt.signature)
@@ -449,6 +473,14 @@ DelegationToken_valid(dt, s) ≜
                                                -- everything it grants.
   ∧ dt.depth_remaining ≤ MAX_DELEGATION_DEPTH - depth(dt.from)
   ∧ nonce_not_used_on_chain(dt.nonce, dt.from)
+  ∧ (dt.data_scope ≠ None →                   -- [N, v4.7] nếu có data_scope thì nó
+        ∃ Read_Evidence(a, as, tw) ∈ effective_caps(dt.from, s):  -- phải refine cap gốc
+            DataScope_refines(dt.data_scope, a, as, tw))
+
+-- Ai kiểm token khi ĐỌC = VeData (bên đọc evidence), dùng DelegationToken_valid +
+-- DataScope_refines của PhoenixKey. PhoenixKey kiểm khi CẤP (Op_delegate Pre) và là
+-- nguồn trạng-thái revoke. Custodian §17 (default {Read_DID}) có thể nâng lên
+-- {Read_DID, Read_Evidence(...)} khi cần — quyết định riêng, không bắt buộc.
 
 -- F-37 note: scope(dt.from, s) read via CIP-0031 Reference Input.
 -- Evaluated at block-start UTxO set; intra-block scope changes do not affect
@@ -1926,6 +1958,59 @@ depth(did) = depth(owner(did)) + 1
 C-DEPTH: ∀ did: depth(did) ≤ MAX_DELEGATION_DEPTH = 10
 ```
 
+### §22.3 Taxonomy Rationale — Bot vs Agent vs "Robot"; loại còn thiếu [I]
+
+*(đề xuất `spec-proposals/PhoenixKey-Spec-Addendum-v4.7-DRAFT.md` §C, chưa chốt version bump)*
+
+Làm rõ vì sao §18 BotDID và §19 AgentDID tách riêng, vì sao KHÔNG có
+"RobotDID", và đánh giá các ứng viên loại-DID-mới hay gặp. Bảng CanOwn (§22.1)
+đã cho phép `Machine → Bot, Agent` (F-12) — mục này giải thích rationale đằng
+sau quan hệ đó.
+
+Ba khái niệm khác nhau theo **bản chất tác tử + thân vật lý**, không theo tên gọi:
+
+| | Tác tử (ra quyết định) | Thân vật lý | DID đúng |
+|---|---|---|---|
+| **BotDID** (§18) | luật cứng / kịch bản (KHÔNG tự học) | không | Bot |
+| **AgentDID** (§19) | AI tự hành (mục tiêu mở, quyết định động) | không | Agent |
+| **"Robot"** (con robot lau nhà, xe tự lái) | — | **CÓ** (máy vật lý) | **MachineDID (§16)** sở hữu Bot/Agent (firmware/AI nhúng) |
+
+**Không cần "RobotDID".** Một robot = **MachineDID** (thân máy, transferable,
+CanOwn cho phép Machine sở hữu Device/Bot/Agent) + (tuỳ chọn) một
+**AgentDID/BotDID** nó sở hữu cho phần "trí não". Tách thân/não cho phép: bán
+robot (transfer Machine, §16 `transferable`/`transfer_policy`) mà **giữ hoặc
+thay** AI bên trong; một AI điều khiển nhiều thân; quy trách nhiệm (§25 Attr*
+dừng ở Person/Org/Service — robot quy về chủ qua `Attr*(owner)`).
+
+*Nếu gộp thì sao:* gộp Bot+Agent → mất phân biệt "tự động theo luật" vs "tự
+hành học được", không bound được `Deploy_Agent(max_cap)` khác `Deploy_Bot(max_cap)`
+(Appendix C Tier 5); rủi ro cấp quyền AI mở cho thứ đáng lẽ chỉ chạy luật. Gộp
+Machine+Agent (làm "RobotDID") → không transfer được thân mà giữ não; AI nhúng
+và AI đám mây phải dùng hai loại khác nhau dù cùng bản chất tác tử; vỡ MECE
+(Appendix A): "vật lý" vs "số" bị trộn. → Giữ tách là quyết định MECE có chủ
+đích, không phải dư thừa.
+
+**Loại cần DID nhưng chưa nằm trong 10 loại — đánh giá.** Range type
+`0x0A–0x7F` reserved (§2.2). Ứng viên hay gặp + ánh xạ:
+
+| Ứng viên | Có cần loại mới? | Khuyến nghị |
+|---|---|---|
+| Tài khoản/ví tài chính | Không | thuộc ví Cardano + Person/Org owner |
+| Place/địa điểm (cửa hàng, toà nhà) | Cân nhắc | tạm dùng **AssetDID** (vật thụ động) hoặc ContextDID nếu có thời hạn; loại "PlaceDID" chỉ khi cần thuộc tính không-gian normative riêng |
+| Sự kiện (event, vé) | Không | **ContextDID** (§14, có expiry) đúng bản chất |
+| Tài liệu/giấy tờ/credential | **Không** (quan trọng) | KHÔNG phải DID — là **VC** do issuer phát hành về một subject-DID (§35.2 [M-3]) |
+| Nhóm/cộng đồng phi pháp-nhân | Không | **OrgDID** |
+| Mô hình AI / dataset | Cân nhắc | nếu là "tác tử" → Agent; nếu là tài sản số thụ động → Asset; nếu là dịch vụ → Service |
+| Tài sản thật token-hoá (RWA: nhà, vàng) | Không (phần lớn) | **AssetDID** + attestation; pháp lý ở VC/§34 |
+| Tài khoản/khoá liên-chuỗi | Không | `linked_dids`/DIDLink của PersonDID (§12) |
+
+→ 10 loại + reserved range hiện ĐỦ cho gần hết nhu cầu; phần lớn "loại mới"
+thực ra là **VC về một DID** chứ không phải DID mới. Chỉ nên thêm type mới khi
+có **thuộc tính/lifecycle normative riêng** không gói được trong 10 loại (ứng
+viên thật sự nhất: **PlaceDID** nếu hệ sinh thái cần quyền theo không gian).
+Trước khi thêm type mới: cập nhật Appendix A (MECE) + CanOwn matrix (§22.1) +
+Attr* (§25.2).
+
 ---
 
 ## §23 Delegation Protocol [N]
@@ -1942,6 +2027,77 @@ Op_delegate(from, to, cap, valid_until, sub_del, s) → DelegationToken:
 -- Sub-delegation: granted_cap ⊑ parent token's granted_cap (v4.7, Errata CID-6:
 -- ⊆ → ⊑, §3.3); valid_until' ≤ valid_until. depth_remaining decremented per hop.
 ```
+
+### §23.1 DID Authorization Registry — ACL on-chain, pull-model [N]
+
+*(đề xuất `spec-proposals/PhoenixKey-Spec-Addendum-v4.7-DRAFT.md` §A, chưa chốt version bump)*
+
+§3 định nghĩa `Capability` (từ vựng quyền) và §23 `DelegationToken` (uỷ quyền
+dạng **token bearer, push** — người giữ xuất trình). Cả hai KHÔNG mô tả một
+**ACL on-chain, pull, controller sửa được** để trả lời "AI đang được uỷ quyền
+mint token X / chi quỹ / điều khiển thiết bị nhân danh DID này, NGAY BÂY GIỜ".
+Registry lấp đúng khoảng đó và khớp triết lý §4.2 (F-01/F-37: luôn đọc scope
+HIỆN TẠI lúc validate).
+
+```
+RegistryDatum ≜ {
+  governing_did : DID,                        -- DID sở hữu bảng quyền này
+  entries       : Map<action_tag, Authorization>,
+}
+Authorization ≜
+  | SinglePkh(pkh: VerificationKeyHash)        -- 1 khoá
+  | MultiSig(pkhs: List<VerificationKeyHash>, threshold: ℕ)  -- m-of-n
+  | Revoked                                    -- vô hiệu (giữ lịch sử)
+
+action_tag : ByteArray                         -- nhãn LOGIC (vd "LAMP"), TÁCH khỏi
+                                                -- token_asset_name
+```
+
+- **Vật neo:** Registry là một UTxO mang **Registry-NFT one-shot** (policy ≡
+  hash registry validator, name = `blake2b_256(governing_did)`), inline
+  `RegistryDatum`. NFT bảo đảm tính duy nhất (một bảng / `governing_did`).
+- **OPT-IN:** chỉ org issuer cần; PersonDID/anchor thường KHÔNG có registry →
+  identity anchor giữ gọn (lean).
+
+**Bất biến:**
+```
+I-REG-1 [N]: spend Registry để cập nhật entries HỢP LỆ ⟺ controller hiện tại
+  của governing_did ký (đọc động qua reference input anchor — rotatable;
+  khoá cũ đã xoay KHÔNG sửa được).
+I-REG-2 [N]: token policy did_token_mint(registry_nft_policy, registry_nft_name,
+  action_tag, …) mint HỢP LỆ ⟺ đọc Registry qua reference input, lấy
+  entries[action_tag], và Authorization được thoả (đủ chữ ký SinglePkh /
+  MultiSig; Revoked ⇒ luôn fail).
+I-REG-3 [N]: Registry chỉ gate AI mint, KHÔNG gate BAO NHIÊU. Cap tổng cung
+  thuộc tầng SupplyState riêng (ngoài phạm vi PhoenixKey — xem §23.1
+  "Ranh giới" bên dưới). Hai lớp trực giao.
+I-REG-4 [N]: Cấm bake hash-script-khác làm tham số chéo vòng (vd policy mint
+  của token PHẢI nằm trong datum của tầng supply/cap, không phải param) — nếu
+  không sẽ circular, không deploy được. `aiken check` KHÔNG bắt lỗi này (test
+  dùng hash hằng) → BẮT BUỘC verify thủ công chuỗi phụ thuộc tham số trước mỗi
+  deploy multi-script.
+```
+
+**Quan hệ với §3/§23.** Registry KHÔNG thay `Capability` (§3) hay
+`DelegationToken` (§23); nó là tầng **governance/policy** TRÊN chúng:
+
+| | DelegationToken (§23) | Authorization Registry (§23.1) |
+|---|---|---|
+| Mô hình | token bearer (push) | ACL on-chain (pull) |
+| Vòng đời | tạm thời, hết hạn | bền, sửa bằng spend |
+| Thu hồi | hết hạn / nonce | set `Revoked` (controller ký) |
+| Đọc lúc | xuất trình | reference input lúc validate |
+
+**Tổng quát hoá.** Cùng primitive dùng cho mint token / chi quỹ DN (treasury
+m-of-n) / DAO-exec / thiết-bị-chung (xe·két·robot) / di sản. Verifier-agnostic
+— mỗi verifier (token policy, treasury validator, device validator) tự đọc
+registry.
+
+**Ranh giới Layer 0 (§35).** Quyền mint token / chi quỹ là **kinh tế**
+(Layer 1+), KHÔNG phải identity (Layer 0). → primitive registry tổng quát CÓ
+THỂ là lib dùng chung gần Layer 0, NHƯNG phần đặc thù token (SupplyState/cap
+cụ thể của một token nào đó) PHẢI ở lớp ứng dụng token đó (vd MagicLamp cho
+LAMP), KHÔNG nhét vào PhoenixKey core — nhất quán với §35.2 [MN-6].
 
 ---
 
