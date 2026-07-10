@@ -31,13 +31,13 @@ Ten entity types are supported. Each maps to a `*DID` name convention (`PersonDI
 | 2 | `Device` | `DeviceDID` | L2 | Computing hardware (phone, server, sensor) |
 | 3 | `Machine` | `MachineDID` | L2 | Physical machine (vehicle, **robot**) |
 | 4 | `Asset` | `AssetDID` | L2 | Passive physical asset (land, crop, good) |
-| 5 | `Bot` | `BotDID` | L3 | Rule-based automation (Telegram bot, keeper) |
+| 5 | `Bot` | `BotDID` | L3 | Rule-based automation (ProofChat bot, keeper) |
 | 6 | `Agent` | `AgentDID` | L3 | Autonomous AI (e.g. TigerAgent, MagicClaw) |
-| 7 | `Service` | `ServiceDID` | L3 | Digital service (OriLife, TonFarm) |
+| 7 | `Service` | `ServiceDID` | L3 | Digital service (OriLife, AladinWork) |
 | 8 | `Context` | `ContextDID` | L1 | Temporal bounded context (event, project) |
 | 9 | `Character` | `CharDID` | L4 | Virtual entity (game character, avatar) |
 
-**`Bot` vs. `Agent` vs. robot.** `Bot` and `Agent` are both Layer-3 software automations but differ in autonomy: a `BotDID` identifies **rule-based automation** — a deterministic, script-driven process such as a Telegram bot or a keeper/relayer that fires on fixed triggers. An `AgentDID` identifies **autonomous AI** — a system that plans, reasons, or acts toward open-ended goals (e.g. TigerAgent, MagicClaw). Neither is the same as a physical *robot*: a robot is a `MachineDID` (Layer 2, physical machine), because the `Bot`/`Agent` types classify software autonomy, not physical embodiment. An AI-driven robot is therefore two linked identities — a `MachineDID` for the physical unit and an `AgentDID` for its controlling software.
+**`Bot` vs. `Agent` vs. robot.** `Bot` and `Agent` are both Layer-3 software automations but differ in autonomy: a `BotDID` identifies **rule-based automation** — a deterministic, script-driven process such as a ProofChat bot or a keeper/relayer that fires on fixed triggers. An `AgentDID` identifies **autonomous AI** — a system that plans, reasons, or acts toward open-ended goals (e.g. TigerAgent, MagicClaw). Neither is the same as a physical *robot*: a robot is a `MachineDID` (Layer 2, physical machine), because the `Bot`/`Agent` types classify software autonomy, not physical embodiment. An AI-driven robot is therefore two linked identities — a `MachineDID` for the physical unit and an `AgentDID` for its controlling software.
 
 Non-`Person` entities are always created as children of an existing, active parent identity (an ownership edge enforced on-chain); `Person` identities are self-genesis (no parent).
 

@@ -222,9 +222,9 @@ DIDType ≜
   | Device     -- Layer 2: computing hardware (phone, server, sensor)
   | Machine    -- Layer 2: physical machine (vehicle, robot)
   | Asset      -- Layer 2: passive physical asset (land, crop, good)
-  | Bot        -- Layer 3: rule-based automation (Telegram bot, keeper)
+  | Bot        -- Layer 3: rule-based automation (ProofChat bot, keeper)
   | Agent      -- Layer 3: autonomous AI (TigerAgent, MagicClaw)
-  | Service    -- Layer 3: digital service (OriLife, TonFarm)
+  | Service    -- Layer 3: digital service (OriLife, AladinWork)
   | Character  -- Layer 4: virtual entity (game character, avatar)
 ```
 
@@ -2185,7 +2185,7 @@ type HolderIdentity {
 
 -- ATE-3: InfrastructureApp exception:
 type AppRegistrationType {
-  | StandardApp(AppTokenConfig)             -- existing (ORILIFE, TONFARM)
+  | StandardApp(AppTokenConfig)             -- existing (ORILIFE, ALADINWORK)
   | InfrastructureApp {                     -- NEW: PhoenixKey
       service_did: ByteArray,
       treasury_address: ByteArray,
