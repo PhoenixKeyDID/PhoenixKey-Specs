@@ -2,7 +2,7 @@
 
 ## Abstract
 
-`did:phoenix` is a DID method that anchors decentralized identifiers as singleton non-fungible tokens (NFTs) on the Cardano blockchain, using Plutus V3 smart contracts. Each identity — human (`Person`) or non-human (`Org`, `Device`, `Service`, and other entity types) — is represented on-chain by exactly one UTxO holding a policy-bound NFT and an inline datum (the "TAAD" — Trust Anchor and Authority Datum) that carries the current controller key, status, guardian set, and lineage. The method defines deterministic derivation of the DID string and its on-chain asset name, a 7-transition state machine for lifecycle operations (rotate, recover, deactivate, transfer, update guardians), and a W3C DID Resolution-conformant HTTP resolver.
+`did:phoenix` is a DID method in which each decentralized identifier is a string identifier anchored one-to-one by a singleton non-fungible token (NFT) on the Cardano blockchain, using Plutus V3 smart contracts. The DID is not itself an NFT; the NFT is its on-chain anchor. Each identity — human (`Person`) or non-human (`Org`, `Device`, `Service`, and other entity types) — is represented on-chain by exactly one UTxO holding the anchor NFT and an inline datum (in Cardano/Plutus, a small piece of structured data attached to a UTxO) — called the "TAAD" (Token-Anchored Authority Delegation) in this method — that holds the current controller key, status, guardian set, and lineage. The method defines deterministic derivation of the DID string and its on-chain asset name, a 7-transition state machine for lifecycle operations (rotate, recover, deactivate, transfer, update guardians), and a W3C DID Resolution-conformant HTTP resolver.
 
 This is version 1 of the `did:phoenix` method specification, published at `https://phoenixkey.me/did-method/v1`.
 
@@ -20,9 +20,26 @@ This is version **v1** of the `did:phoenix` method specification, published at i
 
 ## 2. Introduction
 
-`did:phoenix` identities are minted and managed through a single multi-purpose Plutus V3 validator ("Design-2"), where the NFT minting policy is defined to be identical to the validator's own script hash. This removes the circular dependency of separately baking a policy ID into the spending validator, and lets genesis mint hard-bind the anchor NFT to the validator address in the same transaction that creates it.
+`did:phoenix` identities are minted and managed through a single multi-purpose Plutus V3 validator — internally called **Design-2** — where the NFT minting policy is defined to be identical to the validator's own script hash (a unified mint-and-spend design: the same script both mints the anchor NFT at genesis and guards its lifecycle thereafter). This removes the circular dependency of separately baking a policy ID into the spending validator, and lets genesis mint hard-bind the anchor NFT to the validator address in the same transaction that creates it. ("Design-2" is the term of record for this design across the PhoenixKey specification set — see the `Anchorme` module's Tech/Math specs.)
 
-Ten entity types are supported: `Person`, `Org`, `Device`, `Machine`, `Asset`, `Bot`, `AI`, `Service`, `Context`, `Character`. Non-`Person` entities are always created as children of an existing, active parent identity (an ownership edge enforced on-chain); `Person` identities are self-genesis (no parent).
+Ten entity types are supported. Each maps to a `*DID` name convention (`PersonDID`, `OrgDID`, `AgentDID`, …) used throughout the wider PhoenixKey documentation set (the Math specification and the per-module Feature specs); this document itself mostly uses the bare type name (`Person`, `Org`, …) to match the on-chain `entity_type` field, but the two forms denote the same type:
+
+| Byte | `entity_type` | DID name | Trust layer | Meaning |
+|------|---------------|----------|-------------|---------|
+| 0 | `Person` | `PersonDID` | L0 (root of trust) | Biological human; self-genesis, no parent |
+| 1 | `Org` | `OrgDID` | L1 | Collective entity (company, DAO, government) |
+| 2 | `Device` | `DeviceDID` | L2 | Computing hardware (phone, server, sensor) |
+| 3 | `Machine` | `MachineDID` | L2 | Physical machine (vehicle, **robot**) |
+| 4 | `Asset` | `AssetDID` | L2 | Passive physical asset (land, crop, good) |
+| 5 | `Bot` | `BotDID` | L3 | Rule-based automation (Telegram bot, keeper) |
+| 6 | `Agent` | `AgentDID` | L3 | Autonomous AI (e.g. TigerAgent, MagicClaw) |
+| 7 | `Service` | `ServiceDID` | L3 | Digital service (OriLife, TonFarm) |
+| 8 | `Context` | `ContextDID` | L1 | Temporal bounded context (event, project) |
+| 9 | `Character` | `CharDID` | L4 | Virtual entity (game character, avatar) |
+
+**`Bot` vs. `Agent` vs. robot.** `Bot` and `Agent` are both Layer-3 software automations but differ in autonomy: a `BotDID` identifies **rule-based automation** — a deterministic, script-driven process such as a Telegram bot or a keeper/relayer that fires on fixed triggers. An `AgentDID` identifies **autonomous AI** — a system that plans, reasons, or acts toward open-ended goals (e.g. TigerAgent, MagicClaw). Neither is the same as a physical *robot*: a robot is a `MachineDID` (Layer 2, physical machine), because the `Bot`/`Agent` types classify software autonomy, not physical embodiment. An AI-driven robot is therefore two linked identities — a `MachineDID` for the physical unit and an `AgentDID` for its controlling software.
+
+Non-`Person` entities are always created as children of an existing, active parent identity (an ownership edge enforced on-chain); `Person` identities are self-genesis (no parent).
 
 The identity module that implements this method is internally named **Anchorme** (formerly "Identity") in the PhoenixKey specification set.
 
@@ -78,7 +95,7 @@ did:phoenix:<slot>:<hash>
   where hash = H( encode(entity_type) ‖ creator ‖ encode(slot) ‖ rand_256 )
 ```
 
-`H` is the same primitive as the on-chain anchor name function (§4.5); `entity_type` is encoded as a fixed single byte per a canonical byte table (`Person=0, Org=1, Device=2, Machine=3, Asset=4, Bot=5, AI=6, Service=7, Context=8, Character=9`).
+`H` is the same primitive as the on-chain anchor name function (§4.5); `entity_type` is encoded as a fixed single byte per the canonical byte table in §2 (`Person=0, Org=1, Device=2, Machine=3, Asset=4, Bot=5, Agent=6, Service=7, Context=8, Character=9`). The byte **value** is the hash-contract invariant consumed on-chain; the type's display label (`Agent`) is documentation-only and carries no on-chain meaning, so labelling is fixed by the value, not the name.
 
 ### 4.5 On-chain anchor name — `N(did)`
 
@@ -109,23 +126,23 @@ Resolving a `did:phoenix` identifier produces a W3C-conformant DID Document deri
   "id": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470",
   "verificationMethod": [
     {
-      "id": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#hw-key-1",
+      "id": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#device-key",
       "type": "JsonWebKey2020",
       "controller": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470",
       "publicKeyJwk": { "kty": "EC", "crv": "P-256", "x": "...", "y": "..." }
     },
     {
-      "id": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#taad-key-1",
+      "id": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#controller-key",
       "type": "JsonWebKey2020",
       "controller": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470",
       "publicKeyJwk": { "kty": "OKP", "crv": "Ed25519", "x": "..." }
     }
   ],
   "authentication": [
-    "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#hw-key-1"
+    "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#device-key"
   ],
   "capabilityInvocation": [
-    "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#taad-key-1"
+    "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#controller-key"
   ],
   "service": []
 }
@@ -135,10 +152,12 @@ Resolving a `did:phoenix` identifier produces a W3C-conformant DID Document deri
 
 | DID Document relationship | On-chain source | Key type | Datum field |
 |---|---|---|---|
-| `authentication` | `HW_Key` | P-256 (secp256r1), Secure Enclave / StrongBox | `hw_key_pubkey` (SEC1, 33B compressed or 65B uncompressed) |
-| `capabilityInvocation` | `TAAD_Key` | Ed25519 | `controller_pkh` (carried as a verification-key hash) |
+| `authentication` | `HW_Key` (internal short name for the device-bound hardware key) | P-256 (secp256r1), Secure Enclave / StrongBox | `hw_key_pubkey` (SEC1, 33B compressed or 65B uncompressed) |
+| `capabilityInvocation` | `TAAD_Key` (internal short name for the on-chain controller signing key) | Ed25519 | `controller_pkh` (a verification-key hash) |
 
-`HW_Key` (P-256) is device-bound and used for local authentication/biometric gating. `TAAD_Key` (Ed25519) is the on-chain signing key whose hash (`controller_pkh`) the validator checks against transaction `extra_signatories` for every state transition. **The validator carries `hw_key_pubkey` by byte-equality only — it does not decode the curve or verify a P-256 signature on-chain** (see §7, Assumption T-2 / invariant I-CID-11).
+`HW_Key` (P-256) is device-bound and used for local authentication/biometric gating. `TAAD_Key` (Ed25519) is the on-chain signing key whose hash (`controller_pkh`) the validator checks against transaction `extra_signatories` (the ledger's list of key hashes that must have signed the transaction) for every state transition. **The validator carries `hw_key_pubkey` by byte-equality only — it does not decode the curve or verify a P-256 signature on-chain** (see §7, Assumption T-2 / invariant I-CID-11).
+
+**Fragment naming convention.** Each verification method is named by its **purpose**, not by an internal key name or an ordinal: `#device-key` for the device-bound P-256 authentication key (`HW_Key`), and `#controller-key` for the Ed25519 on-chain controller/authority key (`TAAD_Key`). Purpose-based fragments are chosen deliberately over both (a) internal code names such as `taad-key`, which would export PhoenixKey-internal vocabulary into a public specification, and (b) RFC 7638 JWK-thumbprint fragments, which change on every rotation because they bind to the key material itself. A purpose fragment instead stays **constant across `Rotate`/recovery**, so a relying party can hard-code `did#controller-key` as a durable reference that survives key rotation — the very property PhoenixKey's rotation-invariant identity exists to provide. The current model has exactly one key per purpose (one `hw_key_pubkey` and one `controller_pkh` per anchor). A future revision introducing multiple concurrent keys of the same purpose (e.g. multi-device custody) MUST define a **stable per-key suffix** — a device tag or JWK thumbprint, never a bare ordinal — at that time. Fragment strings carry no confidentiality (see §8).
 
 ### 5.3 Service endpoints
 
@@ -152,10 +171,10 @@ All operations are Cardano transactions against a single multi-purpose Plutus V3
 
 ### 6.1 Create
 
-Two mint paths, discriminated by the `StateNftRedeemer`:
+Two mint paths, discriminated by the `StateNftRedeemer` (a *redeemer* is the Plutus term for the argument a transaction supplies to tell a validator script which action it is invoking):
 
 **`GenesisPerson`** (self-genesis, root identities only):
-- Preconditions: exactly one NFT minted under `π`; the sole carrier output sits at `Script(π)`; asset name equals `N(did)`; `entity_type = Person`; `parent_did = None`; the datum's `controller_pkh` is present in the transaction's signers (self-sign); the datum is fresh (`sequence = 0`, `status = Active`, `revoked_slot = None`).
+- Preconditions: exactly one NFT minted under `π`; the sole output carrying that NFT sits at `Script(π)`; asset name equals `N(did)`; `entity_type = Person`; `parent_did = None`; the datum's `controller_pkh` is present in the transaction's signers (self-sign); the datum is fresh (`sequence = 0`, `status = Active`, `revoked_slot = None`).
 - Signer: the identity's own controller key (Enclave-produced witness).
 - This path does not bind the DID string to a global uniqueness check at mint time; see §7.2 (Security Considerations).
 
@@ -166,10 +185,12 @@ Two mint paths, discriminated by the `StateNftRedeemer`:
 
 ### 6.2 Read (Resolve)
 
-Resolution follows the W3C DID Resolution specification (draft/CR, referenced as v0.3 at the time of writing). Two supported access patterns:
+Resolution follows the W3C DID Resolution specification (draft/CR, referenced as v0.3 at the time of writing). `did:phoenix` is designed for **multi-modal resolution**, because it runs across environments with different trust and availability assumptions — plain web/HTTP clients, on-chain dApp validators, and the LampNet/LAMP smart-contract runtime. The authoritative state is always the on-chain `TAADDatum`; each mode below is a different way of reading that same state, trading convenience against trust:
 
-1. **HTTP resolver (live):** `GET /identifiers/{did}` returns a DID Document per §5. Additional convenience endpoints: `GET /identity/{did}/pubkey|document|status`.
-2. **On-chain resolution:** any transaction may read an identity's current authoritative state by placing its anchor UTxO as a **reference input** and reading the inline `TAADDatum` — this is how `did`-scoped spending logic (e.g. `did_payment`, `did_stake` validators) authorizes transactions without consuming the anchor itself.
+1. **HTTP resolver (live, trusted intermediary):** `GET /identifiers/{did}` returns a DID Document per §5; convenience endpoints `GET /identity/{did}/pubkey|document|status`. This is the simplest path for ordinary web clients, but the resolver is a trusted party — it can omit, delay, or misreport state. A client with integrity requirements SHOULD cross-check the returned document against the chain (mode 2 or 3) rather than trust the HTTP response alone.
+2. **On-chain resolution (live, trustless):** any transaction may read an identity's current authoritative state by placing its anchor UTxO as a **reference input** (an input a transaction reads without consuming) and reading the inline `TAADDatum` directly. This needs no HTTP and no trusted resolver — the ledger itself guarantees the datum is current. It is how `did`-scoped spending logic (e.g. `did_payment`, `did_stake` validators) authorizes transactions without consuming the anchor, and it is the canonical resolution path inside the **LampNet/LAMP** contract runtime, where an HTTP resolver is neither available nor trusted.
+3. **Direct chain query (dApp-native):** a dApp or wallet already connected to Cardano — through a CIP-30 wallet connector, a chain-data provider (Blockfrost / Koios / Ogmios), or a light client — can fetch the anchor UTxO and decode the `TAADDatum` itself, reconstructing the DID Document client-side with no PhoenixKey-operated resolver in the trust path. This gives dApp integrations HTTP-level convenience at on-chain-level trust.
+4. **Universal Resolver driver (roadmap):** a DIF Universal Resolver driver for `did:phoenix` is planned as the ecosystem-interop path, so third-party resolvers can resolve the method through the standard driver interface. Not yet implemented.
 
 A resolve-by-hash endpoint (`GET /v1/registry/resolve/{did_hash}`, keyed on `N(did)`) and point-in-time historical resolution endpoints are specified but **not yet implemented** (backend team, tracked as future work).
 
@@ -198,7 +219,7 @@ The `Deactivate` redeemer transitions `status` from `Active` to `Revoked` and se
 
 ### 7.1 Structural integrity (proven invariants)
 
-The validator enforces, for every valid transaction: (a) singleton spend — each transition consumes exactly one anchor NFT and recreates exactly one at the validator address; (b) strict sequence monotonicity — replay of a stale transaction is rejected because it can never match the current on-chain sequence; (c) NFT non-escape — the anchor NFT cannot leave the validator's script address through any lifecycle path other than an explicit burn; (d) identity persistence — the `did` string and `entity_type` are immutable across every update operation, so key rotation never changes which identity a DID resolves to; (e) dead-end deactivation — a revoked anchor has no path back to a spendable state.
+The validator enforces, for every valid transaction: (a) singleton spend (the invariant that a transaction consumes and recreates exactly one instance of the anchor NFT — never zero, never more than one) — each transition consumes exactly one anchor NFT and recreates exactly one at the validator address; (b) strict sequence monotonicity — replay of a stale transaction is rejected because it can never match the current on-chain sequence; (c) NFT non-escape — the anchor NFT cannot leave the validator's script address through any lifecycle path other than an explicit burn; (d) identity persistence — the `did` string and `entity_type` are immutable across every update operation, so key rotation never changes which identity a DID resolves to; (e) dead-end deactivation — a revoked anchor has no path back to a spendable state.
 
 ### 7.2 On-chain anchor uniqueness
 
@@ -229,6 +250,7 @@ Strict `sequence` incrementing on every transition, combined with singleton-spen
 - **Lineage visibility.** The `parent_did` field makes ownership/creation relationships between identities (e.g., an organization and the service identities it creates) publicly traceable on-chain.
 - **Key rotation does not unlink history.** Because `did` and `entity_type` persist across `Rotate`/`Transfer`/recovery, historical linkage to a given DID persists even after its signing keys change — rotation defends against key compromise, not against on-chain observability of past activity under that DID.
 - **Resolver-side data minimization.** Implementers of resolver/indexer infrastructure should avoid retaining more off-chain metadata (e.g., IP addresses of resolution requests) than operationally necessary.
+- **Verification-method fragments are public role labels, not secrets.** The entire DID Document — including every `verificationMethod.id` fragment — is returned in full on every resolution, so fragment names carry no confidentiality property and "guessing" a fragment is not a meaningful attack: a resolver client already sees the complete list, and the key type/count are already disclosed by the adjacent `publicKeyJwk`/`type` fields and the array length. Fragments (`#device-key`, `#controller-key`) are stable, human-readable purpose labels only (see §5.2) and MUST NOT be used to encode information not already public in the document.
 
 ---
 
@@ -266,7 +288,7 @@ This method is registered in the W3C DID Method Registry (`w3c/did-extensions`, 
 | Term used here | Internal / code name |
 |---|---|
 | Identity module | **Anchorme** (module name as of 2026-07; previously "Identity") |
-| Anchor datum | `TAADDatum` (Trust Anchor and Authority Datum), `types.ak` |
+| Anchor datum | `TAADDatum` (Token-Anchored Authority Delegation), `types.ak` |
 | Anchor name | `N(did) = blake2b_256(UTF-8(did))` |
 | Multi-purpose validator | `taad` (`validators/taad.ak`) |
 | Mint-gate logic | `lib/phoenixkey/state_nft_logic.ak` |
