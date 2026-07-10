@@ -35,7 +35,7 @@ Ten entity types are supported. Each maps to a `*DID` name convention (`PersonDI
 | 6 | `Agent` | `AgentDID` | L3 | Autonomous AI (e.g. TigerAgent, MagicClaw) |
 | 7 | `Service` | `ServiceDID` | L3 | Digital service (OriLife, AladinWork) |
 | 8 | `Context` | `ContextDID` | L1 | Temporal bounded context (event, project) |
-| 9 | `Character` | `CharDID` | L4 | Virtual entity (game character, avatar) |
+| 9 | `Avatar` | `AvatarDID` | L4 | Externally-operated entity (game character, pet, livestock) |
 
 **`Bot` vs. `Agent` vs. robot.** `Bot` and `Agent` are both Layer-3 software automations but differ in autonomy: a `BotDID` identifies **rule-based automation** — a deterministic, script-driven process such as a ProofChat bot or a keeper/relayer that fires on fixed triggers. An `AgentDID` identifies **autonomous AI** — a system that plans, reasons, or acts toward open-ended goals (e.g. TigerAgent, MagicClaw). Neither is the same as a physical *robot*: a robot is a `MachineDID` (Layer 2, physical machine), because the `Bot`/`Agent` types classify software autonomy, not physical embodiment. An AI-driven robot is therefore two linked identities — a `MachineDID` for the physical unit and an `AgentDID` for its controlling software.
 
@@ -95,7 +95,7 @@ did:phoenix:<slot>:<hash>
   where hash = H( encode(entity_type) ‖ creator ‖ encode(slot) ‖ rand_256 )
 ```
 
-`H` is the same primitive as the on-chain anchor name function (§4.5); `entity_type` is encoded as a fixed single byte per the canonical byte table in §2 (`Person=0, Org=1, Device=2, Machine=3, Asset=4, Bot=5, Agent=6, Service=7, Context=8, Character=9`). The byte **value** is the hash-contract invariant consumed on-chain; the type's display label (`Agent`) is documentation-only and carries no on-chain meaning, so labelling is fixed by the value, not the name.
+`H` is the same primitive as the on-chain anchor name function (§4.5); `entity_type` is encoded as a fixed single byte per the canonical byte table in §2 (`Person=0, Org=1, Device=2, Machine=3, Asset=4, Bot=5, Agent=6, Service=7, Context=8, Avatar=9`). The byte **value** is the hash-contract invariant consumed on-chain; the type's display label (`Agent`, `Avatar`) is documentation-only and carries no on-chain meaning, so labelling is fixed by the value, not the name.
 
 ### 4.5 On-chain anchor name — `N(did)`
 

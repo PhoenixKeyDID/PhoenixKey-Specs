@@ -66,7 +66,7 @@
 | DID canonical | `did:phoenix:base32(slot):hex(H(encode(type) ‖ creator ‖ encode(slot) ‖ rand_256))` | Math §2.1; `DidPhoenixGenerator.java:55-95` |
 | Regex | `^did:phoenix:[a-z2-7]{13}:[0-9a-f]{64}$` | `DID-Registry-Resolver-Feat §1.2` |
 | `N(did)` / `did_hash` | `blake2b_256(UTF-8(did))` — 32B, KHÔNG salt, KHÔNG BLAKE3 | `phoenix_address.rs:52`; `…-Feat §1.1` |
-| type-byte trong hash | `encode(type)` = BYTE enum. Java+Aiken **KHỚP byte-exact** (Person=0…Device=2,Machine=3,Asset=4,Bot=5,AI=6,Service=7,Context=8,Character=9); chỉ **văn Math §2.2 lệch thứ-tự** (Context=2). §10 CID-4. | `DidPhoenixGenerator.java:56-65` ≡ `types.ak:21-32`; văn Math §2.2 |
+| type-byte trong hash | `encode(type)` = BYTE enum. Java+Aiken **KHỚP byte-exact** (Person=0…Device=2,Machine=3,Asset=4,Bot=5,Agent=6,Service=7,Context=8,Avatar=9); chỉ **văn Math §2.2 lệch thứ-tự** (Context=2). §10 CID-4. | `DidPhoenixGenerator.java:56-65` ≡ `types.ak:21-32`; văn Math §2.2 |
 
 ---
 
@@ -81,7 +81,7 @@ Neo `types.ak:34-63`. `Constr 0 [...]`:
 | # | Field | Aiken type | CBOR | Ý-nghĩa | Genesis |
 |---|---|---|---|---|---|
 | 0 | `did` | `ByteArray` | bytes | `did:phoenix:...` UTF-8 | (DID mới) |
-| 1 | `entity_type` | `EntityType` | Constr idx | 0=Person…9=Character (thứ-tự `types.ak:21-32`) | theo loại |
+| 1 | `entity_type` | `EntityType` | Constr idx | 0=Person…9=Avatar (thứ-tự `types.ak:21-32`) | theo loại |
 | 2 | `controller_pkh` | `VerificationKeyHash` | bytes(28) | băm TAAD_Key hiện-tại | băm ký-genesis |
 | 3 | `hw_key_pubkey` | `ByteArray` | bytes | HW_Key P-256 SEC1 (33B nén / 65B thô) — carry-only | pubkey Enclave |
 | 4 | `sequence` | `Int` | int | bộ đếm đơn-điệu | `0` |
@@ -361,7 +361,7 @@ key_valid_at(k, at) ⟺
 
 Server chấp-nhận CẢ HAI `?at=<unix_ts>` VÀ `?epoch=<n>` (point-in-time §5.2 dùng `?epoch=` thuần) — dịch nội-bộ `ts → slot → epoch`: `slot = (ts − shelley_start_ts) + shelley_start_slot`; `epoch = shelley_start_epoch + (slot − shelley_start_slot) / epoch_length`, với `epoch_length = 432000 slot` (5 ngày), `1 slot = 1s`; hằng `shelley_start_*` KHÁC nhau giữa Preprod/mainnet. Lý-do nhận cả `?at=`: Strata daemon có timestamp record sẵn (không có epoch), nội-bộ vẫn quy về epoch để tra đúng `did_state_history`.
 
-**🔴 Cần đối chiếu trước khi mint author-DID phi-nhân (Bot/Agent/Service):** `DID-Registry-Resolver-Feat.md §7.2` chỉ ra bảng type-byte trong `DidPhoenixGenerator.java:56-65` KHÔNG khớp Math §2.1 ở Context/Device/Machine/Asset/Bot/Agent/Service (Person/Org/Character trùng nên PersonDID không bị ảnh hưởng — bug chưa lộ). §1.3/§9 tài-liệu này ghi type-byte Java↔Aiken khớp và quy lệch về riêng văn Math §2.2; đây là 2 phép so-sánh khác cặp nguồn (Java↔Aiken vs Java↔Math §2.1) — **cần Long/Core đối chiếu lại cả 3 nguồn (Math §2.1, `DidPhoenixGenerator.java`, `types.ak`) trước khi mint author-DID phi-nhân đầu tiên**, không tự suy diễn khớp/lệch ở đây.
+**🔴 Cần đối chiếu trước khi mint author-DID phi-nhân (Bot/Agent/Service):** `DID-Registry-Resolver-Feat.md §7.2` chỉ ra bảng type-byte trong `DidPhoenixGenerator.java:56-65` KHÔNG khớp Math §2.1 ở Context/Device/Machine/Asset/Bot/Agent/Service (Person/Org/Avatar trùng nên PersonDID không bị ảnh hưởng — bug chưa lộ). §1.3/§9 tài-liệu này ghi type-byte Java↔Aiken khớp và quy lệch về riêng văn Math §2.2; đây là 2 phép so-sánh khác cặp nguồn (Java↔Aiken vs Java↔Math §2.1) — **cần Long/Core đối chiếu lại cả 3 nguồn (Math §2.1, `DidPhoenixGenerator.java`, `types.ak`) trước khi mint author-DID phi-nhân đầu tiên**, không tự suy diễn khớp/lệch ở đây.
 
 ### 5.2 Point-in-time — response schema + fail-closed contract (`PointInTime-Resolve-API-Feat-Math.md`, migration V16)
 

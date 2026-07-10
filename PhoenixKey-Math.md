@@ -64,7 +64,7 @@ All appendices non-normative unless marked [N].
 
 **Part IV — DID Type Catalog**
 §12 PersonDID · §13 OrgDID · §14 ContextDID · §15 DeviceDID · §16 MachineDID
-§17 AssetDID · §18 BotDID · §19 AgentDID · §20 ServiceDID · §21 CharDID
+§17 AssetDID · §18 BotDID · §19 AgentDID · §20 ServiceDID · §21 AvatarDID
 
 **Part V — Cross-Type Interactions**
 §22 Ownership Graph (§22.3 Taxonomy Rationale: Bot/Agent/"Robot") · §23 Delegation (§23.1 DID Authorization Registry) · §24 Revocation · §25 MAGIC Attribution
@@ -225,7 +225,7 @@ DIDType ≜
   | Bot        -- Layer 3: rule-based automation (ProofChat bot, keeper)
   | Agent      -- Layer 3: autonomous AI (TigerAgent, MagicClaw)
   | Service    -- Layer 3: digital service (OriLife, AladinWork)
-  | Character  -- Layer 4: virtual entity (game character, avatar)
+  | Avatar     -- Layer 4: externally-operated entity (game character, pet, livestock)
 ```
 
 ### §2.3 DID Base Record [N]
@@ -265,7 +265,7 @@ SecurityLevel ≜
   | Threshold(m, n)         -- m-of-n multisig (OrgDID, MachineDID)
   | Software_HSM            -- software key in HSM (AgentDID, ServiceDID)
   | Software                -- software key (BotDID)
-  | Owner_Delegated         -- inherits owner's level (AssetDID, CharDID, ContextDID)
+  | Owner_Delegated         -- inherits owner's level (AssetDID, AvatarDID, ContextDID)
 
 SecurityLevel_score(level) → ℚ ≜
   | Biometric_Hardware  → 6
@@ -429,7 +429,7 @@ Auth_satisfied(did, op, s) ≜ case type(did) of
   | Bot       → API_sig(did, op, s) ∧ Rate_ok(did, s)
   | Agent     → Capability_token(did, op, s) ∧ Value_ok(did, op)
   | Service   → Service_sig(did, op, s)
-  | Character → Owner_sig(did, op, s)
+  | Avatar    → Owner_sig(did, op, s)
 ```
 
 ### §4.4 Delegation Token [N]
@@ -538,7 +538,7 @@ Op_unsuspend(did: DID where type ≠ Person, s):
 | Bot | ✓ owner | ✗ | ✗ | ✓ owner | sink | Revoke |
 | Agent | ✓ owner | ✗ | ✗ | ✓ owner | sink | Revoke |
 | Service | ✓ owner | ✗ | ✗ | ✓ owner | both | Revoke / Archive |
-| Character | ✓ owner | ✓ | ✗ | ✗ | sink | Burn NFT |
+| Avatar | ✓ owner | ✓ | ✗ | ✗ | sink | Burn AvatarDID → mint AssetDID(s), derived_from (§21) |
 
 ---
 
@@ -1782,6 +1782,7 @@ AssetDID ≜ DIDBase { type=Asset, security_level=Owner_Delegated }
     tokenized      : Option<PolicyID>,
     fraction_policy: Option<PolicyID>,
     transferable   : 𝔹,
+    derived_from   : Option<DID>,      -- F-19b (§21): set when minted from a burned AvatarDID
   }
 
 -- F-18: Base NFT burn constraint:
@@ -1896,28 +1897,36 @@ Invariants: I-SVC-1..6 (scope subset of owner, version monotone, ServiceDID can 
 
 ---
 
-## §21 CharDID — Virtual Entities [N]
+## §21 AvatarDID — Externally-Operated Entities [N]
 
 ```
-CharDID ≜ DIDBase { type=Character, security_level=Owner_Delegated }
+AvatarDID ≜ DIDBase { type=Avatar, security_level=Owner_Delegated }
   extended by {
-    owner           : DID,   -- F-19: PersonDID (players) or ServiceDID (NPCs)
+    owner           : DID,   -- F-19: PersonDID or OrgDID (locus-of-control vận hành, §22.1)
     world_id        : {0,1}^256,
-    char_class      : PlayerCharacter|NPC|Avatar|VirtualItem|Collectible|Other,
+    char_class      : PlayerCharacter|NPC|Pet|Livestock|VirtualItem|Collectible|Other,
     state_cid       : ByteArray,   -- IPFS CID; min 2 independent pinners required
     on_chain_attrs  : Map<ByteArray, ℕ>,
     transferable    : 𝔹,
     cross_world     : 𝔹,
     nft_policy      : Option<PolicyID>,   -- nft_policy ≠ None ↔ transferable
     authorized_worlds: Set<{0,1}^256>,
+    derived_from    : Option<DID>,   -- F-19b (§21.1): trace lineage when minted from a burned AvatarDID
   }
 
--- F-19: NPC ownership:
-I-CHAR-1: PlayerCharacter → type(owner) = Person
-          NPC             → type(owner) ∈ {Person, Service}
-          Others          → type(owner) ∈ {Person, Service}
+-- F-19: Locus-of-control ownership (all char_class alike — no Service exception):
+I-CHAR-1: ∀ char_class: type(owner) ∈ {Person, Org}
 
 -- Transfer: NFT transfer ∧ owner update in same atomic Tx (I-CHAR-4).
+
+-- F-19b / I-CHAR-5: "sống→chết" lifecycle event is NOT an in-place type
+-- transition (DID type is fixed from genesis, §2 invariant). It is:
+--   Op_avatar_dissolve(did, s):
+--     Pre:    Auth_satisfied(did, dissolve, s)
+--     Effect: AvatarDID(did) burned; revoked_slot ← s;
+--             mint N × AssetDID { derived_from = Some(did), owner = owner(did), ... }
+-- Preserves the fixed-type-from-genesis invariant: the new AssetDIDs are
+-- fresh mints, not a mutation of the burned AvatarDID's type field.
 ```
 
 ---
@@ -1930,7 +1939,7 @@ I-CHAR-1: PlayerCharacter → type(owner) = Person
 
 ```
 CanOwn(owner_type, child_type):
-               Pers  Org  Ctx  Dev  Mach  Asset  Bot  Agent  Svc  Char
+               Pers  Org  Ctx  Dev  Mach  Asset  Bot  Agent  Svc  Avtr
 Person       [  ✗    ✓    ✓    ✓    ✓     ✓      ✓    ✓      ✓    ✓  ]
 Org          [  ✗    ✓    ✓    ✓    ✓     ✓      ✓    ✓      ✓    ✓  ]
 Context      [  ✗    ✗    ✗    ✗    ✗     ✗      ✗    ✗      ✗    ✗  ] leaf
@@ -1940,13 +1949,16 @@ Asset        [  ✗    ✗    ✗    ✗    ✗     ✗      ✗    ✗      ✗
 Bot          [  ✗    ✗    ✗    ✗    ✗     ✗      ✗    ✗      ✗    ✗  ] automation leaf
 Agent        [  ✗    ✗    ✗    ✗    ✗     ✗      ✓    ✓      ✗    ✗  ] tool deployment
 Service      [  ✗    ✗    ✗    ✓    ✗     ✓      ✓    ✓      ✓    ✗  ] F-12: +Svc→Svc (I-SVC-CHAIN)
-Character    [  ✗    ✗    ✗    ✗    ✗     ✗      ✗    ✗      ✗    ✗  ] virtual leaf
+Avatar       [  ✗    ✗    ✗    ✗    ✗     ✗      ✗    ✗      ✗    ✗  ] externally-operated leaf
 
 Key rationale:
   Machine→Bot,Agent ✓: Vehicles/robots need embedded firmware bots and AI reasoning.
   Service→Service ✓:   Microservice architectures (bounded by I-SVC-CHAIN ≤ 3 hops).
   Agent→Bot ✓:         AI agents deploy tool bots for specific sub-tasks.
   Machine→Machine ✗:   No nested machines (use OrgDID for fleets).
+  Person/Org→Avatar ✓, all others ✗: Avatar owner = locus-of-control operator
+  (Person or Org only, I-CHAR-1, §21). Service must route through an Org it
+  is delegated by — Service cannot be the `owner` of record.
 ```
 
 ### §22.2 Depth Constraint
@@ -2146,7 +2158,7 @@ MAGIC_attribution(op: BurnOp, s) → DID ≜ Attr*(primary_signer(op))
 | Bot | Attr*(owner) |
 | Agent | Attr*(owner) |
 | Service | ServiceDID |
-| Character | Attr*(owner) |
+| Avatar | Attr*(owner) |
 
 ---
 
@@ -2396,7 +2408,7 @@ Bootstrap (one-time ceremony):
 | **Claim 20** | §17 | AssetDID | New |
 | **Claim 21** | §19 | AgentDID | New |
 | **Claim 22** | §20 | ServiceDID | New |
-| **Claim 23** | §21 | CharDID | New |
+| **Claim 23** | §21 | AvatarDID | New |
 | **Claim 24** | §13 | OrgDID | New |
 | **Claim 25** | §14 | ContextDID | New |
 
@@ -3494,14 +3506,14 @@ interoperable with the canonical resolver. ∎
 | **Physical compute** | — | MachineDID | DeviceDID |
 | **Physical object** | — | — | AssetDID |
 | **Digital** | AgentDID | BotDID, ServiceDID | — |
-| **Virtual** | — | — | CharDID |
+| **Virtual** | — | — | AvatarDID |
 
 **Lifecycle Patterns:**
 
 | Pattern | Types |
 |---------|-------|
 | Indefinite, non-transferable | PersonDID, OrgDID, BotDID, AgentDID, ServiceDID |
-| Indefinite, transferable | MachineDID, AssetDID, CharDID |
+| Indefinite, transferable | MachineDID, AssetDID, AvatarDID |
 | Time-bounded | ContextDID |
 | Cert-rotatable | DeviceDID |
 
