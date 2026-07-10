@@ -47,6 +47,11 @@
 
 **Blocker mở:** B1 CID-1 (giả-mạo anchor Person-over-Person; HW P-256 không verify on-chain → chặn PersonDID-custody; Org/Service an toàn nhờ parent-sig) — giải: PA2 (đóng hẳn) + PA5-a (thu hẹp). B2 resolve-by-hash + point-in-time V16 (backend). B3 DeviceDID `Op_create_device` (on-chain) + hw_cert endpoint (backend). B4 Full_Authority `⊑` + type-code canonical (Math v4.7).
 
+**Câu hỏi thiết-kế MỞ — taxonomy entity_type (chốt phiên sau, tra MECE trên VeData Stamp; anh hoãn 2026-07-10):** hai điểm GẮN NHAU, quyết cùng lúc:
+- **Byte-4 `Asset` chỉ physical** — lỗ hổng MECE: tài-sản-số thụ-động (file/dataset/media/NFT/VC-schema/model-weights) rơi khe (≠Asset physical, ≠Bot/Agent tự-chủ, ≠Service sản-phẩm, ≠byte-9). Chọn: (a) nới định nghĩa Asset → physical HOẶC digital (đổi `asset_class` +File|Dataset|Media|Schema, `physical_id`→`identity_hash`; không thêm byte, hash-safe); hay (b) digital = VC/metadata dưới DID khác (out-of-scope, ranh giới hẹp).
+- **Byte-9 `Character`** — hẹp: type đang chứa `Avatar|VirtualItem|Collectible|NPC|PlayerCharacter`, "Character" chỉ gọi 1 thành viên. Ứng viên tên: `Virtual`/`Avatar`/`Persona`. **Phụ thuộc byte-4**: nếu virtual-item/collectible chuyển sang Asset-digital thì byte-9 còn thuần thực-thể-ảo-có-ngôi → `Avatar` (anh nghiêng, trực-quan) hoặc `Persona` khớp; nếu byte-4 giữ physical thì byte-9 vẫn phải ôm cả vật-phẩm → cần tên bao-trùm hơn (`Virtual`).
+- Cả hai đổi-tên/định-nghĩa đều **byte-value bất biến → hash-safe**; lan tới Math §2.2/§17/§21 + Aiken `types.ak` + Java `DidPhoenixGenerator` + W3C doc. `AI`→`Agent` (byte-6) đã chốt đổi (issue Long).
+
 ## Rebirthme
 
 **Nền đã chạy (173/173 Aiken PASS, 2026-07-08):** ví theo-DID `did_payment` (chi khi Active + controller ký; tài-sản sống qua rotate; địa chỉ bất-biến); đóng-băng theo trạng-thái (Recovering/Migrated/Revoked chặn chi); singleton-anchor I-WALLET-4/5; guardian recovery Init/Cancel/Finalize/UpdateGuardians(≤5) + timelock 3600 slot + collateral 50 ADA (bỏ Shamir); ví Standard + Rotation Account; P-256 low-s (I-SIGN-LOWS); `lampnet.rs` fail-closed (I-VAULT-4); Ed25519 dalek deterministic.
