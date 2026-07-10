@@ -1804,7 +1804,7 @@ Invariants: I-ASSET-1..7 (physical_id immutable, multi-attestation, transfer ato
 BotDID ≜ DIDBase { type=Bot, security_level=Software }
   extended by {
     owner          : DID,   -- PersonDID, OrgDID, or ServiceDID
-    bot_class      : Telegram|API|Webhook|Automation|Indexer|Keeper|Oracle|Other,
+    bot_class      : Chat|API|Webhook|Automation|Indexer|Keeper|Oracle|Other,
     api_key        : Ed25519PubKey,
     max_rate       : ℕ,     -- ops per BOT_REFILL_WINDOW slots
     whitelist      : Set<DID>,
