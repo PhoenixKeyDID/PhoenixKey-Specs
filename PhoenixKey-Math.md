@@ -13,26 +13,12 @@
 | **Scope** | Complete mathematical specification: cryptographic core + 10 DID types + full lifecycle + compliance + recovery completeness |
 | **Review** | v4.2: Gemon (MIT Math), Serat (Security); v4.4–4.5: Sambo (BA MIT Sloan), Tuân (Validator Engineer) |
 | **Fixes over v4.4** | **[Bug]** salt_pw₁ circular dependency removed — all salts now on-chain, protection by Argon2id memory-hardness; **[Bug]** `secondary_wallet_enrolled:𝔹` → `secondary_wallets:List<SecondaryWallet>` with pkh commitment; **[Bug]** Email upgraded from knowledge factor to possession factor via EmailOracle OTP (VeData-pattern); **[Bug]** Cancel Option A removed from §11.7 — knowledge factors cannot distinguish owner from attacker; **[Design]** I-RECOVERY-4 grace period (30-day backup_deadline, restricted scope, not hard block); **[Design]** I-RECOVERY-5 recursive orphan edge case; **[Editorial]** Argon2id m unit MiB; HIBP k-anonymity reference; I-TIER5-PW-5 removed |
-| **Added in v4.6** | **[New]** §36 Transaction Fee Architecture — per-operation PhoenixKey fee with 30/70 split: 30% to Cardano Treasury via Conway-era native treasury-donation (tx body field 20), 70% to Phoenix Treasury (Plutus V3 script, OrgDID m-of-n). **Fees are on-chain adjustable parameters** (`FeeParams` reference UTxO) updatable by **DAO governance vote OR an algorithmic module** — no script-hash rebake. **PersonDID create fee = 0 at launch** (user-acquisition incentive; zero-fee ops skip the fee mechanism, like `Deactivate`). I-FEE-1/2 enforced on-chain by a fee-receipt minting policy (Aiken stdlib v2 `treasury_donation` accessor; enforcement-point + ExUnits pending Validator Issue #7). Theorem 36.1 fee accountability. **[Reconcile §29]** §29 clarified as PhoenixKey-side DID-mapping layer; reward math is canonical MAGIC AppEconomics v2.1 (`computeW` 5-factor + 30% cap), DID-agnostic — legacy v1.0-SA `holder_share_bps` superseded. |
+| **Added in v4.6** | **[New]** §36 Transaction Fee Architecture — per-operation PhoenixKey fee with 30/70 split: 30% to Cardano Treasury via Conway-era native treasury-donation (tx body field 20), 70% to Phoenix Treasury (Plutus V3 script, OrgDID m-of-n). **Fees are on-chain adjustable parameters** (`FeeParams` reference UTxO) updatable by **DAO governance vote OR an algorithmic module** — no script-hash rebake. **PersonDID create fee = 0 at launch** (user-acquisition incentive; zero-fee ops skip the fee mechanism, like `Deactivate`). I-FEE-1/2 enforced on-chain by a fee-receipt minting policy (Aiken stdlib v2 `treasury_donation` accessor). Theorem 36.1 fee accountability. **[Reconcile §29]** §29 clarified as PhoenixKey-side DID-mapping layer; reward math is canonical MAGIC AppEconomics v2.1 (`computeW` 5-factor + 30% cap), DID-agnostic — legacy v1.0-SA `holder_share_bps` superseded. |
 | **Pending v4.7 (this patch)** | **[Bug, Errata CID-6]** §3.3 (new): defines capability subsumption `⊑` — a preorder where `c ⊑ Full_Authority` for all `c`, backward-compatible with plain set-⊆. §4.4 `DelegationToken_valid` and §23 `Op_delegate`/sub-delegation switched from `⊆` to `⊑`: previously a PersonDID (`scope={Full_Authority}` per C-SCOPE-3) could not delegate *any* concrete capability, since `{Read_DID(Asset)} ⊆ {Full_Authority}` is False under plain set membership — blocking all PersonDID-issued delegation through §4.4/§23 while §4.2 `Authority` already handled `Full_Authority` via an ad-hoc disjunct (internal inconsistency). Scope of this patch is deliberately narrow: only §1.1 (notation), §3.3 (new), §4.4, §23, and TV-6 changed. §3.2/§4.2/§19/§20 and all proofs referencing set-⊆ properties (cascade scope, Theorem 27.1) are **not** touched by this patch — **[CẦN CHỐT]** whether/how those should also move to `⊑` is a separate follow-up (see `spec-proposals/ServiceDID-SelfService-and-Delegation-DRAFT.md` §3.3 for the wider proposal this patch was extracted from). **Formal version-number bump (title/header) intentionally deferred** — this patch touches 2 sections; maintainer should decide whether to bump to v4.7 now or bundle with a larger release. |
 
 ---
 
-> **⚠️ Implementation status vs specification.** "Normative" means this
-> document is **binding on conformant implementations** — it does **not**
-> mean every section is deployed on-chain today. Current state at v4.6:
->
-> | Area | Spec | Status today |
-> |---|---|---|
-> | Crypto primitives (HKDF, Ed25519, BLAKE2b, P-256 verify, CIP-1852) | §1, §6, §8 | ✅ Implemented (rust_core) |
-> | DID Document publish (metadata label 6789) | §2 | ✅ Implemented (PhoenixKey-PoC) — verified live on preprod + preview |
-> | TAAD UTxO state machine + Rotate redeemer | §10 | ⏳ Validator compiles; tx-builder on a feature branch, not yet merged |
-> | Tiered recovery (Tier 1–5) | §11 | ⏳ Spec-only — no recovery code path yet |
-> | §36 fee architecture (30/70 split, Phoenix Treasury) | §36 | ⏳ Spec-only — enforcement pending Validator Issue #7 |
->
-> The **PhoenixKey-PoC** repo demonstrates the implemented subset end-to-end
-> on public testnets. Sections marked ⏳ are normative targets, **not yet
-> live**. This table is the authoritative answer to "is X deployed?".
+> **→ Hiện-trạng triển-khai từng phần:** xem [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
 
 ---
 
@@ -958,7 +944,7 @@ TAAD_state_machine_valid(did: PersonDID, op: Capability, s: SlotNo) : 𝔹 ≜
 
 ---
 
-## §11 Recovery Protocol [N]
+## §11 Recovery Protocol — module Rebirthme [N]
 
 §11 defines the tiered recovery protocol for PersonDID holders who have lost access to their device. The protocol is TAAD-based (§10) and applies exclusively to PersonDID. Recovery tiers are ordered from strongest to weakest; the cascade (§11.1) tries each tier in order. Tier 4 (Posthumous, §32.1) is a special administrative path triggered by a government OrgDID death certificate, not by the user.
 
@@ -3267,30 +3253,20 @@ I-FEE-3 is enforced on-chain by the Phoenix Treasury validator (§36.4).
 I-FEE-OBS-1 (resolver observability) remains an off-chain indexing
 requirement layered on top of the on-chain guarantees above.
 
-> **Implementation status.** The fee-receipt minting policy design is
-> pending validator-engineer confirmation of (a) ExUnits cost per tx
-> (estimated mem ~150–400, CPU ~80K–200K, i.e. +3–12% over the ~0.17 ADA
-> baseline network fee) and (b) burn-on-mint composability with a TAAD
-> spend in the same transaction (tracked in PhoenixKey-Validator Issue
-> \#7). Until the policy lands, the SDK enforces I-FEE-1/I-FEE-2 at
-> tx-building time as a transitional safeguard; the resolver marks any
-> tx violating the split as `INVALID_FEE_SPLIT`. The economic incentive
-> to cheat is already negative (an adversary under-donating still loses
-> the full `phoenix_fee` to the Phoenix-side output and gains nothing),
-> so the on-chain policy hardens an already-safe position rather than
-> closing an exploitable gap.
+The SDK enforces I-FEE-1/I-FEE-2 at tx-building time as a transitional
+safeguard until the on-chain fee-receipt minting policy lands; the
+resolver marks any tx violating the split as `INVALID_FEE_SPLIT`. The
+economic incentive to cheat is already negative (an adversary
+under-donating still loses the full `phoenix_fee` to the Phoenix-side
+output and gains nothing), so the on-chain policy hardens an
+already-safe position rather than closing an exploitable gap.
 
 ---
 
 ### §36.6 Theorem 36.1 — Fee Accountability [N]
 
-> **Implementation status.** The §36 fee mechanism is **specified but not
-> yet implemented** as of v4.6 — no fee-bearing code path exists on `main`
-> in any repository, and the enforcement design (fee-receipt minting policy
-> + reference-SDK checks) is pending Validator Issue #7. The theorem below
-> states a property of the *specified* design that a conformant
-> implementation MUST satisfy once built. It is **not** an assertion about
-> currently deployed code.
+The theorem below states a property of the *specified* design that a
+conformant implementation MUST satisfy.
 
 **Statement.** Under a conformant implementation of the §36 fee mechanism,
 every fee-bearing PhoenixKey operation contributes simultaneously to
@@ -3315,9 +3291,8 @@ such that:
 - (1) and (2) are conditions a conformant implementation MUST enforce —
   at minimum off-chain (the reference SDK rejects the tx before signing,
   `build_*_tx` returns `Err`) and, once the fee-receipt minting policy
-  lands (Validator Issue #7), on-chain (the policy fails the mint if
-  either is violated). **Both enforcement layers are pending** — see the
-  Implementation status note above and the §36.5 enforcement note.
+  lands, on-chain (the policy fails the mint if either is violated).
+  See the §36.5 enforcement note.
 - (3) follows from Cardano ledger atomicity (Conway era):
   `transaction_body` field 20 is processed in the same ledger
   state-transition that processes inputs and outputs; either the entire

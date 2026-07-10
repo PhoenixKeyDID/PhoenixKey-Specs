@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+._*
+
+# editor/temp
+*.swp
+*.tmp
+*~
+.idea/
+.vscode/
+
+# secrets — không bao giờ commit
+.env
+.env.*
+*.key
+*.pem
