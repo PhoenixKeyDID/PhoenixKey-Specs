@@ -1,7 +1,7 @@
 # PhoenixKey — Wakeme · Đặc tả TOÁN hình thức (cho AUDITOR)
 
 > **Module:** Wakeme (GetLAMP — kích hoạt nhận LAMP). **Loại doc:** Toán hình thức. **Ngày:** 2026-07-09.
-> **Đối tượng đọc:** auditor smart-contract + nhà kiểm toán tokenomic. Đây là đặc tả TOÁN (định nghĩa, bất biến, công thức, chứng minh money-safety), KHÔNG phải doc thiết kế. Thiết kế/động cơ ở [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md); kỹ thuật ở [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md); điều hành ở [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
+> **Đối tượng đọc:** auditor smart-contract + nhà kiểm toán tokenomic. Đây là đặc tả TOÁN (định nghĩa, bất biến, công thức, chứng minh money-safety), KHÔNG phải doc thiết kế. Thiết kế/động cơ ở [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md); kỹ thuật ở [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md); điều hành ở [PhoenixKey-Wakeme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-Wakeme-Exec.md).
 >
 > **Nguồn chân lý = CODE, không phải văn:** mọi bất biến ở đây neo trực tiếp về `file:hàm` trong validator. Khi văn ≠ code → **code thắng**. Nếu auditor thấy chênh, báo lỗi CODE hoặc lỗi SPEC, không tự hoà.
 >
@@ -329,9 +329,9 @@ Vậy giảm-v ⟺ ClaimVested ⟺ owner ký ⟹ user toàn quyền phần đã 
 - Nguồn thiết kế nội bộ (không công khai). (đã qua rà soát nội bộ)
 - Đánh giá gaming nội bộ (không công khai) (GV1/GV2 khung anchor-uniqueness + wash-Registry).
 - Cross-ref canonical: `PhoenixKey-Specs/PhoenixKey-Math.md` (key hierarchy §6, TAAD §10, type catalog §12–21).
-- Tài liệu cùng bộ: [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md), [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md), [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
+- Tài liệu cùng bộ: [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md), [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md), [PhoenixKey-Wakeme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-Wakeme-Exec.md).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#wakeme)
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

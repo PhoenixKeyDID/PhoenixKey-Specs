@@ -7,7 +7,7 @@
 > `WalletController.java`, `WalletDtos.java`, `BlockfrostHttpClient.java`,
 > `IdentityServiceImpl.java` + `AuthorizedKeyRepository.java`, `phoenix_address.rs`,
 > `PhoenixKey-Math §8` (CIP-1852), và bản đính chính SuperApp
-> `spec-proposals/SuperApp-Reply-wallet-api.md`.
+> `https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/SuperApp-Reply-wallet-api.md`.
 > PhoenixKey chốt interface; Long ước lượng thời gian + build backend.
 
 ---

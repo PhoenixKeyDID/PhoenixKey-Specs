@@ -10,7 +10,7 @@
 >
 > **Ranh giới code/spec:** Mức 1+2 nằm trong `src/lib/sdvc/`. Mức 3 ZK (`src/lib/sdvc/zk/`, `ZkCredential`/`BBS`/`ProveDerived`) là **[SPEC]** — thiết kế riêng, chưa gộp vào cây thư mục lõi.
 >
-> → Trạng thái & tiến độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
+> → Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#knowme)
 >
 > **Lưu-ý lớp tài liệu:** một lớp tài liệu SƠ KHAI nằm trong `dossier.ts` (`DocumentRecord`/`Dossier`/`buildDocumentRecord`/`dossierServiceEntry`), `fingerprint.ts` (`documentFingerprint` one-hash-per-doc + `UniquenessRegistry`), lưu ảnh mã hoá lên LampNet qua `crypto.ts:eciesSeal` + `lampnet.ts:cidOf` (BLAKE3), neo dossier vào DID Document qua service-entry `PhoenixDossier`. **KHÁC** với thiết kế `DocumentClaim`/`docDigestOf` trong Feat-Math §3 (gập `docHash` vào `sd[]` để tiết lộ chọn lọc chung membership). Nghĩa là: (a) đính ảnh mã hoá + fingerprint-tài liệu = khung sơ khai trong `dossier.ts`/`fingerprint.ts`; (b) tiết lộ chọn lọc tài liệu qua `sd[]` (RULE-K-CANON) + re-seal per-recipient + versioning Strata = **[SPEC]**. Doc này giữ ký hiệu spec (`DocumentClaim`/`docDigestOf`) cho phần (b); phần (a) ghi rõ khi có.
 
@@ -155,7 +155,7 @@ Neo UI: `app/verify/page.tsx` (32KB, 5 bước), `components/vc/{DeclareForm,ui}
 
 **Lưu ý:** resolve dùng CHUNG kênh Contract VeData v0.2.0 §2.1 (`did_active`/`key_authorized`/`revocation_check`) — cùng API MAGIC/Rada dùng (VeData-Reply-did-commit-resolve). Fail-closed: PhoenixKey down → 503 → verifier reject.
 
-→ Trạng thái & tiến độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
+→ Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#knowme)
 
 ---
 
@@ -198,7 +198,7 @@ Neo UI: `app/verify/page.tsx` (32KB, 5 bước), `components/vc/{DeclareForm,ui}
 
 **Phụ thuộc chặn quan trọng:** M5/M7 phụ thuộc hợp đồng liên-module — Contract PhoenixKey↔VeData v0.2.0 chỉ cấp resolve DID; anchor-qua-Stamp + Query-read là intake **công khai** của VeData (thoả hôm nay); nhưng Glint/Spectra **chủ động** cần VeData mở hợp đồng hoặc chạy on-device (Knowme-Feat-Math §12).
 
-→ Trạng thái & tiến độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
+→ Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#knowme)
 
 ---
 
@@ -207,7 +207,7 @@ Neo UI: `app/verify/page.tsx` (32KB, 5 bước), `components/vc/{DeclareForm,ui}
 - **Mức 1+2:** bộ test trong `src/lib/sdvc/__tests__/` (`credential.test.ts`, `disclose.test.ts`, `scenarios.test.ts`, `statusList.test.ts`, `trust.test.ts`, `trustList.test.ts`, `didResolver.test.ts`, `commit.test.ts`, `canonical.test.ts`, `crypto.test.ts`, `fingerprint.test.ts`, `anchor.test.ts`, `hardening.test.ts`, `integration.test.ts`, `smoke.test.ts`, `acceptance.test.ts`, `adminUnit.test.ts`, `did.test.ts`, `lampnet.test.ts`, `schema.test.ts`). Demo chạy tại `/vc`. Chạy: `npx vitest run src/lib/sdvc/`.
 - **Lớp tài liệu + Mức 3:** bộ test tương ứng nằm cạnh code khi triển khai từng phần **[SPEC]**.
 
-→ Trạng thái & tiến độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
+→ Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#knowme)
 
 ---
 
@@ -219,7 +219,7 @@ Neo UI: `app/verify/page.tsx` (32KB, 5 bước), `components/vc/{DeclareForm,ui}
 - **Giới hạn cố hữu (verify-time plaintext resale):** với ảnh mắt người xem được, thu hồi KHÔNG lấy lại bản đã xem — **không vá triệt để được** (Knowme-Feat-Math §9.0). Giảm thiểu: watermark truy vết + ưu tiên proof-thay ảnh. UI PHẢI nói thẳng.
 - **KHÔNG dedup/uniqueness PersonDID** trong Knowme (chủ trương dự án; INV-K6). Catalog VC + issuer thuộc VeData.
 
-→ Trạng thái & tiến độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
+→ Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#knowme)
 
 ---
 

@@ -2,8 +2,8 @@
 
 > **Tài liệu này viết cho ai:** người dùng PhoenixKey và đội sản phẩm — KHÔNG phải kỹ sư hay auditor. Mục tiêu: hiểu **Ví Phượng hoàng là gì**, **khôi phục ra sao khi mất máy/mất seed**, **tiền được bảo vệ thế nào**, bằng ngôn ngữ đời thường.
 > **Module:** Rebirthme (slug `Rebirthme`). **Ngày:** 2026-07-09.
-> Nội dung bám các đặc tả cùng bộ: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) (toán), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md) (kỹ thuật), [PhoenixKey-Rebirthme-Exec.md](./PhoenixKey-Rebirthme-Exec.md) (điều hành).
-> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
+> Nội dung bám các đặc tả cùng bộ: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) (toán), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md) (kỹ thuật), [PhoenixKey-Rebirthme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-Rebirthme-Exec.md) (điều hành).
+> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#rebirthme)
 
 ---
 
@@ -69,14 +69,14 @@ Bạn có CẢ HAI, chọn theo nhu cầu:
 - **L3 — Địa chỉ riêng tư ×N:** doanh nghiệp tạo một địa chỉ riêng cho mỗi khách hàng để đối soát, KHÔNG công bố, và trên chuỗi không lộ chung một chủ, được kiểm soát bởi validator `did_subaddr` (validator = một đoạn hợp đồng thông minh chạy ngay trên chuỗi, tự động kiểm luật cho mỗi giao dịch, không ai sửa tay được). Đây cũng chính là địa chỉ mà **Easteregg** dùng làm "địa chỉ riêng" (module Easteregg gọi biến thể ẩn dựa trên tầng này — xem [PhoenixKey-Easteregg-Vi-Feat.md](./PhoenixKey-Easteregg-Vi-Feat.md)).
 
 > **Easteregg** không phải một loại ví thứ ba — nó là **các biến thể ẩn danh của chính Ví Phượng hoàng**, chọn theo mức riêng tư (công khai / ẩn danh / vào kho). Xem [PhoenixKey-Easteregg-Vi-Feat.md](./PhoenixKey-Easteregg-Vi-Feat.md).
-> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
+> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#rebirthme)
 
 ### 4.4 Người bảo chứng = uỷ quyền, KHÔNG giữ mảnh
 Nhiều hệ recovery bắt người bảo chứng giữ một "mảnh" bí mật của bạn — nếu họ thông đồng hoặc bị hack, mất. PhoenixKey **đã bỏ hẳn mô hình mảnh (Shamir)**. Người bảo chứng chỉ là một **khoá thành viên ngủ đông**: khi bạn còn khoẻ, khoá họ vô hiệu; khi bạn cần, đủ số họ ký để uỷ quyền đổi khoá cho bạn. Họ **không bao giờ thấy hay giữ** khoá/tài sản của bạn. Đủ MỘT phương thức là khôi phục được (người bảo chứng / chứng thực VeData-Glint — dịch vụ xác thực khuôn mặt/ảnh của đội VeData / Midnight — một mạng blockchain khác, chuyên về giao dịch riêng tư, dùng ở đây làm một kênh chứng thực độc lập bên ngoài PhoenixKey).
 
 ### 4.5 Chống rút sạch (anti-drain) — cái két có van
 Ngay cả khi kẻ trộm có khoá, cái két có một **cái van**: mỗi cửa sổ thời gian chỉ chảy ra tối đa một mức trần. Muốn rút nhiều hơn phải (a) mở yêu cầu công khai rồi chờ — trong lúc chờ bạn thấy và HUỶ được, hoặc (b) có thêm một khoá phụ/người bảo chứng ký. Rút nhỏ đời thường vẫn một chữ ký, nhanh gọn. Đây là lớp bảo vệ CỐT TỬ, bắt buộc cho mọi DID giữ giá trị đáng kể — không phải tính năng tuỳ chọn (xem `PhoenixKey-Rebirthme-Math.md` I-CURVE-4).
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#rebirthme)
 
 > **Smartsend** (gửi có bảo vệ — nút "hoàn tác" cho giao dịch) nay là module riêng — xem [PhoenixKey-Smartsend-Vi-Feat.md](./PhoenixKey-Smartsend-Vi-Feat.md).
 
@@ -147,7 +147,7 @@ Ba luật sau là điều kiện bắt buộc để lời hứa ở §2 ("mất 
 - **Second-factor rút lớn PHẢI khác gốc seed.** Khoá phụ/người bảo chứng dùng để duyệt rút lớn không được dẫn xuất từ cùng **Master_KEK** (Master Key-Encryption-Key — chiếc khoá gốc mã hoá mọi khoá con khác của bạn, sinh ra từ cùng một seed) — nếu không, một lần lộ seed sập luôn cả hai lớp bảo vệ. Yêu cầu phần cứng độc lập hoặc kênh khác (VeData-Glint, EmailOracle). Xem I-CURVE-5.
 - **L3 (địa chỉ riêng tư ×N) và Easteregg dùng chung một validator `did_subaddr`** — không phải hai cơ chế khác nhau. Thiết kế phải giữ tính unlinkable (không lần ra được các địa chỉ đó là cùng một chủ) khi NHẬN; khi CHI, lộ tối thiểu một `tag_i` (một nhãn nhận dạng gắn theo mỗi địa chỉ con) là giới hạn bản chất của **eUTXO** — mô hình sổ cái của Cardano, nơi mỗi khoản tiền là một "tờ tiền" rời rạc phải tiêu trọn rồi trả lại tiền thừa, khác mô hình "số dư tài khoản" quen thuộc; việc tiêu một tờ luôn để lại dấu vết trên chuỗi về việc nó đã bị tiêu (ẩn cả lúc chi cần ZK — bằng chứng mật mã không tiết lộ dữ liệu gốc — hoặc Midnight, ngoài phạm vi module này).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#rebirthme)
 
 ---
 
@@ -155,7 +155,7 @@ Ba luật sau là điều kiện bắt buộc để lời hứa ở §2 ("mất 
 
 Nguồn thiết kế nội bộ (không công khai).
 Code: `PhoenixKey-Validator/validators/did_payment.ak`, `lib/phoenixkey/{taad_logic,auth_logic}.ak`.
-Tài liệu cùng bộ: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md), [PhoenixKey-Rebirthme-Exec.md](./PhoenixKey-Rebirthme-Exec.md).
+Tài liệu cùng bộ: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md), [PhoenixKey-Rebirthme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-Rebirthme-Exec.md).
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

@@ -5,19 +5,19 @@
 > **Đối tượng đọc:** auditor smart-contract + nhà kiểm toán tokenomic. Đây là bản rút gọn
 > về **phần TOÁN kiểm được**: ký hiệu, miền, công thức, bảng bất biến (kèm ánh xạ tới dòng
 > validator), không gian trạng thái, và định lý có chứng minh phác. Nó KHÔNG lặp lại phần
-> FEAT/điều hành — đọc tài liệu cùng bộ [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md) (WHAT/WHY) và [PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md) (quyết định/rủi ro).
+> FEAT/điều hành — đọc tài liệu cùng bộ [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md) (WHAT/WHY) và [PhoenixKey-Protectme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-Protectme-Exec.md) (quyết định/rủi ro).
 >
 > Mọi mục **[N]** / **[PROT-n]** = đề xuất; chỉ normative sau khi maintainer duyệt.
 >
 > **Nguồn:**
-> - Tài liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md), [PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md). Nguồn thiết kế nội bộ (không công khai).
+> - Tài liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md), [PhoenixKey-Protectme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-Protectme-Exec.md). Nguồn thiết kế nội bộ (không công khai).
 > - Code đối chiếu: `PhoenixKey-Validator` nhánh `feat/protectme-payout`:
 >   `lib/phoenixkey/protectme_logic.ak`, `protectme_types.ak`, `validators/protectme_payout.ak`.
 > - Gaming: Nguồn thiết kế nội bộ (không công khai) (VG-P1..P10).
 > - Whitepaper §4 (nanogic = byte·ngày), §5 (P\*=1: 1 CARP = 1 MAGIC sức mua, KHÔNG neo fiat).
 > - Math canonical: [PhoenixKey-Math.md](./PhoenixKey-Math.md) (đơn vị CARP/MAGIC). Curve I-CURVE-4/5: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) + addendum Curve-Routing (CHƯA gộp vào Math.md).
 >
-> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#protectme)
+> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
 >
 > **CONTRACT đơn vị (bất di):** premium **định giá MAGIC** (nanogic), **THANH TOÁN CARP**
 > (P\*=1, qua Feecover, KHÔNG `collectToTreasury`). `coverage_cap`, `loss_eligible`,
@@ -41,7 +41,7 @@ expected_amount(loss, policy, cause)` một cách chắc chắn; nhưng `loss` v
 committee ĐẶT vào datum. Định lý §7 đều có dạng "GIẢ SỬ input datum trung thực ⇒ …".
 Ranh giới tin cậy F3/F6 là chỗ giả thiết đó có thể vỡ — auditor tập trung ở đó.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#protectme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
 
 ---
 
@@ -448,9 +448,9 @@ Các mục sau **chính sách/kinh tế**, chưa normative — auditor KHÔNG đ
 - Code: `PhoenixKey-Validator` nhánh `feat/protectme-payout` — `lib/phoenixkey/protectme_logic.ak`,
   `protectme_types.ak`, `validators/protectme_payout.ak`.
 - Math canonical đơn vị: [PhoenixKey-Math.md](./PhoenixKey-Math.md). Curve I-CURVE-4/5: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) + addendum Curve-Routing (CHƯA gộp Math.md).
-- Tài liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md), [PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md).
+- Tài liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md), [PhoenixKey-Protectme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-Protectme-Exec.md).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#protectme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
 
 *Hết bản Math. Mọi [N]/[PROT-\*] là đề xuất, normative sau khi maintainer duyệt. Ba định lý §7
 đều CÓ ĐIỀU KIỆN trên input datum trung thực (§0, §5.2, §9) — auditor soi ranh giới F3/F6 trước.*

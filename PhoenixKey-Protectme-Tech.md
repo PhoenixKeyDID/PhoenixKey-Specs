@@ -5,7 +5,7 @@
 > **Đối tượng đọc:** KỸ SƯ triển khai — đội on-chain, đội backend (backend + Treasury), Core/
 > SuperApp (UI), MAGIC/CARP/Feecover-team.
 > **Mục đích:** kiến trúc + datum/redeemer CBOR + luồng tx + ai ký + ranh giới đội + thứ tự
-> deploy + phụ thuộc CHẶN. Đây là **HOW**; lý do kinh-tế đọc [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md)/[PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md), toán
+> deploy + phụ thuộc CHẶN. Đây là **HOW**; lý do kinh-tế đọc [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md)/[PhoenixKey-Protectme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-Protectme-Exec.md), toán
 > đọc [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md).
 >
 > **Ranh giới mã (branch `feat/protectme-payout`):**
@@ -21,7 +21,7 @@
 > **Đơn vị:** mọi giá trị chi/thu = **CARP** (đơn vị dàn xếp). MAGIC = nhãn giá premium
 > (`P*=1`), tiêu qua Vault `BurnBatch`, KHÔNG token/mint. Xem [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md) §2 + §9.
 >
-> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#protectme)
+> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
 
 ---
 
@@ -379,7 +379,7 @@ Off-chain (backend, đội backend) dàn dựng; validator ép trên chain. Năm
 | POST | `/api/v1/protectme/claim` | mở claim; resolver auto-điền `loss_eligible` từ anti-drain log |
 | GET | `/api/v1/protectme/claim/{claim_id}` | trạng thái claim (triage → adjudicate → challenge → paid) |
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#protectme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
 
 ---
 
@@ -473,7 +473,7 @@ chính sách (maintainer + đội backend + DAO). Neo kiểm chứng theo hạng
 | 1-hash + config-reference-input | §8.3 |
 | tham số kinh tế (caps, rates, thời gian) | [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md) §11 [PROT-1..11] |
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#protectme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
 
 ---
 
@@ -482,7 +482,7 @@ chính sách (maintainer + đội backend + DAO). Neo kiểm chứng theo hạng
 - Nguồn thiết kế nội bộ (không công khai).
 - Code: `PhoenixKey-Validator` nhánh `feat/protectme-payout` — `protectme_{types,logic}.ak`
   + `validators/protectme_payout.ak` + mẫu `state_nft_logic.ak`.
-- Tài liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md), [PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md).
+- Tài liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md), [PhoenixKey-Protectme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-Protectme-Exec.md).
 
 *Bản kỹ thuật này bám branch `feat/protectme-payout`. Không normative tới khi maintainer
 duyệt + hợp thức vào PhoenixKey-Specs.*

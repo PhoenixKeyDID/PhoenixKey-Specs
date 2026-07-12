@@ -34,7 +34,7 @@
 > **Không bịa test count / hash.** Số ExUnit ZK (2.842B) đo THẬT thuộc bộ Easteregg-ZK (VeData),
 > độc lập với code PhoenixKey. Aiken target = **v1.1.21** (khớp `did_payment`/`phoenix_address.rs`).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#easteregg)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#easteregg)
 
 ---
 
@@ -323,7 +323,7 @@ withdraw Groth16 → preprod E2E (double-withdraw REJECT, solvency giữ, K_min 
 - **OQ mở:** OQ-EGG-2/3/4/5/6/7/8/9 + uplc-Conway-confirm. OQ-EGG-1 ✅ RESOLVED (Groth16).
 - Phát hiện lỗi validator/backend → báo maintainer / Issue giao đội on-chain/backend, KHÔNG tự sửa (ranh giới tài liệu này).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#easteregg)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#easteregg)
 
 ---
 

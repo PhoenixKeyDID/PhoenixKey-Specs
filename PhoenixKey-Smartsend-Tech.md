@@ -165,7 +165,7 @@ Backend chỉ index + thông báo; KHÔNG giữ khoá, KHÔNG ký thay.
 - **I-CURVE-5** (factor khác gốc seed) phải enforce ở builder — ràng buộc dùng chung với Rebirthme.
 - **Blocker ngoài**: enroll-set factor trong `TAADDatum` (Core Anchorme/Validator), guardian ResolveFreeze quorum (nhánh mới trên guardian-recovery hiện có).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#smartsend)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#smartsend)
 
 ---
 
@@ -173,7 +173,7 @@ Backend chỉ index + thông báo; KHÔNG giữ khoá, KHÔNG ký thay.
 
 Nguồn thiết kế nội bộ (không công khai).
 Hạ tầng nền (dẫn chiếu): [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md) (ví/guardian/anti-drain), `auth_logic.ak`/`taad_logic.ak`/`did_payment.ak`.
-Tài liệu cùng bộ: [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md), [PhoenixKey-Smartsend-Vi-Feat.md](./PhoenixKey-Smartsend-Vi-Feat.md), [PhoenixKey-Smartsend-Exec.md](./PhoenixKey-Smartsend-Exec.md).
+Tài liệu cùng bộ: [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md), [PhoenixKey-Smartsend-Vi-Feat.md](./PhoenixKey-Smartsend-Vi-Feat.md), [PhoenixKey-Smartsend-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Smartsend-Specs/blob/main/PhoenixKey-Smartsend-Exec.md).
 Code: `PhoenixKey-Validator/validators/smartsend_escrow.ak`.
 
 ---

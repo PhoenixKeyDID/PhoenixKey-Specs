@@ -216,7 +216,7 @@ Math canonical (dẫn chiếu, KHÔNG sửa): `PhoenixKey-Math.md` §10, §11.
 Hạ tầng nền (dẫn chiếu): [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) §2.1, §4.B, §4.C, §4.I.
 Code: `PhoenixKey-Validator/validators/smartsend_escrow.ak`.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#smartsend)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#smartsend)
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

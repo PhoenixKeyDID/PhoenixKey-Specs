@@ -5,9 +5,9 @@
 > **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** người dùng cuối, đội sản phẩm, người viết tài liệu.
 
-Tài liệu cùng bộ: [PhoenixKey-Feecover-Math.md](./PhoenixKey-Feecover-Math.md) (toán + bất biến), [PhoenixKey-Feecover-Tech.md](./PhoenixKey-Feecover-Tech.md) (kỹ thuật), [PhoenixKey-Feecover-Exec.md](./PhoenixKey-Feecover-Exec.md) (điều hành).
+Tài liệu cùng bộ: [PhoenixKey-Feecover-Math.md](./PhoenixKey-Feecover-Math.md) (toán + bất biến), [PhoenixKey-Feecover-Tech.md](./PhoenixKey-Feecover-Tech.md) (kỹ thuật), [PhoenixKey-Feecover-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Feecover-Specs/blob/main/PhoenixKey-Feecover-Exec.md) (điều hành).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#feecover)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#feecover)
 
 ---
 
@@ -161,7 +161,7 @@ Chỉ người dùng có **danh tính PhoenixKey** hợp lệ. Đây là cổng 
 - **Việc ổn định giá đồng CARP nằm NGOÀI Feecover** — do một lớp riêng của hệ (L3, cơ chế **GreenPeg/RedPeg** — hai cơ chế bơm/hút CARP theo hai chiều để giữ giá CARP ổn định, thuộc phạm vi module khác, không phải Feecover) đảm nhận. Feecover chỉ bàn giao phần dư về Quỹ Phoenix.
 - **Luật thiết kế khâu đối soát cuối-epoch:** không được dựa vào provider tự trung thực — validator settle PHẢI ép forced-settle + khớp Σ CARP đúng datum, chi tiết bất biến ở Math §4.2 (FEECOVER-SETTLE-*) / Tech §4.3.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#feecover)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#feecover)
 
 ---
 
@@ -169,7 +169,7 @@ Chỉ người dùng có **danh tính PhoenixKey** hợp lệ. Đây là cổng 
 
 - Nguồn thiết kế nội bộ (không công khai) — mô hình 3-token, ConsumeMAGIC tái dùng (đã qua rà soát nội bộ).
 - Đơn vị/peg canonical: `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` §4 (MAGIC), §5 (CARP).
-- Đối chiếu tài liệu cùng bộ: [PhoenixKey-Feecover-Math.md](./PhoenixKey-Feecover-Math.md), [PhoenixKey-Feecover-Tech.md](./PhoenixKey-Feecover-Tech.md), [PhoenixKey-Feecover-Exec.md](./PhoenixKey-Feecover-Exec.md).
+- Đối chiếu tài liệu cùng bộ: [PhoenixKey-Feecover-Math.md](./PhoenixKey-Feecover-Math.md), [PhoenixKey-Feecover-Tech.md](./PhoenixKey-Feecover-Tech.md), [PhoenixKey-Feecover-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Feecover-Specs/blob/main/PhoenixKey-Feecover-Exec.md).
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

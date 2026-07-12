@@ -2,7 +2,7 @@
 
 > **Module:** Wakeme (GetLAMP — kích hoạt nhận LAMP). **Loại doc:** Kỹ thuật. **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** KỸ SƯ triển khai (đội on-chain, đội backend, Core/Enclave, MAGIC/CARP/Registry-team).
-> **Mục đích:** kiến trúc + datum/redeemer CBOR + luồng tx + API backend + ranh giới + thứ tự deploy — đủ để code, không cần đọc lại Feat/Math. Toán/bất biến: [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md). Người dùng: [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md). Điều hành: [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
+> **Mục đích:** kiến trúc + datum/redeemer CBOR + luồng tx + API backend + ranh giới + thứ tự deploy — đủ để code, không cần đọc lại Feat/Math. Toán/bất biến: [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md). Người dùng: [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md). Điều hành: [PhoenixKey-Wakeme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-Wakeme-Exec.md).
 > **Nguồn đối chiếu (code = nguồn chân lý):**
 > - `PhoenixKey-Validator/validators/activation_vault.ak` (validator dispatch: 5 spend redeemer + 2 mint redeemer)
 > - `PhoenixKey-Validator/lib/phoenixkey/activation_logic.ak` (toán + invariant, `*_ok`)
@@ -11,7 +11,7 @@
 >
 > **Khi văn ≠ code → code thắng.** Struct/enum thật neo tại `activation_logic.ak:110-140`.
 >
-> → Trạng thái build/test/deploy hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
+> → Trạng thái build/test/deploy hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#wakeme)
 
 ---
 
@@ -311,7 +311,7 @@ On-chain (1 tx/provider/epoch):
 - **N_provider + epoch cadence thật** để chốt con số phí (§3.7d dùng 1.000 provider giả định, không phải cam kết).
 - **Có mời VeData Mosaic tư vấn interface `append/anchor/proof` không** — khuyến nghị có, tránh tự dựng lại lớp anchoring.
 
-Nguồn phân tích đầy đủ: `spec-proposals/PhoenixKey-MAGIC-Vault-Scale-Analysis.md` (v0.1 DRAFT, 2026-07-01).
+Nguồn phân tích đầy đủ: `https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-MAGIC-Vault-Scale-Analysis.md` (v0.1 DRAFT, 2026-07-01).
 
 ---
 
@@ -434,7 +434,7 @@ Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code
 
 > **Ranh giới sửa code:** validator (đội on-chain) + backend (đội backend) thuộc PhoenixKey backend — tài liệu này chỉ đặc tả, KHÔNG sửa code. Phát hiện lỗi → báo maintainer / Issue giao đội backend/on-chain.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#wakeme)
 
 ---
 
@@ -506,7 +506,7 @@ Bao phủ (`activation_logic.ak:788-811` — bảng ca):
 - Nguồn thiết kế nội bộ (không công khai). (đã qua rà soát nội bộ)
 - Convention backend: `PhoenixKey-Database/.../controller/ActivationController.java`, `WalletController.java`, `common/DataResponse.java`, `security/AuthenticatedUser.java`, `exception/ErrorCode.java`.
 - Cross-ref canonical: `PhoenixKey-Specs/PhoenixKey-Math.md` (TAAD §10, recovery §11, fee §36).
-- Tài liệu cùng bộ: [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md), [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md), [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
+- Tài liệu cùng bộ: [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md), [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md), [PhoenixKey-Wakeme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-Wakeme-Exec.md).
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

@@ -2,8 +2,8 @@
 
 > **Tài liệu này viết cho ai:** người dùng PhoenixKey và đội sản phẩm — KHÔNG phải kỹ sư hay auditor. Mục tiêu: hiểu **danh tính lõi (Anchorme) là gì**, giải quyết gì, dùng ra sao, bằng ngôn ngữ đời thường.
 > **Module:** Anchorme (danh tính lõi). **Loại doc:** Feature (hướng người dùng/sản phẩm). **Ngày:** 2026-07-09.
-> Đặc tả toán ở [PhoenixKey-Anchorme-Math.md](./PhoenixKey-Anchorme-Math.md); kỹ thuật ở [PhoenixKey-Anchorme-Tech.md](./PhoenixKey-Anchorme-Tech.md); điều hành ở [PhoenixKey-Anchorme-Exec.md](./PhoenixKey-Anchorme-Exec.md).
-> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#anchorme)
+> Đặc tả toán ở [PhoenixKey-Anchorme-Math.md](./PhoenixKey-Anchorme-Math.md); kỹ thuật ở [PhoenixKey-Anchorme-Tech.md](./PhoenixKey-Anchorme-Tech.md); điều hành ở [PhoenixKey-Anchorme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-Anchorme-Exec.md).
+> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#anchorme)
 
 ---
 
@@ -148,7 +148,7 @@ Riêng danh tính **Người** có một ràng buộc thiết kế bắt buộc:
 
 Các mảnh còn lại của hệ (resolve-by-hash, point-in-time resolver, DeviceDID, Authorization/Mint-Authority Registry, Permission & Consent) là đặc tả mở rộng thuộc ranh giới đội backend/on-chain — chi tiết ở [PhoenixKey-Anchorme-Tech.md](./PhoenixKey-Anchorme-Tech.md) §5-7.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#anchorme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#anchorme)
 
 ---
 

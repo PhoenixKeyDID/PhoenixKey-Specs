@@ -9,7 +9,7 @@
 >
 > Đây là **bản đề xuất** — nhiều con số và quy chế còn **chờ chốt** (xem cuối bài, mục "Nói
 > thật với bạn"). Đọc kỹ mục đó trước khi tin bất kỳ con số nào. Tài liệu cùng bộ: [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md)
-> (toán), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md) (kỹ thuật), [PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md) (điều hành).
+> (toán), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md) (kỹ thuật), [PhoenixKey-Protectme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-Protectme-Exec.md) (điều hành).
 
 ---
 
@@ -226,14 +226,14 @@ với quỹ chung.
 
 Khi các quyết định trên được chốt, bản này sẽ được cập nhật với con số chính thức.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#protectme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
 
 ---
 
 ## Nguồn
 
 - Nguồn thiết kế nội bộ (không công khai).
-- Tài liệu cùng bộ: [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md), [PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md).
+- Tài liệu cùng bộ: [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md), [PhoenixKey-Protectme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-Protectme-Exec.md).
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

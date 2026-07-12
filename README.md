@@ -13,11 +13,11 @@ Kho này chứa **đặc tả** (specification) của PhoenixKey — tài liệu
 | Bạn là… | Đọc theo thứ tự |
 |---|---|
 | **Người mới / muốn toàn cảnh** | **[`PhoenixKey-Whitepaper.md`](./PhoenixKey-Whitepaper.md)** (ngôn ngữ đơn giản + sơ đồ, hiểu toàn hệ) → bấm link tới từng `-Vi-Feat.md` khi muốn xem sâu |
-| **Nhà đầu tư / đánh giá dự án** | Các file `-Exec.md` (điều hành: quyết định, đánh đổi, lộ trình) → `README` mục 2 (bản đồ module) |
+| **Nhà đầu tư / đánh giá dự án** | Các file `-Exec.md` (điều hành: quyết định, đánh đổi, lộ trình) — **nội bộ**, nằm ở repo private per-module (`PhoenixKey-<Module>-Specs`), liên hệ team để cấp quyền đọc → `README` mục 2 (bản đồ module) |
 | **Người dùng / đội sản phẩm** | Các file `-Vi-Feat.md` (ngôn ngữ đời thường, hành trình người dùng) |
 | **Kỹ sư tích hợp** | `-Tech.md` (kiến trúc, API, datum, luồng) → `-Math.md` khi cần bất biến chính xác |
 | **Nhà khoa học / auditor** | `PhoenixKey-Math.md` (đặc tả toán học tổng, v4.6) → `<Module>-Math.md` từng module |
-| **Muốn biết đang xây tới đâu** | **[`PhoenixKey-STATUS.md`](./PhoenixKey-STATUS.md)** (hiện trạng, blocker, bằng chứng test — tách khỏi spec) |
+| **Muốn biết đang xây tới đâu** | **[`PhoenixKey-STATUS.md`](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md)** (hiện trạng, blocker, bằng chứng test — tách khỏi spec) |
 
 ---
 
@@ -49,9 +49,10 @@ Mỗi module có 4 file theo khuôn `PhoenixKey-<Module>-<Loại>.md`:
 | **Vi-Feat** | `-Vi-Feat.md` | Người dùng, đội sản phẩm | Tính năng bằng ngôn ngữ đời thường: là gì, giải quyết gì, hành trình người dùng. |
 | **Math** | `-Math.md` | Nhà khoa học, auditor | Đặc tả toán học: ký hiệu, định lý, bất biến (invariant), chứng minh. |
 | **Tech** | `-Tech.md` | Kỹ sư tích hợp | Kiến trúc, API, cấu trúc dữ liệu (datum), luồng giao dịch. |
-| **Exec** | `-Exec.md` | Lãnh đạo, người ra quyết định | Quyết định + lý do + đánh đổi + rủi ro + lộ trình triển khai — đủ cụ thể để đội dev thực thi. Không lặp toán. Hiện trạng tách sang `PhoenixKey-STATUS.md`. |
+| **Exec** | `-Exec.md` | Lãnh đạo, người ra quyết định | Quyết định + lý do + đánh đổi + rủi ro + lộ trình triển khai — đủ cụ thể để đội dev thực thi. Không lặp toán. **Nội bộ — nằm ở repo private `PhoenixKey-<Module>-Specs`, không public.** Hiện trạng tách sang `PhoenixKey-STATUS.md` (cũng nội bộ, xem mục 4). |
 
-8 module × 4 loại = **32 file** + 4 tài liệu cấp kho ([`Whitepaper`](./PhoenixKey-Whitepaper.md) tổng quan · `PhoenixKey-Math.md` toán tổng · `PhoenixKey-DIDMethod-W3C.md` chuẩn DID · [`STATUS`](./PhoenixKey-STATUS.md) hiện trạng) = **36 tài liệu đặc tả** (chưa kể `README`/`LICENSE`).
+**Kho công khai (repo này):** 8 module × 3 loại (Vi-Feat/Math/Tech) = **24 file** + 4 tài liệu cấp kho (`Whitepaper` tổng quan · `PhoenixKey-Math.md` toán tổng · `PhoenixKey-DIDMethod-W3C.md` chuẩn DID · `README`/`LICENSE`) = **28 tài liệu public**.
+**Kho nội bộ (8 repo private `PhoenixKey-<Module>-Specs`):** 8 file `-Exec.md` + `PhoenixKey-STATUS.md` (đặt ở `PhoenixKey-Anchorme-Specs`, cross-module) + các tài liệu đề xuất/draft chưa duyệt (`spec-proposals/`, hiện đặt phẳng trong từng repo module tương ứng).
 
 ---
 
@@ -59,7 +60,7 @@ Mỗi module có 4 file theo khuôn `PhoenixKey-<Module>-<Loại>.md`:
 
 Bộ đặc tả này mô tả **hệ thống đích** — thiết kế mà các đội dev xây tới, đủ cụ thể để nhiều dev độc lập biết chính xác làm gì. **Không** trộn hiện trạng vào spec.
 
-- **Hiện trạng & tiến độ** (đã build / chặn bởi ai / bằng chứng test): xem **[`PhoenixKey-STATUS.md`](./PhoenixKey-STATUS.md)** — cập nhật riêng, không nằm rải rác trong spec.
+- **Hiện trạng & tiến độ** (đã build / chặn bởi ai / bằng chứng test): xem **[`PhoenixKey-STATUS.md`](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md)** — cập nhật riêng, không nằm rải rác trong spec.
 - Mỗi mục spec liên quan có dòng "→ Trạng thái: `STATUS.md#<module>`" để tra nhanh.
 - Nhãn `[N]` / `[CẦN CHỐT]` trong spec = **quyết định thiết kế cần chốt**, không phải trạng thái code.
 
@@ -81,7 +82,7 @@ Phát hành theo **Apache License 2.0** (xem `LICENSE`). Cho phép dùng lại, 
 
 ---
 
-*Cập nhật: 2026-07-09. Bộ đặc tả là kim chỉ nam thiết kế; hiện trạng từng tính năng: xem [`PhoenixKey-STATUS.md`](./PhoenixKey-STATUS.md).*
+*Cập nhật: 2026-07-09. Bộ đặc tả là kim chỉ nam thiết kế; hiện trạng từng tính năng: xem [`PhoenixKey-STATUS.md`](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md).*
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._
