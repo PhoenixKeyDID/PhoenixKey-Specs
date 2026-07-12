@@ -245,7 +245,7 @@ flowchart LR
 
 Nói ngắn: **Whitepaper → Feat → (Math / Tech / Exec)** — càng đi sâu càng chuyên môn hơn, nhưng không ai bị bắt đọc phần không cần.
 
-> **Bản đồ toàn bộ 36 tài liệu đặc tả + thứ tự nên đọc theo vai trò của bạn:** [README.md](./README.md).
+> **Bản đồ toàn bộ 29 tài liệu đặc tả public + thứ tự nên đọc theo vai trò của bạn:** [README.md](./README.md).
 
 ---
 

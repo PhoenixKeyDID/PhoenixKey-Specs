@@ -23,7 +23,7 @@ Kho này chứa **đặc tả** (specification) của PhoenixKey — tài liệu
 
 ## 2. Bản đồ 8 module
 
-PhoenixKey chia thành 8 module. Mỗi module có bộ 4 tài liệu (xem mục 3).
+PhoenixKey chia thành 8 module. Mỗi module có bộ 3 tài liệu public (xem mục 3) + 1 tài liệu Exec nội bộ.
 
 | Module | Một câu | Vai trò |
 |---|---|---|
@@ -42,7 +42,7 @@ Ngoài 8 module: **`PhoenixKey-Math.md`** là đặc tả toán học tổng (v4
 
 ## 3. Bốn loại tài liệu cho mỗi module
 
-Mỗi module có 4 file theo khuôn `PhoenixKey-<Module>-<Loại>.md`:
+Mỗi module có 3 file public theo khuôn `PhoenixKey-<Module>-<Loại>.md`, cộng 1 file `-Exec.md` nội bộ:
 
 | Loại | Tên file | Viết cho ai | Nội dung |
 |---|---|---|---|
@@ -51,7 +51,7 @@ Mỗi module có 4 file theo khuôn `PhoenixKey-<Module>-<Loại>.md`:
 | **Tech** | `-Tech.md` | Kỹ sư tích hợp | Kiến trúc, API, cấu trúc dữ liệu (datum), luồng giao dịch. |
 | **Exec** | `-Exec.md` | Lãnh đạo, người ra quyết định | Quyết định + lý do + đánh đổi + rủi ro + lộ trình triển khai — đủ cụ thể để đội dev thực thi. Không lặp toán. **Nội bộ — nằm ở repo private `PhoenixKey-<Module>-Specs`, không public.** Hiện trạng tách sang `PhoenixKey-STATUS.md` (cũng nội bộ, xem mục 4). |
 
-**Kho công khai (repo này):** 8 module × 3 loại (Vi-Feat/Math/Tech) = **24 file** + 4 tài liệu cấp kho (`Whitepaper` tổng quan · `PhoenixKey-Math.md` toán tổng · `PhoenixKey-DIDMethod-W3C.md` chuẩn DID · `README`/`LICENSE`) = **28 tài liệu public**.
+**Kho công khai (repo này):** 8 module × 3 loại (Vi-Feat/Math/Tech) = **24 file** + 5 tài liệu cấp kho ([`Whitepaper`](./PhoenixKey-Whitepaper.md) tổng quan · `PhoenixKey-Math.md` toán tổng · [`PhoenixKey-DIDMethod-W3C.md`](./PhoenixKey-DIDMethod-W3C.md) chuẩn DID · [`PhoenixKey-SeedDistribution-Tech-Math.md`](./PhoenixKey-SeedDistribution-Tech-Math.md) phân tán seed/khoá · [`PhoenixKey-Wallet-API-v2-Feat.md`](./PhoenixKey-Wallet-API-v2-Feat.md) API ví) = **29 tài liệu spec** (+ `README`/`LICENSE`).
 **Kho nội bộ (8 repo private `PhoenixKey-<Module>-Specs`):** 8 file `-Exec.md` + `PhoenixKey-STATUS.md` (đặt ở `PhoenixKey-Anchorme-Specs`, cross-module) + các tài liệu đề xuất/draft chưa duyệt (`spec-proposals/`, hiện đặt phẳng trong từng repo module tương ứng).
 
 ---

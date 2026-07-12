@@ -170,7 +170,10 @@ luôn mang **`Script`**-credential. Hai chỗ hẹp cần đóng trước merge 
 ## 3.1 Mẫu ĐÚNG: `state_nft` (KHÔNG copy `lamp_policy`/`magic_policy`)
 
 **Chốt kỹ thuật:** beacon PHẢI theo mẫu **singleton state NFT** của
-`lib/phoenixkey/state_nft_logic.ak`, KHÔNG theo `lamp_policy.ak`/`magic_policy.ak`.
+`lib/phoenixkey/state_nft_logic.ak`, KHÔNG theo mẫu `lamp_policy.ak`/`magic_policy.ak`
+(so sánh KIẾN TRÚC minting-policy — `lamp_policy.ak` còn sống trong Validator; `magic_policy.ak`
+đã bị xoá 2026-07-01 theo quyết định MAGIC=account-trong-vault, giữ tên ở đây làm ví dụ lịch sử
+cho mẫu authority-sig, KHÔNG phải file đang tồn tại).
 
 - `state_nft_logic` = **one-shot thật**: mint đúng +1 mỗi tx, `asset_name` khoá mật mã vào
   danh tính (`asset_name == blake2b_256(did)`), chống bundle (`has_non_unit → None`), một

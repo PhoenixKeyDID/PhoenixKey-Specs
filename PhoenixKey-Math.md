@@ -135,7 +135,9 @@ Dec(k, c) → ByteArray | ⊥
 BIP39_Encode(entropy: {0,1}^256) → List<Word>   (24 words)
 BIP39_ToEntropy(words: List<Word>) → {0,1}^256
 
--- Threshold secret sharing (Shamir):
+-- Threshold secret sharing (Shamir) — DEPRECATED (2026-07-12): no live call site.
+-- Dropped from the guardian recovery path (I-WALLET-8, §6.6 errata); kept here only
+-- as a defined-but-unused primitive for historical cross-reference (Appendix G.2).
 TSS_Share(secret, k, n)        → List<{0,1}^256>   (k-of-n Shamir shares)
 TSS_Reconstruct(shares, k)     → {0,1}^256 | ⊥
   ≜ if |shares| < k then ⊥ else Shamir_interpolate(shares, k)
@@ -700,33 +702,37 @@ EncSeed = Enc(Device_KEK, Master_KEK ∥ H(DID))   -- authenticated encryption
 
 | Key | Entropy | Storage | Exportable | Recovery Path |
 |-----|---------|---------|------------|---------------|
-| Master_KEK | 256 bits | Device (encrypted) | Yes (24 words, explicit consent) | Guardian TSS + TAAD |
-| Cloud_Secret | 256 bits | Hardware Keychain | No | Guardian-encrypted share |
+| Master_KEK | 256 bits | Device (encrypted) | Yes (24 words, explicit consent) | 24-word seed only — guardian recovery does NOT reconstruct it (I-WALLET-8, §6.6) |
+| Cloud_Secret | 256 bits | Hardware Keychain | No | Device-bound; not guardian-recoverable |
 | Device_KEK | derived | In-memory only | No | Re-derive after recovery |
-| TAAD_Key | derived | Derived at use | No | Re-derive from Master_KEK |
+| TAAD_Key | derived | Derived at use | No | Re-derive from Master_KEK, or controller rotated via guardian (I-WALLET-8) |
 | HW_Key | 256 bits | Secure Enclave | No | Generate fresh on new device |
 
 > The Master_KEK "24-word export" in the table encodes `wallet_seed` (§6.1.1),
 > not `Master_KEK` directly — importing those 24 words into an external Cardano
 > wallet reproduces the identical addresses.
 
-### §6.6 Guardian-Based Master_KEK Protection
+### §6.6 Guardian-Based Recovery — Rotate, Not Reconstruct
+
+> **Errata (2026-07-12):** this section previously described Shamir `k`-of-`n` splitting
+> of `Master_KEK` across guardians, with reconstruction via `TSS_Reconstruct`. That model
+> was superseded by the Rebirthme decision to **drop Shamir entirely** — guardians never
+> hold a share of `Master_KEK`, and cannot reconstruct it. Canonical model: **I-WALLET-8**
+> (`PhoenixKey-Rebirthme-Math.md`): guardian recovery **rotates the on-chain controller
+> key**, it does **not** dust off `Master_KEK`. A wallet that has lost its 24-word seed
+> regains DID + on-chain asset control via guardian rotation, but does **not** regain the
+> ability to re-derive `wallet_seed`/vault-class secrets that depend on `Master_KEK`
+> (see §6.1.1, §9). Threshold custody of the *signing key itself* (not `Master_KEK`) is a
+> separate, forward-looking mechanism — see `PhoenixKey-SeedDistribution-Tech-Math.md`
+> (FROST-Ed25519 `t`-of-`n`, opt-in preset, does not change `controller_pkh` derivation).
 
 ```
--- Master_KEK is split across guardians for recovery:
-k = policy.threshold          -- minimum shares for reconstruction
-n = |guardians|               -- total shares
-
-shares = TSS_Share(Master_KEK, k, n)   -- Shamir k-of-n
-
-∀ i ∈ [0, n):
-  share_encrypted_i = Enc(guardian_i.public_key, shares[i])
-  -- encrypted under guardian's Ed25519 public key via ECIES
-  -- stored in recovery credential (§10) and distributed to guardians
-
-Recovery reconstruction:
-  collect {share_i : i ∈ S} where |S| ≥ k
-  Master_KEK = TSS_Reconstruct({Dec(guardian_i.private_key, share_encrypted_i) : i ∈ S}, k)
+-- Guardian recovery (I-WALLET-8): rotates controller_pkh, no Master_KEK material moves.
+Op_recover_via_guardian(did, new_controller_pkh, guardian_sigs, s):
+  |{i : verify(guardian_i.pubkey, guardian_sigs[i])}| ≥ policy.threshold
+  ∧ TAAD.controller_pkh' = new_controller_pkh   -- rotate only
+  ∧ Master_KEK is NOT recovered, NOT reconstructed, NOT touched by this operation
+-- Full guard set (timelock, InitRecovery/Cancel/Finalize): PhoenixKey-Rebirthme-Math.md I-WALLET-*.
 ```
 
 ---
@@ -3271,7 +3277,6 @@ FeeParams ≜ {
   fee_init_recovery_t5      : Lovelace,
   fee_cancel_recovery       : Lovelace,
   fee_finalize_recovery     : Lovelace,
-  fee_mint_magic            : Lovelace,
   fee_issue_vc_anchor       : Lovelace,
   cardano_bps               : ℕ,          -- split to Cardano Treasury (default 3000 = 30%)
   bps_denom                 : ℕ,          -- = 10_000
@@ -3303,7 +3308,6 @@ fee_init_recovery_t1/t2/t3= 1_000_000   -- 1 ADA each
 fee_init_recovery_t5      = 3_000_000   -- 3 ADA  (Tier 5 — deterrent)
 fee_cancel_recovery       = 500_000     -- 0.5 ADA
 fee_finalize_recovery     = 500_000     -- 0.5 ADA
-fee_mint_magic            = 500_000     -- 0.5 ADA  (per mint tx)
 fee_issue_vc_anchor       = 1_000_000   -- 1 ADA  (per anchor tx)
 cardano_bps               = 3000        -- 30%; phoenix share = bps_denom − cardano_bps
 bps_denom                 = 10_000
@@ -3319,8 +3323,14 @@ bps_denom                 = 10_000
 | Init Recovery — Tier 1 / 2 / 3 | `InitRecovery` (tier proof) | `fee_init_recovery_t{1,2,3}` |
 | Init Recovery — Tier 5 | `InitRecovery` (Tier 5 proof) | `fee_init_recovery_t5` |
 | Cancel / Finalize Recovery | `CancelRecovery` / `FinalizeRecovery` | `fee_cancel_recovery` / `fee_finalize_recovery` |
-| MAGIC mint | (`lamp_policy` / `magic_policy` mint redeemer) | `fee_mint_magic` |
 | Issue VC anchor | (off-chain VC + on-chain anchor metadata tx) | `fee_issue_vc_anchor` |
+
+> **Errata (2026-07-12):** removed `fee_mint_magic` (was: fee for a "MAGIC mint" on-chain
+> redeemer via `lamp_policy`/`magic_policy`). That model is stale — per the 2026-07-01
+> decision, MAGIC is **account-in-vault**, not a native asset: it has no policy-id and no
+> mint transaction (`magic_policy.ak` was removed from the Validator repo). MAGIC generation
+> (Instant/Schedule/Prepaid) and its fee-abstraction are Wakeme/Feecover concerns, not a
+> Cardano-native mint fee in this DID-operations `FeeParams` schedule.
 
 *Note (PersonDID = 0 at launch):* PersonDID creation fee is **0** as a
 user-acquisition incentive. PersonDID is the root of trust and the entry

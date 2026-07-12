@@ -15,7 +15,7 @@
 >   `lib/phoenixkey/protectme_logic.ak`, `protectme_types.ak`, `validators/protectme_payout.ak`.
 > - Gaming: Nguồn thiết kế nội bộ (không công khai) (VG-P1..P10).
 > - Whitepaper §4 (nanogic = byte·ngày), §5 (P\*=1: 1 CARP = 1 MAGIC sức mua, KHÔNG neo fiat).
-> - Math canonical: [PhoenixKey-Math.md](./PhoenixKey-Math.md) (đơn vị CARP/MAGIC). Curve I-CURVE-4/5: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) + addendum Curve-Routing (CHƯA gộp vào Math.md).
+> - Math canonical: [PhoenixKey-Math.md](./PhoenixKey-Math.md) (DID/danh tính/ví — KHÔNG định nghĩa đơn vị CARP/MAGIC, xem Whitepaper §4/§5 ở trên). Curve I-CURVE-4/5: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) + addendum Curve-Routing (CHƯA gộp vào Math.md).
 >
 > → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
 >
