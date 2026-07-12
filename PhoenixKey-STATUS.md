@@ -12,7 +12,7 @@
 |---|---|---|---|
 | **Anchorme** | validator `taad` Design-2 (genesis Người/con, rotate, transfer 2-of-2, deactivate, CanOwn); resolver W3C; register metadata-6789 | PA2 (CID-1 anchor-forgery Person), DeviceDID, resolve-by-hash | NO-GO PersonDID-custody tới khi PA2/PA5-a land |
 | **Rebirthme** | ví theo-DID `did_payment`, đóng-băng theo trạng-thái, guardian recovery ngưỡng+timelock, P-256 low-s, `lampnet.rs` (173/173 Aiken PASS) | 🔴 `limit_meter.ak` anti-drain KHÔNG tồn tại; `did_subaddr`/`did_stake` chưa có | NO-GO ví-giá-trị-lớn tới khi anti-drain land |
-| **Wakeme** | validator `activation_vault`+`activation_logic` (5 redeemer, vest-gated, forfeit; 69 test riêng) | B1 engine Gen đọc-số-dư, B2 Registry consume-gate, B3 PA2 cho GetLAMP-PersonDID | NO-GO tới khi Registry + PA2 land |
+| **Wakeme** | spec sửa PHA-2→5-LAMP/epoch (OwnEpoch/ReclaimEpoch, 4 redeemer) 07-12; validator CŨ (5 redeemer, vest-gated, forfeit; 69 test) chờ rebuild | rebuild validator theo spec mới; B1 engine Gen đọc-số-dư, B2 Registry consume-gate, B3 PA2 cho GetLAMP-PersonDID | NO-GO tới khi rebuild + Registry + PA2 land |
 | **Feecover** | ConsumeMAGIC lõi (kế thừa) | Layer Feecover 0 dòng; B1 MAGIC-model, B2 CARP policy-id, B3 did_commit per-DID; FG-4 EpochSettle tự-vá | NO-GO tới khi B1+B2+B3 + FG-4 |
 | **Protectme** | cổng chi-trả `protectme_logic`+`protectme_payout` (39 test đối-kháng sạch, branch `feat/protectme-payout`) | 🔴 `protectme_beacon.ak` one-shot 0 dòng (chặn-merge); 2-bucket + resolver + UI chưa có; 11 quyết-định PROT-1..11 | NO-GO tới khi beacon + blocker + quyết-định |
 | **Knowme** | Mức 1+2 SD-VC có code+test, demo `/vc` (20 file / 415 test PASS) | B1 lib BBS (Mức 3), B2 LampNet gateway (lớp tài-liệu), B4 StampRecord | M1 chạy; Mức 3/tài-liệu chờ blocker |
@@ -67,13 +67,15 @@
 
 ## Wakeme
 
-**Validator:** `activation_vault.ak`+`activation_logic.ak` — 5 spend redeemer (GenDrip/Reclaim/VestToOwner/ClaimVested/ForfeitPhase2) + 2 mint-gate, datum 9-field, đồng-hồ NGÀY+EPOCH, vest-gated-per-epoch + forfeit-1001-idle-epoch, chống-double-satisfaction; `plutus.json` khớp code; 69 test riêng `activation_logic` PASS; qua red-team nội bộ. Còn: apply-param builder, sửa comment sai đầu file. PR chờ đội on-chain duyệt.
+> **⚠ Spec đã sửa lớn cơ-chế PHA-2 (2026-07-12) — code CHƯA rebuild.** Spec Wakeme (north-star) nay mô-tả PHA-2 **5-LAMP/epoch**: OwnEpoch (active → ví Phoenix DID) + ReclaimEpoch (idle → pot per-epoch), `q=min(5,c)`, 4 redeemer, bỏ ClaimVested, rename field `vested_unlocked→owned_out`. Validator/backend dưới đây còn ở **mô-hình cũ**; cần rebuild theo Math §0 changelog. (Task on-chain: xây validator 5-LAMP/epoch.)
 
-**Backend/Core:** GetLAMP orchestration, anti-idle PHA-1, vest/forfeit PHA-2, ClaimVested, GetMAGIC — chờ backend + Core Enclave. Chưa có evidence `curl`.
+**Validator (mô-hình CŨ — chờ rebuild):** `activation_vault.ak`+`activation_logic.ak` — 5 spend redeemer (GenDrip/Reclaim/VestToOwner/ClaimVested/ForfeitPhase2) + 2 mint-gate, datum 9-field, đồng-hồ NGÀY+EPOCH, vest-gated-per-epoch + forfeit-1001-idle-epoch, chống-double-satisfaction; 69 test riêng `activation_logic` PASS; qua red-team nội bộ. **Cần: rebuild sang 4 redeemer (OwnEpoch/ReclaimEpoch) theo spec mới** + apply-param builder + regen `plutus.json`.
 
-**Blocker:** B1 engine Gen đọc-số-dư (MAGIC/CARP-team). B2 Registry dịch-vụ-tiêu-tài-nguyên (`has_counterparty_consume` placeholder). B3 GetLAMP-PersonDID chờ PA2. B4 GreenBack settlement + fee_refill phản-chu-kỳ.
+**Backend/Core:** GetLAMP orchestration, anti-idle PHA-1 (Ngày), epoch-job PHA-2 (OwnEpoch/ReclaimEpoch), GetMAGIC — chờ backend + Core Enclave. Bỏ ClaimVested/claim-vested endpoint. Chưa có evidence `curl`.
 
-**AbandonPhase1:** không có redeemer on-chain trong thiết-kế hiện tại — thoát-sớm PHA-1 qua anti-idle tự thu-hồi (không có nút chủ-động). **Rủi ro theo dõi:** pot cạn khi nhiều user cùng PHA-2 (R1); wash-rỗng nếu Registry lỏng (R2).
+**Blocker:** B1 engine Gen đọc-số-dư (MAGIC/CARP-team). B2 Registry dịch-vụ-trả-phí-tiêu-tài-nguyên (`has_counterparty_consume` placeholder, ngưỡng `MIN_MAGIC_CONSUME`). B3 GetLAMP-PersonDID chờ PA2. B4 GreenBack settlement + fee_refill phản-chu-kỳ.
+
+**Thoát-sớm PHA-1:** không có redeemer chủ-động — qua anti-idle tự thu-hồi. **Rủi ro theo dõi:** pot cạn khi nhiều user cùng PHA-2 (R1); wash-rỗng nếu Registry lỏng (R2).
 
 ## Feecover
 

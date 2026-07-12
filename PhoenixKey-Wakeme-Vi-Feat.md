@@ -51,7 +51,7 @@ Mỗi ngày túi LAMP tự sinh ra **MAGIC** (điều ước). Bạn tiêu MAGIC
 Ngày nào bạn **không dùng dịch vụ đủ**, cuối ngày **1 LAMP quay về hồ chung**. Đây là phần bạn **chưa kiếm được**, không phải tài sản bị tịch thu. Dùng lại → ngừng mất ngay.
 
 ### Bước 5 — Sau 1001 ngày: đèn bắt đầu thành của bạn
-Từ ngày 1002, phần LAMP còn sống sót **mỗi ngày nhả 1 chiếc thành SỞ HỮU thật của bạn** — rút ra ví ngoài, bán, hoặc giữ lại cho sinh tiếp điều ước. Nút **[Rút LAMP]** xuất hiện.
+Từ ngày 1002, hệ chuyển nhịp từ NGÀY sang **KỲ** (1 Kỳ = 5 ngày). **Mỗi Kỳ bạn còn dùng dịch vụ đủ**, tối đa **5 chiếc LAMP tự động rơi thẳng vào ví Phoenix của bạn** thành SỞ HỮU thật (5 chiếc = 1 chiếc/ngày × 5 ngày). Không cần bấm "rút" — LAMP tới ví ngay, bán/giữ/tiêu tuỳ ý. Phần đã vào ví là **của bạn tuyệt đối**, không gì đụng tới được nữa.
 
 ### (Tuỳ chọn) Mua thêm điều ước — GetMAGIC
 Muốn tiêu nhiều hơn dòng đèn tự sinh? Bạn có thể **mua CARP bằng tiền thật** (VietQR/thẻ) để tiêu dần. Đây là lựa chọn, không bắt buộc.
@@ -60,26 +60,27 @@ Muốn tiêu nhiều hơn dòng đèn tự sinh? Bạn có thể **mua CARP bằ
 
 ## 4. Hai pha — kể bằng ẩn dụ chiếc đèn
 
-### PHA-1 · "Đang kiếm" (ngày 1 → 1001)
+### PHA-1 · "Giai đoạn Ngày" — Đang kiếm (ngày 1 → 1001)
 
 Chiếc đèn **ở trong ví bạn nhưng còn khoá tạm**. Nó vẫn sáng — mỗi ngày sinh điều ước cho bạn dùng. Nhưng đèn **chưa hẳn của bạn**: bạn chưa rút/bán được.
 
 - **Bạn hưởng:** dòng MAGIC hằng ngày để dùng dịch vụ.
-- **Luật giữ đèn:** ngày nào không xoa đèn (không dùng dịch vụ đủ) → **1 LAMP rơi về hồ chung**. Đèn nhỏ đi thì điều ước hằng ngày cũng ít đi theo.
+- **Luật giữ đèn (nhịp NGÀY):** ngày nào không xoa đèn (không tiêu đủ mức qua **dịch vụ trả phí**) → **1 LAMP rơi về hồ chung**. Đèn nhỏ đi thì điều ước hằng ngày cũng ít đi theo.
 - **Có 7 ngày làm quen** đầu tiên, chưa mất gì.
 
 *Ví von:* đèn đang "thử việc" với bạn. Chăm dùng thì đèn ở lại; bỏ bê thì đèn hao dần về hồ chung cho người khác.
 
-### PHA-2 · "Đang sở hữu" (từ ngày 1002)
+### PHA-2 · "Giai đoạn Kỳ" — Đang sở hữu (từ ngày 1002; 1 Kỳ = 5 ngày = 432.000 slot)
 
-Bạn đã qua đủ 1001 ngày cam kết. Giờ **mỗi ngày 1 chiếc LAMP tháo khoá, thành của bạn thật sự** — rút, bán, hay giữ tuỳ ý.
+Bạn đã qua đủ 1001 ngày cam kết. Giờ nhịp chuyển từ NGÀY sang **KỲ** (1 Kỳ = 5 ngày). Mỗi Kỳ xử lý **đúng một lần**:
 
-Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (khoảng 5 ngày) bạn phải còn dùng dịch vụ đủ.** Kỳ nào bạn nghỉ hẳn → việc nhả đèn **tạm dừng** kỳ đó (đèn không mất, chỉ chưa tháo thêm).
+- **Kỳ bạn còn dùng đủ (active):** tối đa **5 chiếc LAMP tự động vào ví Phoenix của bạn** thành của bạn thật sự (5 = 1 chiếc/ngày × 5 ngày). Không cần thao tác — LAMP tới ví ngay, rút/bán/giữ tuỳ ý.
+- **Kỳ bạn nghỉ (idle):** tối đa **5 chiếc LAMP còn-khoá quay về hồ chung** ngay Kỳ đó (phần chưa-kiếm-được, nuôi người mới).
+- Phần đã vào ví bạn thì **an toàn tuyệt đối** — nằm hẳn trong ví của bạn, không cơ chế nào đụng tới, kể cả khi bạn nghỉ hẳn.
 
-- Phần đã thành của bạn (**đã tháo khoá**) thì **an toàn tuyệt đối** — không bao giờ bị đụng, kể cả khi bạn nghỉ hẳn.
-- Chỉ khi bạn **bỏ bê rất lâu — 1001 kỳ liên tục không dùng gì** — thì phần đèn **còn khoá** (chưa kiếm được) mới quay về hồ chung.
+*Ví von:* đèn đã "vào biên chế". Mỗi Kỳ bạn ghé dùng thì một mảnh đèn rơi thẳng vào tay bạn; Kỳ bạn vắng thì mảnh chưa-kiếm đó trả về hồ chung. Phần đã cầm trong tay thì giữ mãi.
 
-*Ví von:* đèn đã "vào biên chế". Mỗi ngày một mảnh thành của bạn, miễn bạn còn ghé dùng. Bỏ hẳn thật lâu thì phần chưa-tháo mới trả lại — phần đã cầm trong tay thì giữ mãi.
+> **Khác bản trước:** LAMP đã-kiếm nay **vào thẳng ví bạn mỗi Kỳ active** (không còn "tháo khoá trong đèn rồi bấm [Rút]"), và phần chưa-kiếm trả về hồ chung **ngay từng Kỳ nghỉ** (không còn chờ rất lâu). Đơn giản và nhanh hơn cho bạn.
 
 ---
 
@@ -90,8 +91,8 @@ Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (kho
 | **Khởi tạo** | Nạp 200.000đ đổi LAMP + ADA | **Miễn phí** — bấm một nút |
 | **LAMP thuộc về ai** | Mượn, luôn "thuộc hồ chung", không bao giờ của bạn | **Vào ví bạn ngay**; sau 1001 ngày phần sống sót **thành của bạn** |
 | **Phần thưởng trung thành** | Không có — dùng mãi vẫn chỉ hưởng dòng, không sở hữu | **Có** — kiên trì đủ 1001 ngày → sở hữu đèn thật (rút/bán được) |
-| **Rút LAMP** | Không có đường rút | **Rút được** ở PHA-2 (nút [Rút LAMP]) |
-| **Nếu bỏ cuộc** | Trả toàn bộ về hồ chung | Chỉ phần **chưa kiếm được** về hồ; phần **đã sở hữu giữ nguyên** |
+| **Nhận LAMP đã-kiếm** | Không có đường rút | **Tự động vào ví** mỗi Kỳ active ở PHA-2 (tối đa 5 LAMP/Kỳ, không cần bấm rút) |
+| **Nếu bỏ cuộc** | Trả toàn bộ về hồ chung | Chỉ phần **chưa kiếm được** về hồ (từng Kỳ nghỉ); phần **đã vào ví giữ nguyên** |
 | **Phí mạng (ADA)** | Bạn phải lo | **Feecover lo thay** — bạn không thấy phí ADA |
 | **Tự tạo app tiêu điều ước của mình** | Bị nghi ngờ / chặn | **Hợp lệ + khuyến khích** — miễn app đăng ký đúng chuẩn (xem §7) |
 
@@ -106,10 +107,10 @@ Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (kho
 - Không phải lo phí mạng, không phải hiểu tỷ giá.
 
 **Bạn cần:**
-- **Dùng dịch vụ đều đặn.** PHA-1: mỗi ngày. PHA-2: mỗi kỳ (~5 ngày). Không dùng thì đèn hao dần (phần chưa-kiếm).
-- Hiểu rõ **hai loại đèn** trên màn hình:
-  - **LAMP điều-kiện** (khoá, đang sinh điều ước) — chưa của bạn, **không rút được**.
-  - **LAMP đã-của-bạn** (đã tháo khoá) — của bạn thật, **rút/bán được**.
+- **Dùng dịch vụ trả phí đều đặn.** PHA-1 (Giai đoạn Ngày): mỗi ngày. PHA-2 (Giai đoạn Kỳ): mỗi Kỳ (5 ngày). Không dùng thì đèn hao dần (phần chưa-kiếm).
+- Hiểu rõ **hai loại LAMP**:
+  - **LAMP điều-kiện** (còn khoá trong đèn, đang sinh điều ước) — chưa của bạn, **không rút được**.
+  - **LAMP đã-của-bạn** (đã vào thẳng ví Phoenix mỗi Kỳ active) — của bạn thật, nằm trong ví bạn, **rút/bán/tiêu tuỳ ý**.
 
 > Một điều công bằng (ý-định thiết-kế): **một người = một suất.** Suất đèn tính theo danh tính sinh-trắc (vân tay) của bạn, không theo số ví — tạo nhiều ví không nhân suất. *Lưu ý kỹ-thuật: lớp neo-danh-tính-trên-chuỗi (anchor) cho DID cá-nhân đang hoàn thiện (xem §8) — nên việc mở GetLAMP rộng-rãi cho cá-nhân tạm hoãn tới khi xong. DID doanh-nghiệp/tổ-chức không dính vì có chữ-ký-cha xác thực.*
 
@@ -121,10 +122,10 @@ Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (kho
 Đáp: Không phải trả tiền. Đèn nằm trong ví bạn ngay. "Có điều kiện" nghĩa là: dùng đều đặn thì giữ và cuối cùng sở hữu; bỏ bê thì phần chưa-kiếm hao về hồ chung. Không có nợ, không có lãi.
 
 **Hỏi: Tôi mất gì nếu quên dùng vài ngày?**
-Đáp: PHA-1 — mỗi ngày quên mất 1 LAMP (phần chưa-kiếm), dùng lại là ngừng mất. Có 7 ngày đầu miễn trừ. PHA-2 — quên một kỳ chỉ làm việc nhả đèn tạm dừng, đèn không mất; phần đã sở hữu thì an toàn tuyệt đối dù bạn nghỉ bao lâu.
+Đáp: PHA-1 (Giai đoạn Ngày) — mỗi ngày quên mất 1 LAMP (phần chưa-kiếm), dùng lại là ngừng mất. Có 7 ngày đầu miễn trừ. PHA-2 (Giai đoạn Kỳ) — mỗi Kỳ (5 ngày) bạn nghỉ, tối đa 5 LAMP còn-khoá quay về hồ chung Kỳ đó (phần chưa-kiếm); phần đã vào ví bạn thì an toàn tuyệt đối dù bạn nghỉ bao lâu.
 
 **Hỏi: Bao giờ tôi thật sự sở hữu LAMP?**
-Đáp: Từ ngày 1002 trở đi, mỗi ngày 1 chiếc thành của bạn (miễn kỳ đó bạn còn dùng dịch vụ). Kiên trì đủ và không bị hao ngày nào ở PHA-1 → có thể sở hữu tối đa 1001 chiếc.
+Đáp: Từ ngày 1002 trở đi, mỗi Kỳ (5 ngày) bạn còn dùng dịch vụ đủ → tối đa 5 chiếc vào thẳng ví Phoenix của bạn (5 = 1 chiếc/ngày × 5 ngày). Kiên trì đủ và không bị hao ngày nào ở PHA-1 → có thể sở hữu tối đa 1001 chiếc.
 
 **Hỏi: MAGIC (điều ước) là gì? Khác LAMP thế nào?**
 Đáp: **LAMP** là tài sản nền, tổng cung cố định 36 tỷ (không đốt). **MAGIC** là "quyền dùng dịch vụ" gắn với danh tính bạn — là số dư trong ví (account), **không chuyển cho người khác được**, và **tan biến nếu không dùng** (dùng-hay-mất). Đèn (LAMP) sinh ra điều ước (MAGIC) để bạn tiêu; khi thanh toán dịch vụ, hệ trả bằng CARP (1 CARP = 1 MAGIC).
@@ -139,7 +140,7 @@ Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (kho
 Đáp: Không. Feecover lo phí mạng thay bạn.
 
 **Hỏi: Tôi muốn dừng giữa chừng thì sao?**
-Đáp: PHA-1 không có nút "từ bỏ" chủ động — bạn chỉ cần ngừng dùng, cơ chế anti-idle tự xử lý: mỗi ngày không dùng đủ, hệ thống tự thu 1 LAMP (phần chưa-kiếm) về hồ chung, không cần bạn bấm gì. PHA-2 bạn rút phần đã-của-mình ra bất cứ lúc nào; phần chưa tháo khoá cứ để đó, hệ thống tự xử lý.
+Đáp: PHA-1 không có nút "từ bỏ" chủ động — bạn chỉ cần ngừng dùng, cơ chế anti-idle tự xử lý: mỗi ngày không dùng đủ, hệ thống tự thu 1 LAMP (phần chưa-kiếm) về hồ chung, không cần bạn bấm gì. PHA-2 phần đã-của-mình đã nằm sẵn trong ví bạn (tiêu/bán tuỳ ý); phần chưa-kiếm-được, mỗi Kỳ bạn nghỉ hệ thống tự thu tối đa 5 LAMP về hồ chung, bạn không cần làm gì.
 
 ---
 
