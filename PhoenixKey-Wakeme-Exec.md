@@ -69,7 +69,7 @@
 
 | Mốc | Nội-dung | Phụ-thuộc |
 |---|---|---|
-| **M1** | Validator pot (kế thừa `dist_treasury.ak`) + **rebuild** validator vault 2-pha (4 redeemer: Reclaim/OwnEpoch/ReclaimEpoch/GenDrip) + GetLAMP backend + conservation/D-cap test | — (build ngay) |
+| **M1** | Validator pot (kế thừa `dist_treasury.ak`) + ✅ validator vault 2-pha v5 ĐÃ BUILD (4 redeemer: Reclaim/OwnEpoch/ReclaimEpoch/GenDrip, 216/216 pass) + GetLAMP backend + conservation/D-cap test. CÒN: pot validator + `plutus.json` regen + backend | — (validator xong; backend + pot ngay) |
 | **M2** | Maintainer chốt các điểm [CẦN CHỐT] §6; đội on-chain duyệt PR validator | maintainer + đội on-chain |
 | **M3** | MAGIC/CARP-team spell-out engine Gen đọc-số-dư → nối Gen | **B1** |
 | **M4** | Registry-team chuẩn danh-mục dịch-vụ + cổng duyệt → bật anti-idle/epoch-gate production | **B2** |

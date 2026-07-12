@@ -1,6 +1,6 @@
 # PhoenixKey — Wakeme: Chiếc Đèn và Điều ước của bạn
 
-> **Module:** Wakeme (GetLAMP — kích-hoạt nhận LAMP). **Loại doc:** Feature (tiếng Việt, hướng người-dùng/sản-phẩm). **Ngày:** 2026-07-09.
+> **Module:** Wakeme (GetLAMP — kích-hoạt nhận LAMP). **Loại doc:** Feature (tiếng Việt, hướng người-dùng/sản-phẩm). **Ngày:** 2026-07-09 · **Sửa PHA-2 (sở-hữu dần mỗi Kỳ):** 2026-07-12.
 > **Đối-tượng đọc:** người dùng PhoenixKey và đội sản-phẩm — KHÔNG phải kỹ sư hay auditor. Mục tiêu: hiểu **Wakeme là gì**, **được lợi gì**, **làm sao giữ**, bằng ngôn ngữ đời thường.
 > Chi-tiết toán/bất-biến ở [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md); kỹ-thuật + API ở [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md); quyết-định điều-hành ở [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
 
@@ -40,7 +40,7 @@ Bạn chạm vân tay. Điện thoại tự sinh khoá bảo mật trong Secure 
 ### Bước 2 — Bấm "Nhận LAMP" (GetLAMP)
 Một nút duy nhất. Bấm xong, bạn nhận **D chiếc LAMP vào ví của mình** (túi LAMP có khoá tạm). D nhiều hay ít tuỳ hồ chung lúc đó, **tối đa 1001**.
 
-Màn hình báo: *"Nhận D LAMP vào ví của bạn — dùng dịch vụ mỗi ngày để giữ trọn. Sau 1001 ngày, phần còn lại thành CỦA BẠN (rút/bán được)."*
+Màn hình báo: *"Nhận D LAMP vào ví của bạn — dùng dịch vụ mỗi ngày để giữ. Từ ngày 1002, mỗi Kỳ (5 ngày) dùng đủ thì tối đa 5 LAMP dần thành CỦA BẠN (rút/bán được), tới khi hết phần còn lại."*
 
 > **"Mượn" chỉ là cách nói.** Đèn nằm trong ví bạn ngay từ đầu. Chỉ là **có điều kiện** — chưa hẳn của bạn cho tới khi bạn kiếm được qua việc dùng thật.
 
@@ -50,8 +50,8 @@ Mỗi ngày túi LAMP tự sinh ra **MAGIC** (điều ước). Bạn tiêu MAGIC
 ### Bước 4 — Xoa đèn đều đặn để giữ
 Ngày nào bạn **không dùng dịch vụ đủ**, cuối ngày **1 LAMP quay về hồ chung**. Đây là phần bạn **chưa kiếm được**, không phải tài sản bị tịch thu. Dùng lại → ngừng mất ngay.
 
-### Bước 5 — Sau 1001 ngày: đèn bắt đầu thành của bạn
-Từ ngày 1002, hệ chuyển nhịp từ NGÀY sang **KỲ** (1 Kỳ = 5 ngày). **Mỗi Kỳ bạn còn dùng dịch vụ đủ**, tối đa **5 chiếc LAMP tự động rơi thẳng vào ví Phoenix của bạn** thành SỞ HỮU thật (5 chiếc = 1 chiếc/ngày × 5 ngày). Không cần bấm "rút" — LAMP tới ví ngay, bán/giữ/tiêu tuỳ ý. Phần đã vào ví là **của bạn tuyệt đối**, không gì đụng tới được nữa.
+### Bước 5 — Từ ngày 1002: đèn bắt đầu thành của bạn DẦN từng Kỳ
+Từ ngày 1002, hệ chuyển nhịp từ NGÀY sang **KỲ** (1 Kỳ = 5 ngày). Bạn **KHÔNG** nhận trọn một lần — mà **sở hữu DẦN**: **mỗi Kỳ bạn còn dùng dịch vụ đủ**, tối đa **5 chiếc LAMP tự động rơi thẳng vào ví Phoenix của bạn** thành SỞ HỮU thật (5 chiếc = 1 chiếc/ngày × 5 ngày). Không cần bấm "rút" — LAMP tới ví ngay, bán/giữ/tiêu tuỳ ý. Cứ thế từng Kỳ cho tới khi hết phần còn lại. Phần đã vào ví là **của bạn tuyệt đối**, không gì đụng tới được nữa.
 
 ### (Tuỳ chọn) Mua thêm điều ước — GetMAGIC
 Muốn tiêu nhiều hơn dòng đèn tự sinh? Bạn có thể **mua CARP bằng tiền thật** (VietQR/thẻ) để tiêu dần. Đây là lựa chọn, không bắt buộc.
@@ -86,11 +86,11 @@ Bạn đã qua đủ 1001 ngày cam kết. Giờ nhịp chuyển từ NGÀY sang
 
 ## 5. Các cải tiến — bảng cũ vs mới
 
-| Điểm | Bản cũ | Bản mới (v4.1) |
+| Điểm | Bản cũ | Bản mới (v5) |
 |---|---|---|
 | **Khởi tạo** | Nạp 200.000đ đổi LAMP + ADA | **Miễn phí** — bấm một nút |
-| **LAMP thuộc về ai** | Mượn, luôn "thuộc hồ chung", không bao giờ của bạn | **Vào ví bạn ngay**; sau 1001 ngày phần sống sót **thành của bạn** |
-| **Phần thưởng trung thành** | Không có — dùng mãi vẫn chỉ hưởng dòng, không sở hữu | **Có** — kiên trì đủ 1001 ngày → sở hữu đèn thật (rút/bán được) |
+| **LAMP thuộc về ai** | Mượn, luôn "thuộc hồ chung", không bao giờ của bạn | **Vào ví bạn ngay** (còn khoá); từ ngày 1002 phần sống sót **thành của bạn dần từng Kỳ** |
+| **Phần thưởng trung thành** | Không có — dùng mãi vẫn chỉ hưởng dòng, không sở hữu | **Có** — kiên trì → mỗi Kỳ (từ ngày 1002) sở hữu dần tối đa 5 LAMP thật (rút/bán được) |
 | **Nhận LAMP đã-kiếm** | Không có đường rút | **Tự động vào ví** mỗi Kỳ active ở PHA-2 (tối đa 5 LAMP/Kỳ, không cần bấm rút) |
 | **Nếu bỏ cuộc** | Trả toàn bộ về hồ chung | Chỉ phần **chưa kiếm được** về hồ (từng Kỳ nghỉ); phần **đã vào ví giữ nguyên** |
 | **Phí mạng (ADA)** | Bạn phải lo | **Feecover lo thay** — bạn không thấy phí ADA |
@@ -103,7 +103,7 @@ Bạn đã qua đủ 1001 ngày cam kết. Giờ nhịp chuyển từ NGÀY sang
 **Bạn được:**
 - Túi LAMP miễn phí vào ví (tối đa 1001 chiếc).
 - Dòng MAGIC hằng ngày để dùng dịch vụ — cả hai pha.
-- Sau 1001 ngày dùng thật: **sở hữu phần LAMP sống sót**, rút/bán/giữ tuỳ ý.
+- Từ ngày 1002, mỗi Kỳ dùng thật: **sở hữu dần phần LAMP sống sót** (tối đa 5 LAMP/Kỳ vào ví), rút/bán/giữ tuỳ ý.
 - Không phải lo phí mạng, không phải hiểu tỷ giá.
 
 **Bạn cần:**

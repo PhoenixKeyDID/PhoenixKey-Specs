@@ -1,17 +1,17 @@
 # PhoenixKey — Wakeme · Đặc-tả KỸ-THUẬT (PHA-1 Ngày + PHA-2 Kỳ 5-LAMP/epoch)
 
-> **⚠ Sửa lớn cơ-chế PHA-2 (2026-07-12) — north-star:** PHA-2 chuyển từ vest-ghi-sổ-1/ngày + ClaimVested sang **OwnEpoch/ReclaimEpoch** theo EPOCH (1 Epoch = 5 ngày = 432.000 slot), `q = min(5, c)` LAMP/epoch. Chi-tiết đổi + ánh-xạ redeemer: xem changelog §0 của [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md). **Validator/backend hiện-hành còn ở mô-hình cũ** — doc này mô-tả THIẾT-KẾ ĐÍCH để đội on-chain + backend rebuild; neo `file:hàm` trỏ code cũ tới khi rebuild.
+> **⚠ Cơ-chế PHA-2 (2026-07-12) — ĐÃ HIỆN-THỰC (code v5):** PHA-2 chuyển từ vest-ghi-sổ-1/ngày + ClaimVested sang **OwnEpoch/ReclaimEpoch** theo EPOCH (1 Epoch = 5 ngày = 432.000 slot), `q = min(5, c)` NGUYÊN-LAMP/epoch. Validator `activation_vault.ak`/`activation_logic.ak` trên nhánh `claude/wakeme-5lamp-epoch` ĐÃ khớp doc này (`aiken check` 2026-07-12: 216/216 pass). **Datum v5 = 7 field** (BỎ `vested_unlocked`/`owned_out` + `idle_epochs_p2`); `conditional_lamp` đếm **NGUYÊN-LAMP**, LAMP-token trong vault đo oildrop (`L = c × 10⁶`); genesis `last_tick_epoch = −1`. Chi-tiết đổi + ánh-xạ redeemer: xem changelog §0 của [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md). **Việc CÒN LẠI = backend (Java) + rust_core CBOR khớp 7-field/4-redeemer + `plutus.json` regen.**
 
 > **Module:** Wakeme (GetLAMP — kích-hoạt nhận LAMP). **Loại doc:** Kỹ-thuật. **Ngày:** 2026-07-09.
 > **Đối-tượng đọc:** KỸ SƯ triển khai (đội on-chain, đội backend, Core/Enclave, MAGIC/CARP/Registry-team).
 > **Mục đích:** kiến-trúc + datum/redeemer CBOR + luồng tx + API backend + ranh-giới + thứ-tự deploy — đủ để code, không cần đọc lại Feat/Math. Toán/bất-biến: [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md). Người-dùng: [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md). Điều-hành: [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
 > **Nguồn đối-chiếu (code = nguồn chân-lý):**
-> - `PhoenixKey-Validator/validators/activation_vault.ak` (validator dispatch: 5 spend redeemer + 2 mint redeemer)
+> - `PhoenixKey-Validator/validators/activation_vault.ak` (validator dispatch: **4 spend redeemer** + 2 mint redeemer + guard chống double-satisfaction)
 > - `PhoenixKey-Validator/lib/phoenixkey/activation_logic.ak` (toán + invariant, `*_ok`)
 > - `PhoenixKey-Validator/lib/phoenixkey/auth_logic.ak` (`anchor_controller_ok` — owner-sig canonical)
 > - Nguồn thiết-kế nội-bộ (không công khai) — toán/invariant/ranh-giới/phụ-thuộc + API endpoint SuperApp (gộp vào §5 dưới).
 >
-> **Khi văn ≠ code → code thắng.** Struct/enum thật neo tại `activation_logic.ak:110-140`.
+> **Khi văn ≠ code → code thắng.** Struct/enum thật neo tại `activation_logic.ak:106-135` (Datum 106-114, ActivationRedeemer 116-127, VaultMintRedeemer 130-135).
 >
 > → Trạng-thái build/test/deploy hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
 
@@ -60,11 +60,11 @@
 
 ### 1.2 Bất-biến kiến-trúc (load-bearing)
 
-- **1 vault = 1 UTxO** tại `Script(own_hash)`, mang **vault-NFT singleton** `(policy = own_hash, name = owner_commit = did_commit)`, min-ADA, và `conditional_lamp` LAMP token khoá (vault sống chỉ giữ conditional). Neo: `has_vault_nft`, `find_vault_output`.
-- **Sổ ↔ value đồng-bộ (bất-biến cốt-lõi):** `lamp_token_in_vault == conditional_lamp` — mọi redeemer ép lại. Per-vault bảo-toàn: `D == conditional_lamp + owned_out + reclaimed_to_pot`.
+- **1 vault = 1 UTxO** tại `Script(own_hash)`, mang **vault-NFT singleton** `(policy = own_hash, name = owner_commit = did_commit)`, min-ADA, và `conditional_lamp × 10⁶` oildrop LAMP token khoá (vault sống chỉ giữ conditional). Neo: `has_vault_nft`, `find_vault_output`. **Chống double-satisfaction:** spend ép ĐÚNG 1 input thuộc `Script(own_policy)`/tx (`list.count(... == Script(own_policy)) == 1`).
+- **Sổ ↔ value đồng-bộ (bất-biến cốt-lõi):** `lamp_token_in_vault == conditional_lamp × oil_per_lamp` (`oil_per_lamp = 10⁶`) — mọi redeemer ép lại. `conditional_lamp` đếm **NGUYÊN-LAMP**; token khoá đo oildrop. Per-vault bảo-toàn: `D == conditional_lamp + owned + reclaimed_to_pot`, với `owned = D − conditional_lamp − reclaimed_to_pot` (SUY-ĐƯỢC, KHÔNG là field).
 - **own_policy ≡ script-hash** (multi-purpose, mẫu `taad`/`state_nft`): vault-NFT policy CHÍNH là hash validator → validator PHẢI có `mint` handler, nếu không mọi tx Mint rơi `else→fail`. Ép ở spend qua `expect Script(own_policy) = own_input.output.address.payment_credential`; mint handler ở `activation_vault.ak`.
-- **conditional_lamp CHỈ GIẢM** (Reclaim→pot 1/ngày | OwnEpoch→ví Phoenix DID q/epoch | ReclaimEpoch→pot q/epoch); KHÔNG có đường tăng. **owned_out** (field 4, đổi tên từ `vested_unlocked`) chỉ TĂNG — bộ-đếm AUDIT luỹ-kế LAMP đã ra ví, KHÔNG là số-dư-trong-vault.
-- **KHÔNG có đường `conditional_lamp → user` sai đích** — chỉ `→ pot` (Reclaim/ReclaimEpoch) hoặc `→ ví Phoenix của DID` (OwnEpoch, đích cứng `owner_address`). LAMP đã ra ví = NGOÀI vault, không redeemer nào đụng lại (bất-khả-xâm-phạm). KHÔNG còn ClaimVested.
+- **conditional_lamp CHỈ GIẢM** (Reclaim→pot 1/ngày | OwnEpoch→ví Phoenix DID q/epoch | ReclaimEpoch→pot q/epoch); KHÔNG có đường tăng. Phần đã-sở-hữu-ra-ví KHÔNG lưu trong datum (đã RỜI vault, suy `= D − conditional_lamp − reclaimed_to_pot`).
+- **KHÔNG có đường `conditional_lamp → user` sai đích** — chỉ `→ pot` (Reclaim/ReclaimEpoch, GẮN-TAG `owner_commit`) hoặc `→ ví Phoenix của DID` (OwnEpoch, đích cứng `owner_address`). LAMP đã ra ví = NGOÀI vault, không redeemer nào đụng lại (bất-khả-xâm-phạm). KHÔNG còn ClaimVested.
 - **LAMP 36B không-burn:** mọi LAMP rời vault về {pot | ví-Phoenix-của-DID}, không đích đốt. GenDrip sinh MAGIC không spend/đốt LAMP (I-ACT-7).
 
 ### 1.3 Đồng-hồ (2 thang: NGÀY + EPOCH)
@@ -77,61 +77,60 @@
 - `n = ⌊(lo − vest_start_slot) / 86_400⌋` — số NGÀY (≥0). `lo` = **lower-bound HỮU-HẠN** của validity-range (`tx_lo`); `−∞` → `None` → REJECT (chống khai-man thời-gian).
 - `p2_epoch` tính TỪ ĐẦU PHA-2 (ngày 1002): `off = lo − vest_start − 1001×86400`; `e = ⌊off / 432000⌋`. `off < 0` → `-1` (chưa tới PHA-2).
 - **Ranh-giới pha:** PHA-1 "Giai đoạn Ngày" = `n ≤ 1001` (`phase1_last`); PHA-2 "Giai đoạn Kỳ" = `n ≥ 1002` (`n > phase1_last`). Bất-biến bất-kể D.
-- **Đơn-điệu epoch (PHA-2):** mỗi epoch xử ĐÚNG một lần — guard `e > last_tick_epoch`, hậu-điều-kiện `last_tick_epoch′ = e`. Cả OwnEpoch (active) lẫn ReclaimEpoch (idle) đều tiến `te`.
+- **Tuần-tự epoch (PHA-2):** mỗi epoch xử ĐÚNG một lần, KHÔNG nhảy — guard `last_tick_epoch + 1 ≤ e_now`, hậu-điều-kiện `last_tick_epoch′ = last_tick_epoch + 1` (**KHÔNG** `= e_now` — chống gộp-nhảy nhiều epoch idle vào 1 bước-5-LAMP). Genesis `last_tick_epoch = −1` ⟹ epoch đầu `j = 0` (off-by-one fix). Cả OwnEpoch (active) lẫn ReclaimEpoch (idle) đều tiến `te += 1`.
 
-### 1.4 Hằng-số (nguồn: `activation_logic.ak:81-106`)
+### 1.4 Hằng-số (nguồn: `activation_logic.ak:79-102`)
 
 | Hằng | Giá-trị | Ý-nghĩa |
 |---|---|---|
-| `slots_per_day` | 86_400 | 1 NGÀY |
+| `slots_per_day` | 86_400 | 1 NGÀY (đọc từ config, network-aware) |
+| `slots_per_epoch` | 432_000 | **1 EPOCH = 5 NGÀY = 432.000 slot** — nhịp PHA-2 |
+| `oil_per_lamp` | 1_000_000 | **1 NGUYÊN-LAMP = 10⁶ oildrop** — cầu sổ↔value (`L = c × oil_per_lamp`) |
+| `epoch_unit` | 5 | **PHA-2: `q = min(5, c)` NGUYÊN-LAMP/epoch** (1/ngày × 5 ngày) — OwnEpoch (→ví) hoặc ReclaimEpoch (→pot) |
 | `grace_days` | 7 | onboarding miễn anti-idle (PHA-1) |
 | `reclaim_unit` | 1 | PHA-1: 1 conditional_lamp/NGÀY-idle → pot |
-| `d_cap` | 1001 | trần D (= 1001 ngày cam-kết) |
+| `d_cap` | 1001 | trần D (NGUYÊN-LAMP, = 1001 ngày cam-kết) |
 | `phase1_last` | 1001 | ranh-giới PHA-1/PHA-2 |
-| `slots_per_epoch` | 432_000 | **1 EPOCH = 5 NGÀY = 432.000 slot** — nhịp PHA-2 |
-| `epoch_unit` | 5 | **PHA-2: `q = min(5, c)` LAMP/epoch** (1/ngày × 5 ngày) — OwnEpoch (→ví) hoặc ReclaimEpoch (→pot) |
 
-> **Đã BỎ** `forfeit_idle_epochs = 1001` (thu-hồi PHA-2 nay per-epoch idle, không chờ gap-1001). **Đã THÊM** `epoch_unit = 5`.
+> **Đã BỎ** `forfeit_idle_epochs = 1001` (thu-hồi PHA-2 nay per-epoch idle, không chờ gap-1001). **Đã THÊM** `epoch_unit = 5` + `oil_per_lamp = 10⁶`.
 
 ---
 
 ## 2. Datum / Redeemer — khuôn CBOR (khớp aiken ↔ rust_core)
 
-> **NGUỒN CHUẨN = code `.ak`**; `plutus.json` v4.1-current đã khớp (mục 0). Plutus V3 dùng `Constr` cho tất cả.
+> **NGUỒN CHUẨN = code `.ak` v5**; `plutus.json` CẦN regen cho khớp 7-field/4-redeemer. Plutus V3 dùng `Constr` cho tất cả.
 
-### 2.1 `ActivationVaultDatum` — 9 field (thứ-tự CBOR CỐ ĐỊNH)
+### 2.1 `ActivationVaultDatum` — 7 field (thứ-tự CBOR CỐ ĐỊNH)
 
-Neo: `activation_logic.ak:110-122`. `Constr 0 [...]` — thứ-tự field LÀ thứ-tự CBOR (rust_core PHẢI encode đúng thứ-tự này):
+Neo: `activation_logic.ak:106-114`. `Constr 0 [...]` — thứ-tự field LÀ thứ-tự CBOR (rust_core PHẢI encode đúng thứ-tự này):
 
 | # | Field | Aiken type | CBOR | Ý-nghĩa | Khởi-tạo (Genesis) |
 |---|---|---|---|---|---|
-| 0 | `owner_commit` | `ByteArray` | `bytes` | did_commit gắn vault + **vault-NFT name** (I-ACT-10) | `blake2b_256(did)` (32B) |
+| 0 | `owner_commit` | `ByteArray` | `bytes` | did_commit gắn vault + **vault-NFT name** (I-ACT-10) + tag output pot | `blake2b_256(did)` (32B) |
 | 1 | `did_commit` | `ByteArray` | `bytes` | con-trỏ DID (attribution) — MVP `== owner_commit`, phải `≠ #""` | `blake2b_256(did)` |
 | 2 | `vest_start_slot` | `Int` | `int` | mốc 0 đồng-hồ (slot lúc GetLAMP) | `now` (slot submit) |
-| 3 | `conditional_lamp` | `Int` | `int` | LAMP còn khoá điều-kiện = **toàn-bộ LAMP trong vault sống** (oildrop) | `D` (∈ [1, 1001]) |
-| 4 | `owned_out` *(cũ `vested_unlocked`)* | `Int` | `int` | **luỹ-kế** LAMP đã chuyển RA ví Phoenix (đã-sở-hữu, ngoài vault); AUDIT chỉ-tăng, KHÔNG là số-dư-vault | `0` |
-| 5 | `reclaimed_to_pot` | `Int` | `int` | Reclaim PHA-1 + ReclaimEpoch PHA-2 luỹ-kế (audit) | `0` |
-| 6 | `last_tick_day` | `Int` | `int` | NGÀY tick gần nhất (monotonic, PHA-1) | `0` |
-| 7 | `idle_epochs_p2` | `Int` | `int` | audit: luỹ-kế epoch idle đã ReclaimEpoch (KHÔNG load-bearing) | `0` |
-| 8 | `last_tick_epoch` | `Int` | `int` | p2-epoch cuối **ĐÃ XỬ-LÝ** (OwnEpoch active HOẶC ReclaimEpoch idle); mốc đơn-điệu PHA-2 | `0` |
+| 3 | `conditional_lamp` | `Int` | `int` | LAMP còn khoá điều-kiện, đếm **NGUYÊN-LAMP** (LAMP-token khoá = `× 10⁶` oildrop) | `D` (∈ [1, 1001]) |
+| 4 | `reclaimed_to_pot` | `Int` | `int` | NGUYÊN-LAMP về pot luỹ-kế (Reclaim PHA-1 + ReclaimEpoch PHA-2; audit, chỉ tăng) | `0` |
+| 5 | `last_tick_day` | `Int` | `int` | NGÀY tick gần nhất (monotonic, PHA-1) | `0` |
+| 6 | `last_tick_epoch` | `Int` | `int` | p2-epoch cuối **ĐÃ XỬ-LÝ** (OwnEpoch active HOẶC ReclaimEpoch idle); tuần-tự `+1`/epoch | **`−1`** (sentinel "chưa xử epoch nào") |
 
-**Đơn-vị:** on-chain LAMP = **oildrop** (`LAMP × 10⁶`). Datum lưu oildrop; API trả cả `lamp` + `oildrop`.
+> **BỎ so bản nháp:** field `owned_out`/`vested_unlocked` (phần đã-sở-hữu-ra-ví — suy `= D − conditional_lamp − reclaimed_to_pot`, KHÔNG lưu) và `idle_epochs_p2` (audit không load-bearing). Datum v5 = **7 field**.
 
-**Diễn-CBOR (Genesis, D=1001 LAMP = 1001000000 oildrop, ví-dụ):**
+**Đơn-vị:** sổ-đếm datum (`conditional_lamp`, `reclaimed_to_pot`) = **NGUYÊN-LAMP**; LAMP-token thật trong Value vault = **oildrop** (`NGUYÊN-LAMP × 10⁶`). Bất-biến cầu-nối `L(vault) = conditional_lamp × oil_per_lamp`. API trả cả `_lamp` + `_oildrop`.
+
+**Diễn-CBOR (Genesis, D=1001 NGUYÊN-LAMP; LAMP-token khoá = 1001×10⁶ oildrop, ví-dụ):**
 ```
-d8799f                                    # Constr 0 (tag 121), 9 field
+d8799f                                    # Constr 0 (tag 121), 7 field
   581f <owner_commit 32B hex>             # bytes owner_commit
   581f <did_commit 32B hex>               # bytes did_commit
   1a<vest_start_slot>                     # int slot
-  1a3b9c3b80                              # int 1001000000 (conditional_lamp oildrop)
-  00                                      # int 0 (owned_out — cũ vested_unlocked)
+  1903e9                                  # int 1001 (conditional_lamp — NGUYÊN-LAMP)
   00                                      # int 0 (reclaimed_to_pot)
   00                                      # int 0 (last_tick_day)
-  00                                      # int 0 (idle_epochs_p2)
-  00                                      # int 0 (last_tick_epoch)
+  20                                      # int −1 (last_tick_epoch sentinel; CBOR nInt 0x20)
 ff
 ```
-(Số byte-len prefix minh-hoạ; encoder rust_core tự tính. Điểm load-bearing = **9 field, đúng thứ-tự, đúng khởi-tạo Genesis** để pass `genesis_vault_ok`. Rebuild: đổi tên field 4 `vested_unlocked → owned_out` — CBOR layout KHÔNG đổi, chỉ nhãn.)
+(Số byte-len prefix minh-hoạ; encoder rust_core tự tính. Điểm load-bearing = **7 field, đúng thứ-tự, `conditional_lamp` = NGUYÊN-LAMP (không ×10⁶), `last_tick_epoch = −1`** để pass `genesis_vault_ok`. LAMP-token khoá trong Value output = `conditional_lamp × 10⁶` oildrop — riêng khỏi datum.)
 
 ### 2.2 `ActivationRedeemer` (spend) — **4 nhánh** (mô-hình mới)
 
@@ -144,7 +143,7 @@ Tất-cả **không field** (`Constr idx []`). **Ánh-xạ từ bộ cũ:** `Ves
 | 2 | `OwnEpoch` | `d87b80` | keeper attest ACTIVE (PHA-2 Kỳ; `q=min(5,c)` → ví Phoenix DID) |
 | 3 | `ReclaimEpoch` | `d87c80` (Constr 3) | keeper attest IDLE (PHA-2 Kỳ; `q=min(5,c)` → pot) |
 
-> Bộ cũ export 5 redeemer (có `ClaimVested`+`ForfeitPhase2`). Rebuild → 4 redeemer trên; `plutus.json` regen cho khớp. rust_core/backend dùng idx mới.
+> Code v5 export ĐÚNG 4 redeemer trên (bộ cũ 5 có `ClaimVested`+`ForfeitPhase2` đã bỏ). `plutus.json` regen cho khớp; rust_core/backend dùng idx này.
 
 ### 2.3 `VaultMintRedeemer` (mint-gate) — 2 nhánh
 
@@ -159,7 +158,7 @@ Backend apply 7 tham-số → sinh script-hash + address RIÊNG mỗi DID (mẫu
 
 | Param | Type | Nguồn | Ghi-chú |
 |---|---|---|---|
-| `anchor_nft_policy` | `PolicyId` | hằng TOÀN-HỆ (`taad` Design-2 hash) | (giữ tham-số; mô-hình mới không dùng owner-sig cho spend — có thể loại khi rebuild nếu không cần đọc controller) |
+| `anchor_nft_policy` | `PolicyId` | hằng TOÀN-HỆ (`taad` Design-2 hash) | **DÙNG** — đọc controller DID động qua `anchor_controller_ok`: GENESIS (controller ký đồng-thuận) + ReclaimEpoch owner escape-hatch. (OwnEpoch chỉ keeper.) |
 | `anchor_nft_name` | `AssetName` | `blake2b_256(did)` | per-DID anchor |
 | `lamp_policy` | `PolicyId` | LAMP canonical | LAMP khoá trong vault |
 | `lamp_name` | `AssetName` | asset-name LAMP | |
@@ -176,15 +175,16 @@ Ký-hiệu: `d_in`/`d_out` = datum vào/ra; `lamp_in`/`lamp_out` = LAMP oildrop 
 ### 3.0 Mint-gate
 
 #### `GenesisVault` (GetLAMP) — `genesis_vault_ok`
-- **Điều-kiện:** (1) mint policy own = **đúng 1 movement, qty +1** (không bundle burn/mint 2); (2) carrier output DUY NHẤT tại `Script(own_policy)` mang đúng 1 NFT(name) + datum well-formed; (3) `name == owner_commit == datum.owner_commit`; (4) khuôn khởi-tạo: `conditional_lamp ∈ [1,1001]`, `owned_out=0`, `reclaimed_to_pot=0`, `last_tick_day=0`, `idle_epochs_p2=0`, `last_tick_epoch=0`, `did_commit ≠ #""`; (5) `lamp_locked == conditional_lamp` (pot cấp LAMP THẬT — chống forge datum bịa D); (6) output chỉ policy ⊆ {ada, lamp, own}.
-- **Ký:** owner-witness (Enclave). Pot chi LAMP do **validator POT** tự gác (không thuộc handler này).
+- **Điều-kiện:** (1) mint policy own = **đúng 1 movement, qty +1** (không bundle burn/mint 2); (2) carrier output DUY NHẤT tại `Script(own_policy)` mang đúng 1 NFT(name) + datum well-formed; (3) `name == owner_commit == datum.owner_commit`; (4) khuôn khởi-tạo (7-field): `conditional_lamp ∈ [1,1001]`, `reclaimed_to_pot=0`, `last_tick_day=0`, **`last_tick_epoch=−1`**, `did_commit ≠ #""`; (5) `lamp_locked == conditional_lamp × oil_per_lamp` (pot cấp LAMP THẬT ×10⁶ — chống forge datum bịa D + chống bug đơn-vị v4.1); (6) output chỉ policy ⊆ {ada, lamp, own}; (7) **`anchor_controller_ok`** — controller DID hiện-tại ký đồng-thuận genesis (đọc anchor TAAD).
+- **Ký:** owner/controller-witness (Enclave, khớp anchor). Pot chi LAMP do **validator POT** tự gác (không thuộc handler này).
 - **Shape tx:**
   ```
   in:  [pot UTxO (D LAMP)] + [ví Phoenix (fee/collateral)]
+  ref: [anchor TAAD UTxO (đọc controller)]
   mint: +1 vault-NFT(own_policy, owner_commit)   redeemer=GenesisVault
-  out: [VAULT: Script(own) + NFT + minADA + D-oildrop LAMP + inline datum(9-field Genesis)]
+  out: [VAULT: Script(own) + NFT + minADA + (D×10⁶)-oildrop LAMP + inline datum(7-field Genesis, te=−1)]
        [pot recreate (giảm D)]  [change]
-  signer: owner (did_payment)   validity: [lo, lo+ttl]
+  signer: controller (did_payment)   validity: [lo, lo+ttl]
   ```
 
 #### `CloseVault` — `close_vault_ok`
@@ -192,57 +192,57 @@ Ký-hiệu: `d_in`/`d_out` = datum vào/ra; `lamp_in`/`lamp_out` = LAMP oildrop 
 - **Ký:** đi-kèm redeemer spend đóng (keeper).
 
 ### 3.1 `GenDrip` — LAMP-preserved (MAGIC yield) — `gen_drip_ok`
-- **Điều-kiện:** (1) LAMP KHÔNG rời: `conditional'==conditional`, `owned_out'==owned_out`, `lamp_out==lamp_in==conditional'`; (2) `reclaimed`/`last_tick_day`/`idle_epochs_p2`/`last_tick_epoch`/DID/mốc **bất-biến** (Gen chỉ ĐỌC); (3) anti-drain (min-ADA giữ + chỉ policy hợp-lệ).
+- **Điều-kiện:** (1) LAMP KHÔNG rời: `conditional'==conditional`, `lamp_out==lamp_in==conditional'×oil_per_lamp`; (2) `reclaimed`/`last_tick_day`/`last_tick_epoch`/DID/mốc **bất-biến** (Gen chỉ ĐỌC); (3) anti-drain (min-ADA giữ + chỉ policy hợp-lệ).
 - **Ký:** engine Gen (interface MVP — §3.7 chưa chốt cơ-chế MAGIC). **Điều-kiện tối-thiểu load-bearing = "LAMP không rời qua GenDrip"** (I-ACT-7). Gen đọc `conditional_lamp` làm cơ-số sinh MAGIC. Khi §3.7 chốt: thêm điều-kiện đọc/ghi `magic_batches`. **MAGIC = account-trong-Vault (KHÔNG mint token).**
 - **Shape:** spend vault + recreate y-hệt (chỉ tầng MAGIC ngoài đổi). **Khuyến-nghị dùng reference-input** cho Gen đọc-số-dư (KHÔNG spend) — xem §5 [CẦN CHỐT §3.7].
 
 ### 3.2 `Reclaim` — anti-idle PHA-1 (Ngày) — `reclaim_ok`
-- **Điều-kiện (10):** (1) **keeper ký**; (2) PHA-1 `n ≤ 1001`; (3) ngoài grace `n ≥ 7`; (4) monotonic `n > last_tick_day` (chống double-tick); (5) `conditional_lamp ≥ 1`; (6) sổ: `conditional'=conditional−1`, `reclaimed'=reclaimed+1`, `owned_out'=owned_out`, `last_tick_day'=n`, epoch-tracking bất-biến, DID/mốc bất-biến; (7) `lamp_out==lamp_in−1==conditional'`; (8) **đích:** `≥1 LAMP tới pot_address` (LỖ-1 fix — không vào ví keeper); (9) anti-drain.
+- **Điều-kiện (10):** (1) **keeper ký**; (2) PHA-1 `n ≤ 1001`; (3) ngoài grace `n ≥ 7`; (4) monotonic `n > last_tick_day` (chống double-tick); (5) `conditional_lamp ≥ 1`; (6) sổ: `conditional'=conditional−1`, `reclaimed'=reclaimed+1`, `last_tick_day'=n`, `last_tick_epoch'=last_tick_epoch` (giữ nguyên, kể cả −1), DID/mốc bất-biến; (7) `lamp_out==lamp_in−1×oil==conditional'×oil`; (8) **đích:** `≥1×oil oildrop tới pot_address GẮN-TAG owner_commit` (LỖ-1 fix — không vào ví keeper); (9) anti-drain.
 - **Ký:** keeper (system-authority MVP; `keeper_signed = list.has(self.extra_signatories, keeper_pkh)`).
 - **Shape tx:**
   ```
-  in:  [VAULT (lamp_in LAMP)]   redeemer=Reclaim
-  out: [VAULT recreate: conditional−1, last_tick_day=n]  [pot: +1 LAMP]  [change]
+  in:  [VAULT (lamp_in oildrop)]   redeemer=Reclaim
+  out: [VAULT recreate: conditional−1, last_tick_day=n]  [pot: +1×10⁶ oildrop, InlineDatum=owner_commit]  [change]
   signer: keeper   validity.lo hữu-hạn (bắt buộc — days_elapsed)
   ```
 
 ### 3.3 `OwnEpoch` — giao-quyền PHA-2 (Kỳ, ACTIVE) — `own_epoch_ok` / `own_epoch_close_ok`
-- **`q = min(epoch_unit=5, conditional_lamp)`** — 1 LAMP/ngày × 5 ngày/epoch.
-- **Điều-kiện (9):** (1) PHA-2 `n > 1001`; (2) **keeper ký** (attest epoch ACTIVE — MVP, KHÔNG permissionless); (3) **đơn-điệu epoch** `e > last_tick_epoch` (mỗi epoch xử ĐÚNG một lần); (4) `q ≥ 1` (còn `conditional`); (5) sổ LAMP: `conditional'=conditional−q`, `owned_out'=owned_out+q`, `reclaimed` bất-biến (Δc+Δo=0); (6) sổ EPOCH: `last_tick_epoch'=e`, `last_tick_day'=n`, `idle_epochs_p2` bất-biến, DID/mốc bất-biến; (7) **`lamp_out==lamp_in−q==conditional'`** (q LAMP RỜI vault); (8) **đích:** `≥q LAMP tới owner_address` (ví Phoenix của DID — đích cứng, keeper KHÔNG chọn được); (9) anti-drain.
+- **`q = min(epoch_unit=5, conditional_lamp)`** — 1 LAMP/ngày × 5 ngày/epoch (NGUYÊN-LAMP).
+- **Điều-kiện (9):** (1) PHA-2 `n > 1001` (+ `e_now ≥ 0`); (2) **keeper ký** (attest epoch ACTIVE — MVP, KHÔNG permissionless); (3) **tuần-tự epoch** `last_tick_epoch + 1 ≤ e_now` (xử epoch KẾ-TIẾP, KHÔNG nhảy); (4) `q ≥ 1` (còn `conditional`); (5) sổ LAMP: `conditional'=conditional−q`, `reclaimed` bất-biến (Δc=−q ⟹ Δowned=+q, owned không lưu); (6) sổ EPOCH: **`last_tick_epoch'=last_tick_epoch+1`** (KHÔNG `=e_now`), `last_tick_day'=last_tick_day`, DID/mốc bất-biến; (7) **`lamp_out==lamp_in−q×oil==conditional'×oil`** (q×10⁶ oildrop RỜI vault); (8) **đích:** `≥q×oil oildrop tới owner_address` (ví Phoenix của DID — đích cứng, keeper KHÔNG chọn được); (9) anti-drain.
 - **2 nhánh:** SỐNG (`c−q>0`, recreate) — `own_epoch_ok`; ĐÓNG (`c−q==0`, burn) — `own_epoch_close_ok` + `close_vault_ok`.
 - **Ký:** keeper. **Không cần owner-sig** vì đích cứng = ví Phoenix của DID (apply-param, DID-bound) ⟹ keeper không đoạt được.
 - **Shape tx:**
   ```
   in:  [VAULT]   redeemer=OwnEpoch
-  out (SỐNG): [VAULT recreate: conditional−q, owned_out+q, last_tick_epoch=e, last_tick_day=n]
-              [owner_address (ví Phoenix DID): +q LAMP]  [change]
-  out (ĐÓNG): [owner_address: +q LAMP]  + mint: −1 vault-NFT (CloseVault)
+  out (SỐNG): [VAULT recreate: conditional−q, last_tick_epoch=last_tick_epoch+1, last_tick_day giữ]
+              [owner_address (ví Phoenix DID): +q×10⁶ oildrop]  [change]
+  out (ĐÓNG): [owner_address: +q×10⁶ oildrop]  + mint: −1 vault-NFT (CloseVault)
   signer: keeper   validity.lo hữu-hạn
   ```
 
 ### 3.4 `ReclaimEpoch` — thu-hồi PHA-2 (Kỳ, IDLE) — `reclaim_epoch_ok` / `reclaim_epoch_close_ok`
 - **`q = min(5, conditional_lamp)`.**
-- **Điều-kiện (8):** (1) PHA-2 `n > 1001`; (2) **keeper ký** (attest epoch IDLE); (3) **đơn-điệu epoch** `e > last_tick_epoch`; (4) `q ≥ 1`; (5) sổ: `conditional'=conditional−q`, `reclaimed'=reclaimed+q`, `owned_out'=owned_out` (BẤT-BIẾN — phần đã ra ví không đụng); (6) sổ EPOCH: `last_tick_epoch'=e`, `idle_epochs_p2'=idle_epochs_p2+1`, `last_tick_day'=n`; (7) **`lamp_out==lamp_in−q==conditional'`**; (8) **đích:** `≥q LAMP tới pot`; anti-drain.
-- **2 nhánh:** SỐNG (`c−q>0`) — `reclaim_epoch_ok`; ĐÓNG (`c−q==0`, burn) — `reclaim_epoch_close_ok`.
-- **Ký:** keeper.
-- **Đo idle per-EPOCH (không gap-1001):** khác mô-hình cũ — thu-hồi MỖI epoch idle tức-thời `q=min(5,c)`, không chờ gap ≥ 1001 epoch. `last_tick_epoch` tiến qua CẢ OwnEpoch lẫn ReclaimEpoch ⟹ đơn-điệu, không xử-lại epoch. **Backend chọn OwnEpoch vs ReclaimEpoch theo attest active/idle của epoch `e` hiện-tại.**
+- **Điều-kiện (8):** (1) PHA-2 `n > 1001` (+ `e_now ≥ 0`); (2) **keeper ký HOẶC owner ký** (attest epoch IDLE / owner escape-hatch tự-trả pot); (3) **tuần-tự epoch** `last_tick_epoch + 1 ≤ e_now`; (4) `q ≥ 1`; (5) sổ: `conditional'=conditional−q`, `reclaimed'=reclaimed+q` (Δc+Δr=0 ⟹ owned bất-biến); (6) sổ EPOCH: **`last_tick_epoch'=last_tick_epoch+1`**, `last_tick_day'=last_tick_day`, DID/mốc bất-biến; (7) **`lamp_out==lamp_in−q×oil==conditional'×oil`**; (8) **đích:** `≥q×oil oildrop tới pot GẮN-TAG owner_commit`; anti-drain. **Nhánh close còn ép min-ADA vault → owner_address.**
+- **2 nhánh:** SỐNG (`c−q>0`) — `reclaim_epoch_ok`; ĐÓNG (`c−q==0`, burn) — `reclaim_epoch_close_ok` (LAMP→pot tag, min-ADA→owner).
+- **Ký:** keeper HOẶC owner (escape-hatch — owner chủ-động trả phần chưa-kiếm về pot dù keeper vắng).
+- **Đo idle per-EPOCH (không gap-1001):** khác mô-hình cũ — thu-hồi MỖI epoch idle tức-thời `q=min(5,c)`, không chờ gap ≥ 1001 epoch. `last_tick_epoch` tiến +1 qua CẢ OwnEpoch lẫn ReclaimEpoch ⟹ tuần-tự, không xử-lại epoch, không nhảy. **Backend chọn OwnEpoch vs ReclaimEpoch theo attest active/idle của epoch `j = last_tick_epoch+1`.**
 - **Shape tx:**
   ```
   in:  [VAULT]   redeemer=ReclaimEpoch
-  out (SỐNG): [VAULT recreate: conditional−q, last_tick_epoch=e, idle_epochs_p2+1]  [pot: +q LAMP]
-  out (ĐÓNG): [pot: +q LAMP]  + mint: −1 vault-NFT (CloseVault)
-  signer: keeper   validity.lo hữu-hạn
+  out (SỐNG): [VAULT recreate: conditional−q, last_tick_epoch=last_tick_epoch+1]  [pot: +q×10⁶ oildrop, InlineDatum=owner_commit]
+  out (ĐÓNG): [pot: +q×10⁶ oildrop, tag]  [owner_address: min-ADA vault]  + mint: −1 vault-NFT (CloseVault)
+  signer: keeper HOẶC owner   validity.lo hữu-hạn
   ```
 
 ### 3.6 Bảng ai-ký + đích LAMP
 
 | Redeemer | Ký | LAMP di-chuyển | Đích ép | Pha |
 |---|---|---|---|---|
-| GenesisVault | owner | pot → vault (D) | vault (khuôn) | tạo |
+| GenesisVault | controller (anchor) | pot → vault (D×10⁶) | vault (khuôn) | tạo |
 | GenDrip | engine (MVP) | KHÔNG | — | cả 2 |
-| Reclaim | **keeper** | vault → pot (1) | `pot_address` | PHA-1 Ngày (n≤1001) |
-| OwnEpoch | **keeper** (attest active) | vault → ví Phoenix DID (q=min(5,c)) | `owner_address` | PHA-2 Kỳ (n≥1002) |
-| ReclaimEpoch | **keeper** (attest idle) | vault → pot (q=min(5,c)) | `pot_address` | PHA-2 Kỳ (n≥1002) |
+| Reclaim | **keeper** | vault → pot (1×10⁶, tag) | `pot_address` | PHA-1 Ngày (n≤1001) |
+| OwnEpoch | **keeper** (attest active) | vault → ví Phoenix DID (q×10⁶) | `owner_address` | PHA-2 Kỳ (n≥1002) |
+| ReclaimEpoch | **keeper HOẶC owner** (attest idle / escape-hatch) | vault → pot (q×10⁶, tag) | `pot_address` | PHA-2 Kỳ (n≥1002) |
 | CloseVault | (kèm spend) | burn NFT | — | đóng (c=0) |
 
 ### 3.7 Kiến-trúc SCALE engine Gen/MAGIC — off-chain accounting + Merkle-anchor (giải BLOCKER §3.7)
@@ -314,16 +314,16 @@ Core: keygen vân tay → ví Phoenix
 1a POST /activation/getlamp/build:
    backend đọc pot_balance → D=min(1001,⌊pot/1e6⌋)
    → apply-param 7 tham-số per-DID → sinh vault script-hash + address
-   → build unsigned tx: spend pot(D LAMP) → mint GenesisVault → VAULT(datum 9-field Genesis)
+   → build unsigned tx: spend pot(D×10⁶ oildrop) → mint GenesisVault → VAULT(datum 7-field Genesis, te=−1)
    → trả {unsigned_tx_cbor, required_signer_key_hash, vault_address, d_lamp, vest_start_slot}
-Core: Enclave witness (owner)
+Core: Enclave witness (controller)
 1b POST /activation/getlamp/submit {signed_tx_cbor} → submit → {cardano_tx_hash, SUBMITTED}
-Kết-quả: VAULT conditional_lamp=D, vested=0, vest_start=now.
+Kết-quả: VAULT conditional_lamp=D (NGUYÊN-LAMP), reclaimed=0, last_tick_epoch=−1, vest_start=now.
 ```
 
 ### 4.2 Gen (MAGIC yield — nền, ngoài Wakeme API)
 ```
-engine /CARP đọc VaultDatum(conditional+vested) qua reference-input → drip MAGIC → magic_batches
+engine /CARP đọc VaultDatum(conditional_lamp) qua reference-input → drip MAGIC → magic_batches
 KHÔNG spend LAMP, KHÔNG mint token (MAGIC = account-trong-Vault).
 [BLOCKER §3.7 — nếu spend+recreate: dùng GenDrip redeemer, ép LAMP-preserved]
 ```
@@ -339,21 +339,21 @@ Ngày ≥1002: dừng anti-idle NGÀY → chuyển nhịp KỲ PHA-2 (4.4).
 
 ### 4.4 Epoch job PHA-2 (job — backend, n≥1002; nhịp KỲ, 1 Kỳ = 5 ngày)
 ```
-Mỗi epoch mới, mỗi vault (chỉ khi e = p2_epoch(now) > last_tick_epoch — xử ĐÚNG một lần):
+Mỗi epoch mới, mỗi vault (chỉ khi j = last_tick_epoch+1 ≤ e_now = p2_epoch(now) — xử ĐÚNG epoch kế-tiếp, tuần-tự):
   q = min(5, conditional)   (5 = 1 LAMP/ngày × 5 ngày)
-  active_epoch = consume trong epoch e ≥ MIN_MAGIC_CONSUME (Registry) [BLOCKER I-ACT-3]
+  active_epoch = consume trong epoch j ≥ MIN_MAGIC_CONSUME (Registry) [BLOCKER I-ACT-3]
   nếu conditional≥1:
     nếu active_epoch:
-      build OwnEpoch tx (keeper-sig): conditional−q, owned_out+q, last_tick_epoch=e
-        → q LAMP RA ví Phoenix của DID (owner_address); ĐÓNG+burn nếu conditional−q==0
+      build OwnEpoch tx (keeper-sig): conditional−q, last_tick_epoch=last_tick_epoch+1
+        → q×10⁶ oildrop RA ví Phoenix của DID (owner_address); ĐÓNG+burn nếu conditional−q==0
     ngược lại (idle_epoch):
-      build ReclaimEpoch tx (keeper-sig): conditional−q → pot, last_tick_epoch=e, idle_epochs_p2+1
-        → ĐÓNG+burn nếu conditional−q==0
+      build ReclaimEpoch tx (keeper-sig): conditional−q → pot (tag), last_tick_epoch=last_tick_epoch+1
+        → ĐÓNG+burn nếu conditional−q==0 (min-ADA → owner)
 ```
-> LAMP đã-kiếm vào THẲNG ví Phoenix của DID mỗi Kỳ active — KHÔNG còn bước ClaimVested user rút. Không có endpoint claim.
+> LAMP đã-kiếm vào THẲNG ví Phoenix của DID mỗi Kỳ active — KHÔNG còn bước ClaimVested user rút. Không có endpoint claim. Backend xử TUẦN-TỰ từng epoch (te+1) — nếu tụt nhiều Kỳ (keeper offline) thì gửi nhiều tx liên-tiếp, mỗi tx đúng 1 epoch (validator ép `te′=te+1`).
 
 ### 4.5 (đã BỎ ClaimVested) — LAMP-sở-hữu tự vào ví
-Mô-hình mới KHÔNG có luồng user-rút riêng: OwnEpoch (job backend, §4.4) chuyển LAMP đã-kiếm thẳng vào ví Phoenix của DID mỗi Kỳ active. Endpoint `claim-vested/*` cũ **loại bỏ**. Dashboard chỉ hiển-thị `owned_out` (luỹ-kế đã vào ví) + số-dư LAMP trong ví Phoenix (đọc on-chain thường).
+Mô-hình mới KHÔNG có luồng user-rút riêng: OwnEpoch (job backend, §4.4) chuyển LAMP đã-kiếm thẳng vào ví Phoenix của DID mỗi Kỳ active. Endpoint `claim-vested/*` cũ **loại bỏ**. Dashboard hiển-thị `owned_lamp` (SUY: `D − conditional_lamp − reclaimed_to_pot`) + số-dư LAMP trong ví Phoenix (đọc on-chain thường).
 
 ### 4.6 GetMAGIC (fiat→CARP — backend, ngoài validator)
 ```
@@ -386,18 +386,18 @@ Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code
 
 > **BỎ endpoint claim-vested (4a/4b) + abandon-phase1 (4c):** mô-hình mới không có user-rút (OwnEpoch tự đẩy LAMP vào ví Phoenix DID mỗi Kỳ active); PHA-1 thoát-sớm vẫn qua anti-idle tự thu-hồi. Không cần redeemer/endpoint riêng.
 
-**Endpoint 2 (`vault/{did}`) — map field validator → JSON:** `phase = (days_elapsed≤1001?1:2)` (1=Giai đoạn Ngày, 2=Giai đoạn Kỳ); `conditional_lamp` (field 3), `owned_out_lamp` (field 4 — luỹ-kế đã vào ví Phoenix), `reclaimed_to_pot_lamp` (field 5); `days_elapsed = ⌊(now−vest_start)/86400⌋`; `current_epoch = p2_epoch(now)`, `last_tick_epoch` (field 8) + `idle_epochs_p2` (field 7, audit); `activity_gate.used_this_period = null` tới khi Registry-team có chuẩn. Field `activity_gate` áp **cả 2 pha** (PHA-1 per-NGÀY, PHA-2 per-KỲ); self-consumption HỢP-LỆ. Mã-lỗi mới nhánh **135x**.
+**Endpoint 2 (`vault/{did}`) — map field validator → JSON:** `phase = (days_elapsed≤1001?1:2)` (1=Giai đoạn Ngày, 2=Giai đoạn Kỳ); `conditional_lamp` (field 3), `reclaimed_to_pot_lamp` (field 4); `owned_lamp` SUY `= D − conditional_lamp − reclaimed_to_pot` (KHÔNG là field on-chain); `days_elapsed = ⌊(now−vest_start)/86400⌋`; `current_epoch = p2_epoch(now)`, `last_tick_epoch` (field 6, genesis −1); `activity_gate.used_this_period = null` tới khi Registry-team có chuẩn. Field `activity_gate` áp **cả 2 pha** (PHA-1 per-NGÀY, PHA-2 per-KỲ); self-consumption HỢP-LỆ. Mã-lỗi mới nhánh **135x**.
 
 **Nhóm endpoint (chi-tiết request/response ở API-for-SuperApp gốc):**
 - **1a getlamp/build** → `{unsigned_tx_cbor, required_signer_key_hash, vault_address, d_lamp, d_oildrop, pot_balance_lamp, vest_start_slot, phase1_days, ttl_slot}`. Precondition 1-DID-1-vault (`VAULT_ALREADY_EXISTS` 1350).
-- **2 vault/{did}** → dashboard 2-pha: `phase, days_elapsed, current_epoch, conditional_lamp, owned_out_lamp, reclaimed_to_pot_lamp, magic_*, activity_gate{...}`. `phase`/`conditional_lamp`/`owned_out_lamp`/`idle_epochs_p2`/`last_tick_epoch` tính được NGAY từ validator (không chờ Gen); `magic_*` + `activity_gate.used_this_period` treo tới khi MAGIC/Registry-team nối.
+- **2 vault/{did}** → dashboard 2-pha: `phase, days_elapsed, current_epoch, conditional_lamp, owned_lamp, reclaimed_to_pot_lamp, magic_*, activity_gate{...}`. `phase`/`conditional_lamp`/`owned_lamp`(suy)/`reclaimed_to_pot_lamp`/`last_tick_epoch` tính được NGAY từ validator (không chờ Gen); `magic_*` + `activity_gate.used_this_period` treo tới khi MAGIC/Registry-team nối.
 - **3 vault/{did}/magic** → MAGIC-yield ĐỌC-số-dư (`gen_basis_lamp = conditional_lamp`), note "Gen CHỈ ĐỌC — không burn LAMP".
 - **5a-c getmagic** → quote (FX buffer) → checkout (VietQR/gateway) → poll tới `CARP_DELIVERED`. `1 CARP = 1 MAGIC`; KHÔNG mint CARP tự-do.
 - **7 pot** → `{pot_balance_lamp, current_d_lamp = min(1001,⌊pot/1e6⌋), d_cap, scale, saturated}`.
 
 **Mã-lỗi mới 135x (đội backend thêm `ErrorCode.java`):** `VAULT_ALREADY_EXISTS`(1350), `VAULT_NOT_FOUND`(1351), `POT_UNAVAILABLE`(1352), `ALREADY_IN_PHASE2`(1355), `GETMAGIC_*`(1360-1363). Tái dùng: `UNAUTHORIZED`(1304), `WALLET_NOT_REGISTERED`(1320), `USER_DID_NOT_FOUND`(2002), `SIGNATURE_INVALID`(1403), `CARDANO_TX_FAILED`(5101). *(BỎ `NOT_IN_PHASE2`/`CLAIM_AMOUNT_EXCEEDS_VESTED` — không còn user-claim.)*
 
-**Luồng UI SuperApp (đội giao-diện dựng, mock trước):** Onboarding (keygen vân tay) → GetLAMP (1 nút, banner từ `/pot`) → Vault Dashboard (`/vault/{did}` màn chính, phân-biệt rõ `conditional_lamp` (còn-khoá, sinh MAGIC) vs `owned_out_lamp` (đã vào ví Phoenix, tiêu/bán được); KHÔNG nút rút ở cả 2 pha — LAMP-sở-hữu tự vào ví) → GetMAGIC (5a-c). KHÔNG hiển thị phí ADA (Feecover lo).
+**Luồng UI SuperApp (đội giao-diện dựng, mock trước):** Onboarding (keygen vân tay) → GetLAMP (1 nút, banner từ `/pot`) → Vault Dashboard (`/vault/{did}` màn chính, phân-biệt rõ `conditional_lamp` (còn-khoá, sinh MAGIC) vs `owned_lamp` (suy = D−conditional−reclaimed; đã vào ví Phoenix, tiêu/bán được); KHÔNG nút rút ở cả 2 pha — LAMP-sở-hữu tự vào ví) → GetMAGIC (5a-c). KHÔNG hiển thị phí ADA (Feecover lo).
 
 ---
 
@@ -405,9 +405,9 @@ Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code
 
 | Tầng | Việc | Đội | Phụ-thuộc-chặn |
 |---|---|---|---|
-| **On-chain (Aiken)** | **REBUILD** validator vault theo mô-hình mới: **4 redeemer spend** (GenDrip/Reclaim/**OwnEpoch**/**ReclaimEpoch**) + 2 mint-gate, đồng-hồ NGÀY(PHA-1)+EPOCH(PHA-2), OwnEpoch→ví Phoenix DID + ReclaimEpoch per-epoch idle→pot, `q=min(5,c)`, đơn-điệu `last_tick_epoch`, rename field `vested_unlocked→owned_out`, close khi `c=0`. + validator pot (`dist_treasury` kế-thừa). | **đội on-chain** | apply-param builder + `plutus.json` phải khớp code `.ak` mới (9-field datum, 4-redeemer) |
+| **On-chain (Aiken)** | ✅ **ĐÃ BUILD** (`claude/wakeme-5lamp-epoch`, 216/216 pass): **4 redeemer spend** (GenDrip/Reclaim/**OwnEpoch**/**ReclaimEpoch**) + 2 mint-gate, đồng-hồ NGÀY(PHA-1)+EPOCH(PHA-2), OwnEpoch→ví Phoenix DID + ReclaimEpoch per-epoch idle→pot, `q=min(5,c)`, tuần-tự `last_tick_epoch += 1` (genesis −1), datum **7-field**, `L=c×10⁶`, close khi `c=0`, guard double-satisfaction. CÒN: validator pot (`dist_treasury` kế-thừa) + `plutus.json` regen. | **đội on-chain** | apply-param builder + `plutus.json` phải khớp code `.ak` (7-field datum, 4-redeemer) |
 | **Backend (Java)** | GetLAMP orchestration (đọc pot→D→apply-param→build genesis); **anti-idle job NGÀY** (PHA-1, keeper-sig Reclaim); **epoch job PHA-2** (mỗi epoch mới e>te: attest active→OwnEpoch / idle→ReclaimEpoch, keeper-sig); GetMAGIC; keeper wallet. **BỎ** ClaimVested build/submit. `curl` verify sau deploy. | **đội backend** | — |
-| **Core / Enclave** | keygen vân tay (Master_KEK); ký GenesisVault (owner-witness); UI 1-nút GetLAMP + dashboard 2-pha (owned_out + số-dư ví Phoenix). **BỎ** ký ClaimVested (không còn user-rút) | **Core** | — |
+| **Core / Enclave** | keygen vân tay (Master_KEK); ký GenesisVault (controller-witness khớp anchor); UI 1-nút GetLAMP + dashboard 2-pha (owned_lamp SUY = D−conditional−reclaimed + số-dư ví Phoenix). **BỎ** ký ClaimVested (không còn user-rút) | **Core** | — |
 | **MAGIC/CARP-team** | engine Gen ĐỌC-số-dư (reference-input VaultDatum → drip MAGIC → **KHÔNG spend LAMP, KHÔNG mint token**); `did_commit` per-DID | MAGIC/CARP | kiến-trúc §3.7 — engine phải spell-out on-chain trước khi nối production |
 | **Registry-team** | chuẩn danh-mục dịch-vụ-**trả-phí**-tiêu-tài-nguyên-thật + cổng duyệt → keeper attest active/idle (ngưỡng `MIN_MAGIC_CONSUME`) | Registry-team | I-ACT-3 — anti-idle/epoch-gate production cần chuẩn dịch-vụ trước khi bật |
 | **CARP-team** | GreenBack settlement interface (backed-path) + shadow-price | CARP | interface-only |
@@ -425,7 +425,7 @@ Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code
 
 **Build/deploy được NGAY (không chờ blocker):**
 1. Deploy validator pot (`dist_treasury` instance) + nạp-vốn-đầu (LAMP-team). — chặn: 1a, 7.
-2. **REBUILD** validator `activation_vault` theo mô-hình mới (4 redeemer). Publish reference-script. Rebuild `plutus.json` khớp.
+2. ✅ Validator `activation_vault` v5 ĐÃ BUILD (4 redeemer, 216/216 pass). CÒN: publish reference-script + regen `plutus.json` khớp.
 3. Backend apply-param builder (7 tham-số per-DID → script-hash + address).
 4. GetLAMP build/submit (1a/1b) — chỉ cần pot + validator.
 5. (Không còn ClaimVested — LAMP-sở-hữu tự vào ví qua OwnEpoch job.)
@@ -452,18 +452,15 @@ validator ───┘        │
 
 ## 8. Test / evidence
 
-**Test mô-hình CŨ (đã có, `aiken check` 2026-07-07 — sẽ THAY khi rebuild):**
+**Test v5 (ĐÃ CÓ, `aiken check` 2026-07-12 — 216/216 pass toàn repo):**
 ```
-phoenixkey/activation_logic: total=69  pass=69  fail=0   (mô-hình cũ: vest 1/ngày + ClaimVested + forfeit gap-1001)
+phoenixkey/activation_logic:  total=69  pass=69  fail=0   (v5: Reclaim/OwnEpoch/ReclaimEpoch/GenDrip + genesis + đơn-vị ×oil + te=−1)
+validators/activation_vault:  total=1   pass=1   fail=0   (double_sat_two_vault_inputs_rejected)
 ```
-Bộ test cũ bao-phủ Reclaim/Vest/Claim/GenDrip/Forfeit của mô-hình cũ — **KHÔNG còn hợp-lệ cho OwnEpoch/ReclaimEpoch mới**; rebuild sẽ viết lại.
-
-**CẦN có sau rebuild (bộ test mô-hình mới):**
-- **POSITIVE:** P1 Reclaim PHA-1 idle→pot 1/ngày; P2 OwnEpoch active q=5→ví Phoenix DID (`owned_out+=5`, `L(vault)−=5`); P3 ReclaimEpoch idle q=5→pot; P4 GenDrip LAMP-preserved (`L(vault)` bất-biến); P5 OwnEpoch đưa `c→0` → close+burn; P6 ReclaimEpoch đưa `c→0` → close+burn; P7 epoch cuối `q=min(5,c)` rút phần lẻ.
-- **NEGATIVE:** OwnEpoch/ReclaimEpoch ở PHA-1 (n≤1001); Reclaim ở PHA-2; xử-lại epoch `e ≤ last_tick_epoch` (double-process); `q>5` (per-epoch cap); `q>c`; OwnEpoch đích ≠ `owner_address` (keeper-đoạt); ReclaimEpoch đích ≠ pot; non-keeper-sig; tự-sinh `c'>c`; drain-ADA; policy-lạ; đổi-DID/mốc; burn khi `c≠0`; `double_sat_two_vault_inputs_rejected`.
-- Round-trip CBOR aiken↔rust_core (datum 9-field field-4 = `owned_out`; 4 redeemer idx mới).
-- Testnet e2e Preview: GetLAMP genesis → Reclaim (keeper) → OwnEpoch (active) → ReclaimEpoch (idle) → close-burn. Verify `curl` từng endpoint sau deploy.
-- Apply-param determinism: cùng DID → cùng script-hash + address.
+Bao-phủ ĐÃ CÓ trong `activation_logic.ak`:
+- **POSITIVE:** `p1` Reclaim PHA-1 idle→pot 1/ngày (×oil); `oe1/oe2` OwnEpoch epoch đầu (te −1→0) + kế (0→1) q=5→ví Phoenix DID; `oec` OwnEpoch `c→0` close+burn; `re1` ReclaimEpoch idle q=5→pot; `ree` ReclaimEpoch owner escape-hatch; `rec` ReclaimEpoch `c→0` (pot + min-ADA→owner); `gd` GenDrip LAMP-preserved; `g1` genesis (anchor Active + controller ký) khoá đúng 100×oil.
+- **NEGATIVE:** `oe_nph1` OwnEpoch ở PHA-1; `n13` Reclaim ở PHA-2; `oe_nseq1` te′≠te+1 (gộp-nhảy) + `oe_nseq2` te+1>e_now (nhảy tương-lai); `oe_nover` q>5; `oe_nred`/`re_nkeeper` sai đích; `n14`/`re_ntag` pot untagged/sai-tag; non-keeper-sig; `n9` tự-sinh c'>c; drain-ADA; policy-lạ; đổi-DID; `g_*` genesis sai khuôn (te≠−1, đơn-vị thiếu ×oil, over-cap, no-anchor…); `double_sat_two_vault_inputs_rejected` (activator_vault).
+- **[CÒN]** Round-trip CBOR aiken↔rust_core (datum **7-field**, `conditional_lamp`=NGUYÊN-LAMP, `last_tick_epoch`=−1; 4 redeemer idx). Testnet e2e Preview: GetLAMP → Reclaim → OwnEpoch → ReclaimEpoch → close-burn; `curl` từng endpoint. Apply-param determinism: cùng DID → cùng script-hash + address.
 
 ---
 
