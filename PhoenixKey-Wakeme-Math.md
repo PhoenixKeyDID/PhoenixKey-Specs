@@ -33,6 +33,25 @@
 
 ¹ Đơn-vị on-chain là **oildrop** (`LAMP × 10⁶`, spec §3.1); mọi số-học integer floor-div, không float. Đặc-tả này viết "LAMP" cho gọn — nhân 10⁶ để ra oildrop.
 
+> **🔴 [CẦN CHỐT — rigor gap thật, gắn 2026-07-12]** Quy-ước quy-đổi đơn-vị (footnote ¹) KHÔNG
+> được áp-dụng nhất-quán tại chính bất-biến lõi nhất của module (I-ACT-1, §4). Cụ-thể:
+> - `D` được định-nghĩa `D = min(1001, ⌊pot/10⁶⌋)` — công-thức này TỰ nó đã chia `pot` cho 10⁶,
+>   tức **`D` là số LAMP** (tối-đa 1001 LAMP, đơn-vị người-dùng-nhìn-thấy).
+> - Nhưng I-ACT-1 (§4) viết thẳng `c = D` và `L(vault) = D`, trong khi `c` và `L(x)` đã khai-kiểu
+>   ở bảng trên là **oildrop** (theo footnote ¹) — tức đẳng-thức này gán một đại-lượng LAMP (`D`)
+>   cho một đại-lượng oildrop (`c`, `L`) mà KHÔNG có bước nhân 10⁶ nào được viết ra.
+> - Cột "Neo code" của `d_cap` ghi thẳng `d_cap = 1001` là hằng-số Aiken, so-sánh trực-tiếp với
+>   `conditional_lamp` (trường on-chain, tự-nhiên ở đơn-vị oildrop theo mọi neo code khác trong
+>   module này).
+>
+> Từ văn-bản spec đơn-thuần, auditor **không thể xác-định** `d_cap = 1001` là 1001 oildrop
+> (≈0.001 LAMP — vô-lý với một chương-trình quảng-cáo "tới 1001 LAMP") hay đã ngầm-hiểu là
+> `1001 × 10⁶` oildrop. Đây KHÔNG phải lỗi biên-tập nhỏ — nó nằm ngay ở bất-biến SỔ-VALUE cốt-lõi
+> nhất (I-ACT-1). **Cần xác-nhận với code thật** (`activation_logic.ak`, hằng `d_cap` và biểu-thức
+> `genesis_vault_ok`) xem `d_cap` trong Aiken source thực-sự là `1001` hay `1001_000000`, rồi sửa
+> văn-bản spec khớp — KHÔNG tự suy-đoán ở đây vì đây là quyết-định ảnh-hưởng an-toàn tiền thật,
+> không phải chỉ làm-rõ câu chữ.
+
 **Hằng (code `activation_logic.ak` §HẰNG):**
 ```
 slots_per_day       = 86_400        (1 slot = 1 giây)

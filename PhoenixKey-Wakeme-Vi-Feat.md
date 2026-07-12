@@ -133,7 +133,7 @@ Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (kho
 Đáp: Không. Đèn **đứng yên** trong ví. Hệ thống chỉ **đọc số dư đèn** để tính bao nhiêu điều ước — không hề đốt, không chuyển LAMP đi đâu. Đèn to thì điều ước nhiều; đèn hao thì điều ước ít theo.
 
 **Hỏi: Tôi tự làm app rồi tiêu điều ước của chính mình có được không?**
-Đáp: **Được, và được khuyến khích** — miễn app của bạn đăng ký qua Registry và thật sự tiêu tài nguyên thật (lưu trữ, băng thông, tính toán, sức lao động…). Mỗi lượt tiêu đều tốn phí về ngân quỹ chung nên hệ thống có lợi. Chỉ "tiêu rỗng" không tài nguyên mới bị loại — ngay ở khâu duyệt đăng ký.
+Đáp: **Được, và được khuyến khích** — miễn app của bạn đăng ký qua Registry (danh sách các dịch vụ đã được duyệt là "tiêu tài nguyên thật", do đội vận hành PhoenixKey xét duyệt trước khi cho phép tính vào anti-idle/vest-gate — không phải một trang tự-đăng-ký công khai) và thật sự tiêu tài nguyên thật (lưu trữ, băng thông, tính toán, sức lao động…). Mỗi lượt tiêu đều tốn phí về ngân quỹ chung nên hệ thống có lợi. Chỉ "tiêu rỗng" không tài nguyên mới bị loại — ngay ở khâu duyệt đăng ký.
 
 **Hỏi: Tôi có phải trả phí mạng (ADA) không?**
 Đáp: Không. Feecover lo phí mạng thay bạn.
@@ -149,8 +149,8 @@ Vài phần của Wakeme phụ thuộc thiết-kế/hạ-tầng ở đội khác
 
 - **Validator lõi (khoá/vest/rút trên chuỗi)** là nguồn chân-lý duy nhất cho sổ-sách LAMP: mọi app/backend PHẢI đọc-ghi qua đúng redeemer của validator, không được tự suy luận số dư.
 - **Điều ước (MAGIC) sinh ra sao:** nguyên lý cố định là "đèn đứng yên, chỉ đọc số dư, không đúc thêm token" — engine Gen KHÔNG được spend/đốt LAMP dưới bất kỳ hình thức nào, chỉ đọc.
-- **Chuẩn "dịch vụ tiêu tài nguyên thật" (Registry):** chỉ dịch vụ đăng ký đúng chuẩn (tiêu tài nguyên thật — lưu trữ/băng thông/tính toán/lao động) mới được tính là "đã dùng dịch vụ" cho anti-idle/vest-gate. Dịch vụ "tiêu rỗng" không tài nguyên bị loại ngay ở khâu duyệt đăng ký.
-- **Mua điều ước bằng tiền thật (GetMAGIC):** hệ **không đúc CARP tự do** — user luôn trả CARP đã có, có bảo chứng qua GreenBack.
+- **Chuẩn "dịch vụ tiêu tài nguyên thật" (Registry):** Registry là danh sách các dịch vụ đã qua xét-duyệt của đội vận hành PhoenixKey, xác nhận dịch vụ đó tiêu tài nguyên thật (lưu trữ/băng thông/tính toán/lao động) chứ không phải giao dịch giả tạo dựng để "cày" phần thưởng. Chỉ dịch vụ có tên trong Registry mới được tính là "đã dùng dịch vụ" cho anti-idle/vest-gate. Dịch vụ "tiêu rỗng" không tài nguyên bị loại ngay ở khâu duyệt đăng ký.
+- **Mua điều ước bằng tiền thật (GetMAGIC):** hệ **không đúc CARP tự do** — user luôn trả CARP đã có, có bảo chứng qua GreenBack (hệ thống/đối tác giữ dự trữ đối ứng cho CARP, đảm bảo mỗi CARP lưu hành có giá trị thật đứng sau, không phát hành khống).
 - **Cân đối hồ chung PHA-2:** vì đèn PHA-2 rời hệ thống sang tay người dùng, hồ chung cần nguồn nạp bù chủ động (không được để hồ chung âm).
 - **"Một người một suất":** D keyed theo PersonDID sinh-trắc, không theo số ví — tạo nhiều ví không nhân suất. Điều kiện tiên quyết: lớp neo-danh-tính-trên-chuỗi (anchor) cho DID cá-nhân phải ràng đúng khoá-gốc (UniquenessThread/PA2) trước khi mở GetLAMP rộng-rãi cho cá-nhân. DID doanh-nghiệp/tổ-chức không cần điều kiện này vì đã có chữ-ký-cha xác thực.
 

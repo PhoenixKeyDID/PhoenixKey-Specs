@@ -17,7 +17,7 @@
 | **Protectme** | cổng chi-trả `protectme_logic`+`protectme_payout` (39 test đối-kháng sạch, branch `feat/protectme-payout`) | 🔴 `protectme_beacon.ak` one-shot 0 dòng (chặn-merge); 2-bucket + resolver + UI chưa có; 11 quyết-định PROT-1..11 | NO-GO tới khi beacon + blocker + quyết-định |
 | **Knowme** | Mức 1+2 SD-VC có code+test, demo `/vc` (20 file / 415 test PASS) | B1 lib BBS (Mức 3), B2 LampNet gateway (lớp tài-liệu), B4 StampRecord | M1 chạy; Mức 3/tài-liệu chờ blocker |
 | **Easteregg** | 1 PoC Python off-chain trên Preview (3 tx-hash, không validator) | `did_pool.ak`/`did_subaddr.ak` chưa có; ZK Tầng 2 verifier chưa viết; G1/G3/G5 chưa vá | NO-GO; chỉ GO build+test Preview T1 + T3-mode-1 |
-| **Safesend** | spec đầy đủ SS-1..12 | `safesend_escrow.ak` 0 dòng; phụ-thuộc `limit_meter.ak` (Rebirthme); verifier Glint/Spectra (Phase 2) | NO-GO; money-critical, review trước code |
+| **Smartsend** | spec đầy đủ SS-1..12 | `smartsend_escrow.ak` 0 dòng; phụ-thuộc `limit_meter.ak` (Rebirthme); verifier Glint/Spectra (Phase 2) | NO-GO; money-critical, review trước code |
 
 ---
 
@@ -30,7 +30,7 @@
 | **B3 — Registry consume-gate + `did_commit` per-DID** | Wakeme, Feecover | MAGIC team + backend | `has_counterparty_consume` còn placeholder; `did_commit` field có, nội-dung sentinel rỗng |
 | **PA2 — UniquenessThread (anchor uniqueness on-chain)** | Anchorme (PersonDID-custody), Wakeme (GetLAMP-Person) | on-chain | Đóng hẳn CID-1 (giả-mạo anchor did-string — KHÔNG phải sybil-sinh-trắc). Chốt trục chi-phí: sorted-list K=256 vs Merkle dân-số |
 | **PA5-a — entity-gate** | Anchorme (thu hẹp bề mặt PersonDID) | on-chain (Tuân) | PoC 4 test, chờ vào code |
-| 🔴 **`limit_meter.ak` — anti-drain** | Rebirthme (I-CURVE-4 load-bearing), Safesend (SS-6 chống-trộm) | on-chain | KHÔNG tồn tại. Ưu-tiên số 1 (M2). value chỉ bảo-vệ mức SEED |
+| 🔴 **`limit_meter.ak` — anti-drain** | Rebirthme (I-CURVE-4 load-bearing), Smartsend (SS-6 chống-trộm) | on-chain | KHÔNG tồn tại. Ưu-tiên số 1 (M2). value chỉ bảo-vệ mức SEED |
 | **DeviceDID `Op_create_device`** | LampNet node, Knowme device, Rada | on-chain + backend | + hw_cert verify endpoint |
 | **FG-4 — Feecover EpochSettle validator** | Feecover | đội Feecover | Pseudo-code, 0 validator, dựa provider trung-thực — tự vá khi build |
 | **B4 — Math `⊑` + type-code canonical** | delegation PersonDID, author-DID phi-nhân | Math/maintainer | Chốt vào Math v4.7; bảng-byte code làm canonical |
@@ -97,9 +97,9 @@ Cổng chi-trả `protectme_logic.ak`+`protectme_payout.ak` (branch `feat/protec
 
 **Spec:** 4 doc hợp nhất mô hình "mức riêng-tư của ví Phoenix" (không phải ví thứ ba), chốt 2026-07-09. **Code on-chain:** `did_pool.ak` (T1 MST) + `did_subaddr.ak` (T0/L3) — chưa tồn tại. **Off-chain:** Indexer/Accountant, sweep crank, withdraw builder — chưa có. **ZK T2:** verifier Aiken chưa viết; ExUnit 2.842B là đo của Easteregg-ZK bên VeData (độc lập); ceremony chưa chạy. **Test:** 0 test Easteregg. **PoC:** 1 PoC Python trên Preview (3 tx-hash) minh-hoạ ẩn-số-dư + gated-proof, KHÔNG validator, chưa chứng-minh operator-không-rút. **Gap:** G1 (fee-split), G3 (sweep per-pair), G5 (salt-recovery) 🔴 chưa vá; G2/G4 🟡. **NO-GO toàn module**; chỉ GO build+test Preview T1 + T3-mode-1.
 
-## Safesend
+## Smartsend
 
-**Vị-trí:** module độc-lập thứ 8 (chốt 2026-07-09), tách từ Rebirthme, dùng chung hạ-tầng ví/guardian/anti-drain. **Build:** `safesend_escrow.ak` — spec đầy-đủ (SS-1..12 + SSR-4 hợp-nhất), CHƯA code, 0 test.
+**Vị-trí:** module độc-lập thứ 8 (chốt 2026-07-09), tách từ Rebirthme, dùng chung hạ-tầng ví/guardian/anti-drain. **Build:** `smartsend_escrow.ak` — spec đầy-đủ (SS-1..12 + SSR-4 hợp-nhất), CHƯA code, 0 test.
 
 **Bất-biến đã hợp-nhất (không còn "vá đỏ" treo):** SS-1/SS-5′/SS-12 (value-conservation byte-perfect, `min_ada` tách field, `fee_covered` chỉ audit); SS-7′ (escrow-1-lần, chống double-satisfaction batch); SS-9′ (Accept verify controller-sig qua anchor); SS-11 (`reclaim_deadline`+`ReclaimTimeout`); SS-8/SS-8′ (Freeze trong cửa-sổ-veto; thoát qua guardian-quorum hoặc `freeze_deadline` auto-hoàn); SS-10 (`window ≥ min_window_floor`); SS-2 (veto-race biên); SS-3/SSR-4/SSR-13 (factor Cancel neo anchor-enroll).
 

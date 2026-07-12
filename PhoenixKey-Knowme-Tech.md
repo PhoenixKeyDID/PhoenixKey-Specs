@@ -6,7 +6,7 @@
 > **Nguồn đối-chiếu:**
 > - `PhoenixKey-Frontend/src/lib/sdvc/` (Mức 1+2) — `credential.ts`, `disclose.ts`, `commit.ts`, `canonical.ts`, `didDoc.ts`, `didResolver.ts`, `statusList.ts`, `trust.ts`, `trustList.ts`, `crypto.ts`, `lampnet.ts`, `fingerprint.ts`, `dossier.ts`, `consent.ts`, `schema.ts`, `schemaRegistry.ts`, `anchor.ts`, `did.ts`, `types.ts`, `index.ts`.
 > - `PhoenixKey-Frontend/src/app/verify/page.tsx` + `src/components/vc/{ui,DeclareForm}.tsx` — luồng `/vc`.
-> - Nguồn thiết-kế nội-bộ (không công khai): Knowme-Feat-Math (lớp tài-liệu — **[SPEC]**); KYC-KYB-ZK-Feat-Math (Mức 3 BBS+ — **[SPEC]**).
+> - Nguồn thiết-kế nội-bộ (không công khai): Knowme-Feat-Math (lớp tài-liệu — **[SPEC]**); KYC-KYB-ZK-Feat-Math (Mức 3 BBS+ [BBS-CRYPT] — chuẩn W3C, tại thời-điểm viết là Editor's Draft chưa Recommendation — **[SPEC]**).
 >
 > **Ranh-giới code/spec:** Mức 1+2 nằm trong `src/lib/sdvc/`. Mức 3 ZK (`src/lib/sdvc/zk/`, `ZkCredential`/`BBS`/`ProveDerived`) là **[SPEC]** — thiết-kế riêng, chưa gộp vào cây thư-mục lõi.
 >

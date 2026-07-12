@@ -29,7 +29,7 @@ PhoenixKey chia thành 8 module. Mỗi module có bộ 4 tài liệu (xem mục 
 |---|---|---|
 | **Anchorme** | Danh tính của bạn, neo thẳng trên chuỗi (`did:phoenix:…`), chỉ vân tay + Secure Enclave điều khiển. | Tầng lõi (Layer‑0): DID, anchor NFT, controller, xoay chìa (rotation), cây sở hữu. |
 | **Rebirthme** | Chiếc ví đi theo bạn, không đi theo chìa khoá. | Ví đa‑địa‑chỉ theo DID + khôi phục theo tầng (guardian / phương thức đa dạng). |
-| **Safesend** | Gửi có bảo vệ — nút "hoàn tác" cho giao dịch. | Escrow cửa‑sổ‑veto + đa‑yếu‑tố, opt‑in: huỷ được khi gửi nhầm, chống trộm khi lộ khoá. Tái dùng ví/guardian/anti‑drain của Rebirthme. |
+| **Smartsend** | Gửi có bảo vệ — nút "hoàn tác" cho giao dịch. | Escrow cửa‑sổ‑veto + đa‑yếu‑tố, opt‑in: huỷ được khi gửi nhầm, chống trộm khi lộ khoá. Tái dùng ví/guardian/anti‑drain của Rebirthme. |
 | **Wakeme** | Chiếc Đèn và Điều ước của bạn. | Kích hoạt / vesting → sinh MAGIC → tiêu dùng dịch vụ trong hệ sinh thái. |
 | **Feecover** | Lớp phủ phí giao dịch. | Trừu tượng hoá phí (fee abstraction) — hạ tầng, người dùng không tự lo ADA. |
 | **Protectme** | Lớp bồi hoàn cuối, phủ phần bị mất. | Bảo vệ / bồi hoàn tuỳ chọn. |

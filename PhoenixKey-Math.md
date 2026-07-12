@@ -169,6 +169,9 @@ MAX_DELEGATION_DEPTH    = 10           ownership chain cap
 MAX_GUARDIAN_COUNT      = 7            max guardians per PersonDID
 MIN_GUARDIAN_THRESHOLD  = 2
 MIN_GUARDIAN_COLLATERAL = 50_000_000   lovelace (50 ADA)
+  -- [NEEDS-EVIDENCE] no cost-derivation cited for this figure (e.g. a
+  -- griefing-cost-floor or a multiple of CIP-0055 min-ADA); it is a
+  -- governance-tunable placeholder (see §26 "Guardian collateral amounts").
 
 -- TAAD timelocks (1 epoch = 432,000 slots ≈ 5 days):
 TAAD_TIMELOCK_T1         = 7  × 432_000  -- ~7 days  (Tier 1)
@@ -176,9 +179,33 @@ TAAD_TIMELOCK_T2         = 10 × 432_000  -- ~10 days (Tier 2)
 TAAD_TIMELOCK_T3         = 14 × 432_000  -- ~14 days (Tier 3)
 TIER5_TIMELOCK           = 21 × 432_000  -- ~21 days (Tier 5: weakest)
 
+-- ⚠️ [MÂU-THUẪN CHƯA-CHỐT, gắn 2026-07-12 — cần Long/Tuân xác-nhận trước khi
+--    sửa số ở đây]: đối-chiếu trực-tiếp `PhoenixKey-Validator` (đọc code
+--    2026-07-12) cho hai điểm LỆCH với các hằng-số phía trên:
+--    (1) MAX_GUARDIAN_COUNT ở đây = 7, nhưng
+--        `lib/phoenixkey/taad_logic.ak:195,217` (UpdateGuardians, Transfer)
+--        ép cứng `list.length(new_guardians) <= 5` — code triển-khai giới-hạn
+--        5, không phải 7. `PhoenixKey-Anchorme-Math.md`, `Rebirthme-Math.md`,
+--        `STATUS.md` đều đã ghi `≤5` khớp code — chỉ riêng Math.md (file này)
+--        còn ghi 7.
+--    (2) TAAD_TIMELOCK_T1..T3/TIER5_TIMELOCK ở đây mô-tả một cascade
+--        4-mức theo NGÀY (7/10/14/21 ngày = hàng trăm-nghìn slot); nhưng
+--        `taad_logic.ak` không có nhánh theo-tier cho timelock — chỉ có
+--        MỘT tham-số phẳng `recovery_timelock_slots` (kiểu `ValidatorParams`,
+--        `types.ak:132`), và giá-trị dùng trong bộ test hiện-hành
+--        (`taad_logic.ak:385`, `test_params()`) là `3600` slot (~1 giờ) —
+--        không phải 7-21 ngày. Đây có-thể là (a) code mới chỉ triển-khai
+--        MỘT tier của cascade 4-mức thiết-kế trong Math.md, hoặc (b) giá-trị
+--        test tạm khác giá-trị deploy thật (chưa tìm thấy giá-trị apply-param
+--        lúc deploy trong repo này để xác-nhận), hoặc (c) hai tài-liệu mô-tả
+--        hai cơ-chế khác nhau đã phân-kỳ. KHÔNG tự sửa số ở đây cho tới khi
+--        xác-nhận với Long/Tuân giá-trị nào đang thật-sự deploy trên Preview.
+
 -- Backup grace period:
 TIER5_BACKUP_GRACE_SLOTS = 30 × 432_000  -- ~30 days after registration
 HIGH_STAKES_THRESHOLD    = 100_000_000   -- 100 ADA in lovelace (governance param)
+  -- [NEEDS-EVIDENCE] no derivation cited for why 100 ADA specifically; a
+  -- governance-tunable placeholder pending an economic-threshold analysis.
 
 -- End-of-life timelocks:
 DEATH_TIMELOCK           = 30 × 432_000  -- ~30 days observation before Posthumous finalizes
@@ -209,7 +236,7 @@ DID_construct(type, creator, slot) → DID ≜
   hex(H(encode(type) ++ (creator ?? "root") ++ encode(slot) ++ rand_256))
   where rand_256 ← SecureRandom(256)
 
-Collision: P(any two collide | n DIDs) ≤ n²/2^257 ≈ 5.4×10^{-54} at n=10^12
+Collision: P(any two collide | n DIDs) ≤ n²/2^257 ≈ 4.32×10^{-54} at n=10^12
 ```
 
 ### §2.2 DID Types
@@ -275,6 +302,8 @@ SecurityLevel_score(level) → ℚ ≜
   | Software            → 1
   | Owner_Delegated     → 0
 ```
+
+**[NEEDS-EVIDENCE / orphaned-reference, flagged 2026-07-12]** These specific weights (6/5/1+4m∕n/2/1/0) are not derived from any stated model — no threat model, cost analysis, or empirical calibration is cited for why `Biometric_Hardware` is worth exactly 6, or why the `Threshold` formula uses coefficient 4 rather than another value. A repo-wide search (§26–§28 and all invariants/theorems) found **no other definition or theorem in this document that consumes `SecurityLevel_score`** — it is not currently load-bearing for any proof or on-chain check. Until it is either (a) wired into a real invariant/theorem with the weights justified by that use, or (b) formally removed as unused, treat this function as **informative only, not normative** — it MUST NOT be read as an audited security ranking.
 
 ---
 
@@ -685,7 +714,15 @@ Master_KEK   = Dec(Device_KEK, EncSeed)
 -- New EncSeed = Enc(new_Device_KEK, Master_KEK) re-uploaded.
 
 I-LAMP-1: |Droplets| = 1000 at upload time
-I-LAMP-2: LT_Decode(LT_Encode(data, k, n), k) = data  (correctness)
+I-LAMP-2: LT_Decode(LT_Encode(data, k, n), k') = data  with probability ≥ 1-δ
+          when k' ≥ k+ε droplets are received (δ=0.01, the Robust-Soliton
+          parameter from §7.1) — a PROBABILISTIC guarantee, not a deterministic
+          one at exactly k droplets (fountain codes do not guarantee decode
+          success from the bare minimum k; this is why retrieval in §7.2
+          requests min_count=60, a k+10 margin over k=50, rather than exactly
+          k). Corrected 2026-07-12: previous phrasing stated `= data` at
+          exactly k with no probability term, contradicting the "any k+ε
+          sufficient" note in §7.1.
 I-LAMP-3: LocatorSecret never transmitted in plaintext
 ```
 
@@ -980,6 +1017,8 @@ TAAD_state_machine_valid(did: PersonDID, op: Capability, s: SlotNo) : 𝔹 ≜
 
 §11 defines the tiered recovery protocol for PersonDID holders who have lost access to their device. The protocol is TAAD-based (§10) and applies exclusively to PersonDID. Recovery tiers are ordered from strongest to weakest; the cascade (§11.1) tries each tier in order. Tier 4 (Posthumous, §32.1) is a special administrative path triggered by a government OrgDID death certificate, not by the user.
 
+**Design reference for the cascade shape** (weaker verification tier ⇒ longer timelock, TAAD_TIMELOCK_T1=7d through TIER5_TIMELOCK=21d, §1.4): this follows the same qualitative principle as NIST SP 800-63B §6.1.2's treatment of account-recovery mechanisms — a recovery path with weaker assurance should carry compensating controls (here, a longer waiting window that gives the legitimate owner more time to detect and Cancel a fraudulent attempt) rather than being trusted equally to a strong-assurance path `[NIST-63B]` (see Appendix G). This is a qualitative design-pattern reference, not a claim that NIST 800-63B prescribes these specific day-counts — the concrete 7/10/14/21-day values remain governance parameters (see the [NEEDS-EVIDENCE] flags at §1.4) pending an explicit cost/UX tradeoff writeup.
+
 ## §11.0 Recovery Scope and Mandatory Backup [N] *(v4.4, revised v4.5)*
 
 ### §11.0.1 TAAD Scope — PersonDID Only
@@ -1175,9 +1214,11 @@ evidence_proves_fraudulent_action(evidence, guardian_did, s) ≜
     | DoubleSignedRecovery    -- guardian signed conflicting recovery requests
 ```
 
-### §11.3.1 Guardian Incentive Model — Nash Equilibrium [N]
+### §11.3.1 Guardian Incentive Model — Individual-Rationality Condition [N]
 
-The collateral mechanism creates a dominant strategy equilibrium where honest behavior is rational. Agreed in FormalSpec v3.0 §MT10.
+**Rigor note (2026-07-12):** this section was previously titled "Nash Equilibrium." What is actually derived below is an **individual-rationality (IR) condition** for a single guardian — the collateral level `C*` at which fraud has non-positive expected payoff for *that one guardian*, holding the behavior of all other parties fixed. This is necessary but not sufficient for a Nash equilibrium in the formal game-theoretic sense [NASH50], which additionally requires: (a) an explicit strategy space for every player (all guardians, the owner, and the attacker), (b) a full payoff matrix over joint strategy profiles, and (c) a proof that no player can improve their payoff by unilaterally deviating, for every player simultaneously. None of (a)–(c) is established here. The safety-margin constant `1.2` (20%) and the `Alert_reward = 2%` figure below are policy parameters chosen by the team, not values derived from an equilibrium proof — they are not claimed to be tight or optimal, only sufficient under the stated (single-guardian, other-parties-fixed) model. A full multi-player equilibrium analysis is out of scope for this revision.
+
+The collateral mechanism creates an individual-rationality condition where, for a single guardian holding others' behavior fixed, honest behavior is the rational choice. Agreed in FormalSpec v3.0 §MT10.
 
 ```
 -- Parameters:
@@ -1200,7 +1241,7 @@ Alert_reward = 2% × confiscated_collateral
 -- This makes detection profitable, creating a dominant strategy for honest guardians.
 
 -- Constraint:
-I-GUARDIAN-NASH: MIN_GUARDIAN_COLLATERAL ≥ C*(V_typical, m, λ, m)
+I-GUARDIAN-IR: MIN_GUARDIAN_COLLATERAL ≥ C*(V_typical, m, λ, m)  -- individual-rationality bound, see rigor note above
   where V_typical = typical assets under management for target user segment
   -- Concrete: MIN_GUARDIAN_COLLATERAL = 50 ADA covers typical DeFi holdings.
   -- High-value users should configure higher collateral via policy.threshold.
@@ -1374,8 +1415,21 @@ Email commitment (at enrollment):
 --   Attacker with on-chain data has: password_commitment + password_salt
 --   Attack: run Argon2id(guess, password_salt) and compare
 --   Cost: ~0.3s per attempt on dedicated GPU (64 MiB memory-hard)
+--     [NEEDS-EVIDENCE: this throughput figure has no cited benchmark —
+--      RFC 9106 §4 is the source for the Argon2id parameters themselves,
+--      not for this specific attempts/sec number on a specific GPU class]
 --   12+ char password, zxcvbn ≥ 3 → ~60 bits entropy
---   2^60 attempts × 0.3s ≈ 10^18 seconds → computationally infeasible
+--     [zxcvbn score is a qualitative bucket, not a bits-of-entropy measure;
+--      this ~60-bit figure is an illustrative order-of-magnitude estimate,
+--      not a derived quantity — treat as approximate]
+--   2^60 attempts × 0.3s ≈ 3.46×10^17 seconds (≈11 billion single-GPU-years,
+--     ≈0.8× the age of the universe) → computationally infeasible for a
+--     single attacking device; corrected 2026-07-12 (previous figure of
+--     10^18s was an arithmetic error — 2^60×0.3 ≈ 3.46×10^17, not 10^18).
+--     Note this baseline assumes ONE dedicated GPU; an attacker parallelizing
+--     across N devices divides wall-clock time by N — the total attempt-count
+--     (2^60) is what Argon2id's memory-hardness makes expensive per unit,
+--     not a fixed wall-clock guarantee independent of attacker resources.
 --   Protection source: Argon2id memory-hardness, not salt-hiding.
 --   Salt-hiding in v4.4 was unnecessary layering that created deadlock.
 
@@ -1446,10 +1500,16 @@ I-TIER5-PW-1 [N]: Argon2id MUST execute exclusively off-chain (mobile/SDK).
 I-TIER5-PW-2 [N]: Argon2id parameters at enrollment MUST satisfy:
   m ≥ 65536 (= 64 MiB, unit: KiB as per Argon2 spec RFC 9106),
   t ≥ 3 (iterations), p ≥ 4 (parallelism threads).
-  Rationale: These parameters yield ~0.3s per attempt on dedicated GPU.
-  Combined with 12+ char password (~60 bits entropy):
-    2^60 attempts × 0.3s ≈ 10^18 seconds → computationally infeasible.
-  Ref: RFC 9106 §4 — https://www.rfc-editor.org/rfc/rfc9106
+  Rationale: These parameters yield ~0.3s per attempt on dedicated GPU
+    [NEEDS-EVIDENCE: throughput figure not independently benchmarked/cited].
+  Combined with 12+ char password (~60 bits entropy, illustrative estimate
+    from zxcvbn score — not a formal bits-of-entropy derivation):
+    2^60 attempts × 0.3s ≈ 3.46×10^17 seconds (≈11 billion single-GPU-years)
+    → computationally infeasible for a single device (corrected 2026-07-12;
+    see §11.6.3 for the full correction note and the parallelization caveat).
+  Ref: RFC 9106 §4 — https://www.rfc-editor.org/rfc/rfc9106 (for the Argon2id
+    parameter choice itself; the throughput/time figures above are separate
+    estimates, not sourced from RFC 9106)
 
 I-TIER5-PW-3 [N-UX]: Password strength enforced at enrollment (UX layer only):
   ≥ 12 characters.
@@ -2239,19 +2299,22 @@ If AgentDID `a` executes `op` via Tx `tx` at slot `s`, then `tx` produces audit 
 
 **Theorem 27.7 — EUF-TAAD Security** [informal; mechanized proof target v5.0]
 
+**Rigor note (2026-07-12):** the statement and proof sketch below were missing the Tier 5 (password+email) finalize path introduced in §11.6, which is a valid `TAAD_Finalize_Recovery` route that does not reduce to (a)/(b)/(c) as originally written — it requires neither `hw_pub` possession nor guardian threshold. Branch (d) below closes that gap; the statement is not claimed complete for any future recovery tier added without a corresponding branch here.
+
 *Statement.* No probabilistic polynomial-time (PPT) adversary A can forge a valid `TAAD_Finalize_Recovery` transaction for a PersonDID `d` without one of the following:
 - **(a) Key possession:** A possesses the current `hw_pub` private key of `d`, OR
 - **(b) Guardian threshold:** A has collected ≥ `policy.threshold` valid guardian signatures on a current-epoch challenge for `d`, AND the recovery timelock T1/T2/T3 has elapsed without cancellation, OR
-- **(c) Cryptographic break:** A breaks the underlying Ed25519 signature scheme or BLAKE2b-256 hash function.
+- **(c) Cryptographic break:** A breaks the underlying Ed25519 signature scheme or BLAKE2b-256 hash function, OR
+- **(d) Tier 5 knowledge+possession compromise:** A recovers the Tier 5 password (i.e., breaks Argon2id memory-hardness or brute-forces the password within the cost bound of §11.6.3/§11.6.5) AND compromises the EmailOracle-verified mailbox access for `d` (i.e., forges `EmailAccessProof` or breaks the EmailOracle signing key) — both factors required per the AND logic of §11.6.4 `tier_5_recovery`, and the recovery timelock `TIER5_TIMELOCK` has elapsed without cancellation.
 
 *Informal proof sketch.*
 1. `TAAD_finalize_recovery` requires `Verify(pending_hw_pub, H("finalize" ∥ s ∥ seq), sig)` where `pending_hw_pub` was bound at `TAAD_init_recovery` time.
-2. `TAAD_init_recovery` requires tier-appropriate proofs (§11). Tier 1 requires the recovery tx to be signed by a pkh whose commitment `BLAKE2b-256(pkh ∥ did ∥ enrolled_slot)` is in `TAADDatum.secondary_wallets` (v4.5 commitment-based approach; see §11.2). Tier 2/3 requires ≥ threshold guardian signatures on a fresh nonce.
+2. `TAAD_init_recovery` requires tier-appropriate proofs (§11). Tier 1 requires the recovery tx to be signed by a pkh whose commitment `BLAKE2b-256(pkh ∥ did ∥ enrolled_slot)` is in `TAADDatum.secondary_wallets` (v4.5 commitment-based approach; see §11.2). Tier 2/3 requires ≥ threshold guardian signatures on a fresh nonce. Tier 5 requires BOTH the Argon2id password proof AND the EmailOracle-signed `EmailAccessProof` (§11.6.4) — a distinct, non-key, non-guardian path.
 3. The A-6 invariant (§10.4) enforces that A cannot finalize before `recovery_deadline`.
 4. The C-SEQ invariant prevents replay of old recovery proofs.
-5. Therefore A must either (a) forge a signature without the private key — impossible by Ed25519 security — or (b) collect threshold guardian signatures — requires social engineering ≥ threshold guardians — or (c) break the hash function.
+5. Therefore A must either (a) forge a signature without the private key — impossible by Ed25519 security — or (b) collect threshold guardian signatures — requires social engineering ≥ threshold guardians — or (c) break the hash function — or (d) simultaneously defeat both Tier 5 factors (password brute-force past Argon2id's memory-hardness cost, and mailbox/EmailOracle compromise).
 
-*Security note.* The device-loss + guardian-collusion edge case (no secondary wallet, colluding guardians) reduces TAAD security to the physical security of the guardian keys and the collateral disincentive (§11.3.1). This is a user configuration constraint, not a protocol flaw. Formal reduction to Ed25519-UF and SHA3-collision resistance: target v5.0.
+*Security note.* The device-loss + guardian-collusion edge case (no secondary wallet, colluding guardians) reduces TAAD security to the physical security of the guardian keys and the collateral disincentive (§11.3.1). This is a user configuration constraint, not a protocol flaw. The Tier 5 path (d) reduces TAAD security, for a user who has enrolled Tier 5, to the weaker of (i) password strength under Argon2id (see §11.6.3/§11.6.5 caveats — the ~60-bit estimate is illustrative, not a tight bound) and (ii) EmailOracle/mailbox security, which is a materially different — and generally weaker — trust assumption than (a)/(b)/(c). This is a known, accepted tradeoff for Tier 5's accessibility goal, not an oversight; it should be weighed explicitly by any deployment enabling Tier 5 for high-value PersonDIDs. Formal reduction to Ed25519-UF and SHA3-collision resistance: target v5.0.
 
 ---
 
@@ -2277,7 +2340,7 @@ If AgentDID `a` executes `op` via Tx `tx` at slot `s`, then `tx` produces audit 
 | GDPR erasure claim vs on-chain hash | All | T28.2: hash ≠ personal data per GDPR Rec.26 |
 | Posthumous impersonation | PersonDID | §32.1: death event requires OrgDID attestation + timelock |
 | Minor bypass guardian control | PersonDID (minor) | §34.3: MinorControl predicate; guardian approval required |
-| Tier 5: offline password brute-force | PersonDID | Argon2id 64 MiB memory-hard (I-TIER5-PW-2); 12+ char password ~60 bits → 10^18s at 0.3s/attempt |
+| Tier 5: offline password brute-force | PersonDID | Argon2id 64 MiB memory-hard (I-TIER5-PW-2); 12+ char password ~60 bits (illustrative) → ≈3.46×10^17s at 0.3s/attempt on one GPU (see §11.6.5 for caveats on both figures) |
 | Tier 5: email account takeover → init + suppress cancel | PersonDID | Residual risk acknowledged; 21-day window; user should configure Tier 1/2/3 for higher security |
 | Tier 5: EMAIL_ORACLE_PK compromise | PersonDID | EmailAccessProof forged → invalid Tier 5 inits; mitigation: oracle key rotation via PhoenixKey OrgDID governance; I-TIER5-EMAIL-2 |
 | Recursive orphan chain (cha mẹ và con cùng chết) | PersonDID (minor/estate) | I-RECOVERY-5: beneficiary Posthumous → DID → Archived immediately |
@@ -2426,7 +2489,7 @@ The following components are fully specified in this document and must be open f
 |-----------|----------|-----------|
 | TAAD Standard (AuthToken singleton, ASM A-1..A-6) | §10 | Interoperability requires public standard |
 | Guardian Protocol (threshold recovery, collateral, slashing) | §11.2, §11.3 | User safety requires auditable guardian system |
-| Guardian Incentive Model (Nash equilibrium, alert reward) | §11.3.1 | Economic analysis must be public |
+| Guardian Incentive Model (individual-rationality condition, alert reward) | §11.3.1 | Economic analysis must be public |
 | All 10 DID Type Specifications | §12–§21 | Ecosystem composability |
 | Authority Model and Capability System | §3, §4 | Smart contract compatibility |
 | Ownership Graph and Delegation Protocol | §22, §23 | Cross-app interoperability |
@@ -3527,7 +3590,7 @@ DID_construct(type, creator, slot) → DID:
   raw = H(encode(type) ++ (creator ?? "root") ++ encode(slot) ++ rand_256)
   RETURN "did:phoenix:" ++ base32(slot) ++ ":" ++ hex(raw)
 
-Collision: P(n DIDs) ≤ n²/2^257;  at n=10^12: P ≤ 5.4×10^{-54}
+Collision: P(n DIDs) ≤ n²/2^257;  at n=10^12: P ≤ 4.32×10^{-54}
 ```
 
 ---
@@ -3716,6 +3779,15 @@ Slot 201: DelegationToken_valid(dt, 201):
 
 All links valid as of 2026-05-28. Click to open.
 
+> **Rà-soát dẫn-nguồn 2026-07-12:** đây là kho tham-chiếu chung của toàn bộ hệ PhoenixKey — KHÔNG
+> phải mọi mục dưới đây đều được trích trực-tiếp bằng tag `[TAG]` tại một claim cụ-thể trong văn
+> bản (một số như RFC 5869/8032/9106 được nêu bằng chữ thường "RFC 9106" ngay tại claim liên-quan,
+> coi như đã có căn-cứ; các mục khác là nguồn nền cho các module con dùng chung công-nghệ, ví-dụ
+> `[BBS-CRYPT]`/`[SAFECURVES]`/`[BLAKE2]`/`[CIP-0381]`/`[SHAMIR79]` — SHAMIR79 giữ làm nguồn
+> lịch-sử để đối-chiếu khi giải-thích "vì sao đã bỏ Shamir", xem `guardian-recovery-model`).
+> Đừng đọc sự có-mặt của một mục ở đây như bằng-chứng mọi dòng phía trên trong tài-liệu đã được
+> kiểm-chứng đối-chiếu chuẩn đó — coi bảng này là thư-mục nguồn, không phải chứng-nhận.
+
 ## G.1 Standards and Specifications
 
 | Ref | Document | URL |
@@ -3751,6 +3823,9 @@ All links valid as of 2026-05-28. Click to open.
 | [SAFECURVES] | SafeCurves — choosing safe elliptic curves | https://safecurves.cr.yp.to/ |
 | [ZXCVBN] | zxcvbn — realistic password strength | https://github.com/dropbox/zxcvbn |
 | [HIBP-API] | HaveIBeenPwned API v3 (k-anonymity) | https://haveibeenpwned.com/API/v3#PwnedPasswords |
+| [GROTH16] | Groth (2016) — On the Size of Pairing-Based Non-interactive Arguments | https://eprint.iacr.org/2016/260 |
+| [FROST20] | Komlo & Goldberg (2020) — FROST: Flexible Round-Optimized Schnorr Threshold Signatures | https://eprint.iacr.org/2020/852 |
+| [RFC6962] | Certificate Transparency — RFC 6962 (domain-separation reference for PA2 Merkle, `PhoenixKey-Anchorme-Math.md`) | https://www.rfc-editor.org/rfc/rfc6962 |
 
 ## G.3 Platform Documentation
 

@@ -80,7 +80,7 @@ kéo về được nữa. Cũng có tài sản để ở nơi khác (ví thườ
 - App hiện **phí bảo vệ** (premium) — đóng định kỳ (tháng/năm). Phí trừ tự động, bạn không
   phải thao tác thủ công mỗi kỳ.
 - App cho thấy **phí giảm khi bạn bật các lớp an toàn**: ví dụ "bật chặn-rút-sạch → giảm
-  X%", "có người thân bảo lãnh → giảm thêm". Càng an toàn, phí càng rẻ.
+  X%", "có người thân bảo lãnh → giảm thêm" (X% chỉ là ví dụ minh hoạ cách tính, KHÔNG phải con số thật đang áp dụng — mức giảm thật chưa chốt, xem §9). Càng an toàn, phí càng rẻ.
 - Sau khi bật có **thời gian chờ** (đề xuất 14–30 ngày) mới có hiệu lực — để không ai
   "mua bảo hiểm sau khi đã bị trộm".
 

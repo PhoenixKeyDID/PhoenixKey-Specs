@@ -12,7 +12,7 @@ Module **Rebirthme** là trục "giữ tiền" của PhoenixKey: ví đi theo DA
 
 **Nền-tảng:** Ví Phượng-hoàng (`did_payment`) chi khi DID Active + controller hiện-tại ký; **tài-sản sống qua rotate/recovery** (địa-chỉ bất-biến, đọc controller động qua anchor ref-input); đóng-băng theo trạng-thái (Recovering/Migrated/Revoked chặn mọi chi); guardian-recovery theo ngưỡng + timelock, đã BỎ mô-hình giữ-mảnh (Shamir), chỉ uỷ-quyền.
 
-**Luật thiết-kế cốt-tử:** lớp **anti-drain** (trần rút + đóng-băng chủ-động) là **LOAD-BEARING** cho mọi DID giữ giá-trị đáng-kể — không phải tính-năng trang-trí. Vì khoá phần-cứng (P-256 Secure Enclave) không verify được trên chuỗi, quyền chi value quy về khoá gốc (SEED, Ed25519 controller) — anti-drain là lớp cản DUY-NHẤT giữa lộ seed và mất sạch, nên là hạng-mục ưu-tiên số 1 (xem `PhoenixKey-Rebirthme-Math.md` I-CURVE-4). **Địa-chỉ riêng-tư L3** dùng chung validator `did_subaddr` với Easteregg. (**Safesend** nay là module độc-lập thứ 8 — xem `PhoenixKey-Safesend-Exec.md`; nó tái-dùng anti-drain/guardian của module này.)
+**Luật thiết-kế cốt-tử:** lớp **anti-drain** (trần rút + đóng-băng chủ-động) là **LOAD-BEARING** cho mọi DID giữ giá-trị đáng-kể — không phải tính-năng trang-trí. Vì khoá phần-cứng (P-256 Secure Enclave) không verify được trên chuỗi, quyền chi value quy về khoá gốc (SEED, Ed25519 controller) — anti-drain là lớp cản DUY-NHẤT giữa lộ seed và mất sạch, nên là hạng-mục ưu-tiên số 1 (xem `PhoenixKey-Rebirthme-Math.md` I-CURVE-4). **Địa-chỉ riêng-tư L3** dùng chung validator `did_subaddr` với Easteregg. (**Smartsend** nay là module độc-lập thứ 8 — xem `PhoenixKey-Smartsend-Exec.md`; nó tái-dùng anti-drain/guardian của module này.)
 
 ---
 
@@ -47,7 +47,7 @@ Module **Rebirthme** là trục "giữ tiền" của PhoenixKey: ví đi theo DA
 - **M1:** mở resolver `service[]` L1/L2 + chặn cứng L3; wallet API v2 (Standard, `/all`, deprecate MAGIC); kho bí-mật blob-đơn.
 - **M2 (ưu-tiên số 1):** `limit_meter.ak` + sửa `did_payment` nhánh binding opt-in → đóng hở anti-drain. Enforce I-CURVE-5 ở builder.
 - **M3:** `did_stake.ak` (stake theo-DID + đa-ISPO); export re-key cắm mặc-định UI.
-- **M4:** phả-hệ seed + Strata. (Safesend `safesend_escrow.ak` nay ở module riêng — lộ-trình ở `PhoenixKey-Safesend-Exec.md §5`; phụ-thuộc anti-drain land.)
+- **M4:** phả-hệ seed + Strata. (Smartsend `smartsend_escrow.ak` nay ở module riêng — lộ-trình ở `PhoenixKey-Smartsend-Exec.md §5`; phụ-thuộc anti-drain land.)
 - **M5:** `did_subaddr.ak` (L3 unlinkable — sau khi maintainer chốt); registry-lib mode-2 (Org m-of-n); pool KES (sau PoC crate).
 
 ---
@@ -57,7 +57,7 @@ Module **Rebirthme** là trục "giữ tiền" của PhoenixKey: ví đi theo DA
 1. **`did_subaddr.ak` (L3 unlinkable)** — dependency onchain MỚI [DEP-2]. Chốt build hay hoãn? (MVP tạm "riêng-tư mức-resolver" chạy được ngay.)
 2. **Meter-NFT policy** — dùng `taad` Design-2 hay policy meter chuyên-dụng? [CẦN CHỐT-W1]
 3. **`vault_index_anchor` + `recovery_anchor` + `pool_anchor` vào `TAADDatum`** — thay-đổi schema thuộc Specs/Validator (đội backend). Duyệt? [CẦN CHỐT-W3]
-4. **Vị-trí module Safesend** — Safesend là module độc-lập thứ 8 (tách khỏi Rebirthme). Nó tái-dùng hạ-tầng của module này (guardian-factor, anti-drain, `did_payment`) — dependency khai rõ ở `PhoenixKey-Safesend-{Tech,Math}.md`, KHÔNG nhân-bản. Quyết-định + rủi-ro + lộ-trình + 5 vá đỏ ở `PhoenixKey-Safesend-Exec.md`.
+4. **Vị-trí module Smartsend** — Smartsend là module độc-lập thứ 8 (tách khỏi Rebirthme). Nó tái-dùng hạ-tầng của module này (guardian-factor, anti-drain, `did_payment`) — dependency khai rõ ở `PhoenixKey-Smartsend-{Tech,Math}.md`, KHÔNG nhân-bản. Quyết-định + rủi-ro + lộ-trình + 5 vá đỏ ở `PhoenixKey-Smartsend-Exec.md`.
 5. **Chính-sách tiền lớn khi anti-drain chưa land** — có khuyến-cáo hạn-mức tiền/địa-chỉ tạm-thời không, hay chấp-nhận rủi-ro tới M2?
 6. **Crate KES/VRF Rust** — cấp nguồn cho PoC sớm (rủi-ro chính của pool-ops)?
 

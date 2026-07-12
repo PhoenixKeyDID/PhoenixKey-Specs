@@ -193,7 +193,7 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 > **Phát-biểu.** Verifier chấp-nhận một trường `d` ⟺ `d` thuộc credential đã-ký (membership) và presentation do đúng holder ký cho đúng phiên. Với trường không-tiết-lộ, verifier không thu được `value`.
 
 **Chứng-minh (phác-thảo).**
-1. *Soundness:* `accept(d) ⟹ digest(d) ∈ sd[]` (Đ-3) và `sd[]` được holder ký trong credential; giả-mạo `d′` với `digest(d′) ∈ sd[]` đòi tìm preimage thứ-hai của `H` (chống va-chạm BLAKE2b). ∎
+1. *Soundness:* `accept(d) ⟹ digest(d) ∈ sd[]` (Đ-3) và `sd[]` được holder ký trong credential; giả-mạo `d′` với `digest(d′) ∈ sd[]` (một digest **đã tồn-tại sẵn** trong `sd[]`) đòi tìm **second-preimage** của `H` — tức tìm một `d′ ≠ d` sao cho `H(d′) = H(d)` với `H(d)` đã cho trước. Đây là thuộc-tính **chống-tiền-ảnh-thứ-hai (second-preimage resistance)** của BLAKE2b, KHÔNG phải **chống va-chạm (collision-resistance)** — hai thuộc-tính mật-mã khác nhau: collision-resistance là bài-toán tìm HAI input bất-kỳ (cả hai do kẻ tấn-công tự chọn) cùng chung một hash, còn ở đây một digest đã cố-định sẵn (từ `sd[]`), kẻ tấn-công chỉ được chọn input còn lại — đúng định-nghĩa second-preimage. *(Sửa 2026-07-12: bản trước ghi nhầm "chống va-chạm".)* ∎
 2. *Binding phiên:* chữ ký holder phủ `[aud, nonce]` (I-KNOW-5) ⟹ tái dùng sang `aud′/nonce′` khác → chữ ký fail.
 3. *Hiding:* trường không-tiết-lộ chỉ xuất-hiện dưới `digest = H(canon([salt,path,value]))` với salt ≥128-bit ẩn ⟹ dictionary attack trên value ít-entropy bất-khả nếu không biết salt (I-KNOW-3). ∎
 

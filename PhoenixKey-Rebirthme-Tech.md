@@ -3,7 +3,7 @@
 > **Module:** Rebirthme (slug `Rebirthme`). **Loại doc:** Kỹ-thuật cho implementer (đội on-chain / đội backend / Core rust_core). **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** kỹ-sư triển-khai. HOW: kiến-trúc, datum/redeemer CBOR, điều-kiện tx, luồng e2e, API, ranh-giới giao-việc, thứ-tự deploy, test.
 >
-> **Ranh giới (MECE):** module CHI + địa-chỉ + anti-drain + kho bí-mật/phả-hệ + stake theo-DID + connector + di-cư + pool-ops. **Safesend** (gửi-có-bảo-vệ) nay là module độc-lập — xem [PhoenixKey-Safesend-Tech.md](./PhoenixKey-Safesend-Tech.md); module này chỉ cung-cấp hạ-tầng nạp-nguồn/guardian/anti-drain mà Safesend tái-dùng. **TAAD state-machine (genesis/rotate/recovery-mechanics)** thuộc Core Anchorme — chỉ dẫn-chiếu. Xem [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) cho bất-biến, `PhoenixKey-Math.md` §10/§11 cho TAAD.
+> **Ranh giới (MECE):** module CHI + địa-chỉ + anti-drain + kho bí-mật/phả-hệ + stake theo-DID + connector + di-cư + pool-ops. **Smartsend** (gửi-có-bảo-vệ) nay là module độc-lập — xem [PhoenixKey-Smartsend-Tech.md](./PhoenixKey-Smartsend-Tech.md); module này chỉ cung-cấp hạ-tầng nạp-nguồn/guardian/anti-drain mà Smartsend tái-dùng. **TAAD state-machine (genesis/rotate/recovery-mechanics)** thuộc Core Anchorme — chỉ dẫn-chiếu. Xem [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) cho bất-biến, `PhoenixKey-Math.md` §10/§11 cho TAAD.
 > → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
 
 ---
@@ -12,7 +12,7 @@
 
 ```
 ┌──────────────────────── PhoenixKey-Core (Flutter + rust_core) ─────────────────────┐
-│  UI: Ví Phoenix/Standard · Guardian · Khôi-phục · Kho bí-mật · Hạn-mức · Safesend   │
+│  UI: Ví Phoenix/Standard · Guardian · Khôi-phục · Kho bí-mật · Hạn-mức · Smartsend   │
 │  rust_core (FFI): did_payment builder · lampnet ECIES · sign/crypto · migration/    │
 │                   claim builder · pool KES · vault_frame                            │
 └───────────────┬────────────────────────────────────────────────┬───────────────────┘
@@ -24,7 +24,7 @@
 │  auth_logic.ak · taad_logic   │◄───────────────────┤                            │
 │  limit_meter.ak              │                    └────────────────────────────┘
 │  did_stake.ak · did_subaddr  │
-│  safesend_escrow.ak          │
+│  smartsend_escrow.ak          │
 └──────────────┬───────────────┘
                │ resolver / index
                ▼
@@ -213,8 +213,8 @@ LimitMeterDatum {
 ```
 Q = 10^9. Meter gắn meter-NFT singleton per-DID.
 
-### 3.4 `SafeSendDatum` — nay module riêng
-> `SafeSendDatum` + redeemer (Cancel/Accept/Finalize/Freeze/ReclaimTimeout) chuyển sang `PhoenixKey-Safesend-Tech.md §3.1`.
+### 3.4 `SmartSendDatum` — nay module riêng
+> `SmartSendDatum` + redeemer (Cancel/Accept/Finalize/Freeze/ReclaimTimeout) chuyển sang `PhoenixKey-Smartsend-Tech.md §3.1`.
 
 ### 3.5 `SecretBlob` / `VaultIndex` (Secret-Vault §B.1/B.3)
 ```
@@ -243,7 +243,7 @@ Ký bằng khoá ví ngoài (COSE_Sign1 Ed25519, CIP-8), KHÔNG controller.
 | **Rút lớn L2** | `limit_meter` | `W×Q > available`; +secondary_pkh HOẶC guardian ký; đốt bucket | controller + secondary/guardian |
 | **Freeze/Unfreeze** | `limit_meter` | Freeze: controller∨guardian; Unfreeze: chỉ controller | controller/guardian |
 | **SetConfig nới** | `limit_meter` | 🔴 chịu `large_delay` (I-LIMIT-LOOSEN-DELAY); siết áp ngay | controller |
-| **Safesend** (Open/Cancel/Accept/Finalize/Freeze/ReclaimTimeout) | `safesend_escrow` | nay module riêng — xem [PhoenixKey-Safesend-Tech.md §4](./PhoenixKey-Safesend-Tech.md) | sender/receiver/guardian |
+| **Smartsend** (Open/Cancel/Accept/Finalize/Freeze/ReclaimTimeout) | `smartsend_escrow` | nay module riêng — xem [PhoenixKey-Smartsend-Tech.md §4](./PhoenixKey-Smartsend-Tech.md) | sender/receiver/guardian |
 | **Stake delegate** | `did_stake` | anchor Active + controller ký; VoteDelegation Abstain kèm (Plomin) | controller |
 | **Di-cư ví cũ** | (không validator mới) | 1 tx gộp 4 cert Conway; tự-cấp-phí từ reward | ví ngoài (CIP-30) |
 | **Claim LAMP** | `airdrop_pool` (LAMP) | Merkle permissionless; leaf khớp; burn slot | controller HOẶC Lace (fee) |
@@ -682,10 +682,10 @@ khai); `GET /identity/{did}/stake-status` → owner; `POST /claim/submit` → ow
 
 | Team | Việc |
 |---|---|
-| **đội on-chain** | `limit_meter.ak` (I-LIMIT-*) + sửa `did_payment.ak` thêm nhánh binding meter (I-LIMIT-OPTIN); `did_stake.ak` (I-DIDSTAKE-*); `did_subaddr.ak` (I-ADDR-UNLINK, **chờ maintainer chốt DEP-2**); helper `W(tx)`. **KHÔNG sửa `did_payment.ak` mode-1** ngoài nhánh opt-in. Builder Delegator (migration/claim) + 2 FFI on-ramp (`taad_cose_sign1_verify`, `taad_addr_matches_pubkey`). Pool KES (rust_core, **[VERIFY] crate KES/VRF**). (`safesend_escrow.ak` (SS-*) nay ở module Safesend — [PhoenixKey-Safesend-Tech.md §7](./PhoenixKey-Safesend-Tech.md).) |
+| **đội on-chain** | `limit_meter.ak` (I-LIMIT-*) + sửa `did_payment.ak` thêm nhánh binding meter (I-LIMIT-OPTIN); `did_stake.ak` (I-DIDSTAKE-*); `did_subaddr.ak` (I-ADDR-UNLINK, **chờ maintainer chốt DEP-2**); helper `W(tx)`. **KHÔNG sửa `did_payment.ak` mode-1** ngoài nhánh opt-in. Builder Delegator (migration/claim) + 2 FFI on-ramp (`taad_cose_sign1_verify`, `taad_addr_matches_pubkey`). Pool KES (rust_core, **[VERIFY] crate KES/VRF**). (`smartsend_escrow.ak` (SS-*) nay ở module Smartsend — [PhoenixKey-Smartsend-Tech.md §7](./PhoenixKey-Smartsend-Tech.md).) |
 | **đội backend** | resolver mở rộng `service[]` (L1/L2, chặn cứng L3 — I-ADDR-PRIV); schema `vault_index_anchor`/`recovery_anchor`/`pool_anchor` + update-path (controller ký); wallet API v2; consent/Grant store (point-in-time controller); stake-state indexer; claim orchestration; merkle-serve; metering nanogic; telemetry passthrough; giám-sát `r` lặp (I-SIGN-NO-REUSE — low-s I-SIGN-LOWS ép ở `crypto.rs:339-349`). |
-| **Core (rust_core/Flutter)** | builder chi-có-meter + freeze/SetConfig; `vault_frame`/`vault_kek`/VaultIndex + FFI kho; export re-key (`exportRevokesSeed=true` mặc-định — I-WALLET-6); màn Guardian/Khôi-phục/Kho/Hạn-mức/Phả-hệ; CIP-30 connector; pool KES builder. Enforce I-CURVE-5 (guardian/secondary khác gốc seed). (Màn + builder Safesend nay ở module Safesend — [PhoenixKey-Safesend-Tech.md §7](./PhoenixKey-Safesend-Tech.md).) |
-| **VeData / Glint (ZK)** | VC-Glint recovery. (Factor bối-cảnh Safesend nay ở module Safesend — [PhoenixKey-Safesend-Tech.md §7](./PhoenixKey-Safesend-Tech.md).) |
+| **Core (rust_core/Flutter)** | builder chi-có-meter + freeze/SetConfig; `vault_frame`/`vault_kek`/VaultIndex + FFI kho; export re-key (`exportRevokesSeed=true` mặc-định — I-WALLET-6); màn Guardian/Khôi-phục/Kho/Hạn-mức/Phả-hệ; CIP-30 connector; pool KES builder. Enforce I-CURVE-5 (guardian/secondary khác gốc seed). (Màn + builder Smartsend nay ở module Smartsend — [PhoenixKey-Smartsend-Tech.md §7](./PhoenixKey-Smartsend-Tech.md).) |
+| **VeData / Glint (ZK)** | VC-Glint recovery. (Factor bối-cảnh Smartsend nay ở module Smartsend — [PhoenixKey-Smartsend-Tech.md §7](./PhoenixKey-Smartsend-Tech.md).) |
 | **LampNet** | Strata engine + `GET /audit`; Mirage `EncryptedDistributed` (durability I-VAULT-8); adapter neo. |
 | **MAGIC / CARP** | tokenomics nanogic, giá/nguồn trả phí kho (ngoài phạm vi module). |
 | **Core Anchorme** | TAAD state-machine, genesis/rotate/recovery-mechanics, GuardianConfig schema, PA2/PA5 — module này CHỈ dẫn-chiếu. |
@@ -705,7 +705,7 @@ khai); `GET /identity/{did}/stake-status` → owner; `POST /claim/submit` → ow
 3. **`did_subaddr.ak`** → L3 unlinkable [DEP-2] — **chờ maintainer chốt trước khi đội on-chain code**. Cùng validator mà Easteregg gọi "Tầng 0" (địa chỉ riêng) — xem `PhoenixKey-Easteregg-Tech.md §1`.
 4. Registry-lib mode-2 (Org m-of-n) [DEP-3] — không chặn MVP single-controller.
 
-(`safesend_escrow.ak` nay ở module Safesend — thứ-tự deploy + phụ-thuộc anti-drain (1) khai ở [PhoenixKey-Safesend-Tech.md §8](./PhoenixKey-Safesend-Tech.md).)
+(`smartsend_escrow.ak` nay ở module Smartsend — thứ-tự deploy + phụ-thuộc anti-drain (1) khai ở [PhoenixKey-Smartsend-Tech.md §8](./PhoenixKey-Smartsend-Tech.md).)
 
 **Phụ-thuộc-chặn ngoài:** CARP policy-id (CARP team) cho balance; stake-state (đội backend) cho di-cư/claim; cây Merkle LAMP (LAMP team) cho claim; `vault_index_anchor` schema (đội backend) cho khôi-phục kho; crate KES/VRF Rust cho pool.
 

@@ -156,6 +156,17 @@ Bất-biến bảo-toàn nền của Feecover: **phí không tự-sinh, không t
 
 > Bộ mã chính-thức module (namespace `FEECOVER-*`).
 
+**P-LAYER-1 [định-nghĩa, thêm 2026-07-12 — trước đây được Định-lý T5 §6 trích-dẫn nhưng chưa
+từng định-nghĩa ở đâu trong tài-liệu]:** *Feecover không nằm trong tập input của `consume.ak`* —
+tức `consume.ak` không tham-chiếu, không đọc, không tiêu bất-kỳ UTxO/script nào thuộc Feecover
+khi thực-thi. Đây là một **ràng-buộc kiến-trúc / phạm-vi** (architectural scope boundary), khác
+loại với các bất-biến `FEECOVER-*` khác trong bảng dưới — nó được kiểm bằng cách đọc mã nguồn
+`consume.ak` (không import/không gọi module Feecover), KHÔNG phải một điều-kiện được validator
+ép runtime bằng một guard cụ-thể. Kiểm auditor: `grep` `consume.ak` không có tham-chiếu tới
+`feecover.ak`/`FeecoverAccrual`/`FeecoverGate`. Nếu điều này đổi trong tương-lai (Feecover được
+nối vào `consume.ak`), Định-lý T5 (§6) phải được xét lại từ đầu — nó phụ-thuộc trực-tiếp vào
+P-LAYER-1 đúng như đang phát-biểu.
+
 | ID canonical | Bất-biến | Neo |
 |---|---|---|
 | FEECOVER-GATE-1 | Account owner gắn PhoenixKey DID hợp-lệ point-in-time: `did_active(did,e)=active` ∧ (nếu ký khoá) `key_authorized(key,did,e)`; đọc qua reference input | Tech §3.2; VeData §2.1 |
@@ -255,9 +266,9 @@ Ký-hiệu tập tx epoch `e`: `𝕋x(e) = { x : x hợp-lệ, đóng trong e }`
 **Mệnh-đề.** Nhánh CARP của Feecover KHÔNG làm giảm value non-MAGIC trong Vault account.
 
 **Chứng-minh.**
-1. CARP-fee đến từ **input riêng của user** (ví ngoài Vault-account-script), chảy vào `FeecoverAccrual` — KHÔNG rút từ Vault UTxO.
+1. CARP-fee đến từ **input riêng của user** (ví ngoài Vault-account-script), chảy vào `FeecoverAccrual` — KHÔNG rút từ Vault UTxO. *(Rigor note, thêm 2026-07-12: điều-kiện "CARP-fee từ input NGOÀI Vault-account" xuất-hiện ở mệnh-đề-ép §5 dòng FEECOVER-PAY-1, nhưng KHÔNG có mặt trong phát-biểu hình-thức của FEECOVER-PAY-1 ở bảng §4.2 — chỉ ghi `carp_paid == fee_magic[s]` [F-5]. Đây là một khoảng-trống rigor thật: tiền-đề bước 1 dựa vào một ràng-buộc mà bảng bất-biến chính-thức chưa ép rõ. Cần đồng-bộ: hoặc thêm điều-kiện nguồn-input vào phát-biểu FEECOVER-PAY-1 ở §4.2, hoặc tách thành một bất-biến `FEECOVER-PAY-1c` riêng, trước khi coi T5 là đã chứng-minh đầy-đủ.)*
 2. C-CM-1 ép value non-MAGIC @Vault bảo-toàn byte-perfect; CARP nếu nằm trong Vault thuộc lớp non-MAGIC ⇒ được C-CM-1 bảo vệ.
-3. Feecover KHÔNG là input của `consume.ak` (P-LAYER-1) ⇒ không nới C-CM-1.
+3. Feecover KHÔNG là input của `consume.ak` (P-LAYER-1, định-nghĩa §4.2) ⇒ không nới C-CM-1.
 ∴ mọi CARP Feecover di-chuyển là CARP-input-user, không phải Vault-value. ∎
 
 ### Bổ-đề T6 (Firewall — Feecover không chạm peg CARP-lõi)

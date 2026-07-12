@@ -75,7 +75,7 @@ Cả tập phiếu được "úp" (mã-hoá thành dấu-vân-tay không đọc 
 ### Mức 3 — Chứng thuộc-tính, không lộ con số
 Bạn chứng "đủ 18 tuổi" mà **không đưa ngày sinh** — người hỏi chỉ nhận một câu trả lời đúng/sai có bằng-chứng mật-mã. Đây là mức riêng-tư nhất: đưa "kết-luận" thay vì "dữ-liệu gốc".
 - *Ví von:* thay vì đưa giấy khai sinh để người ta tự tính tuổi, bạn đưa một con dấu "người này đủ 18" mà không nói sinh ngày nào.
-- Nền là chuẩn **BBS+** của W3C.
+- Nền là chuẩn **BBS+** của W3C [BBS-CRYPT] (tại thời-điểm viết là bản Editor's Draft của W3C, chưa phải chuẩn Recommendation chính-thức) — một loại chữ ký số đặc biệt cho phép ký một tập nhiều trường cùng lúc, rồi sau đó chứng minh riêng từng trường (hoặc một phép tính trên trường đó, như "tuổi ≥ 18") mà không phải lộ các trường còn lại hay lộ dữ liệu gốc.
 
 → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
 
@@ -145,10 +145,10 @@ Knowme vận-hành theo hai lớp: **Mức 1 (tự-khai) + Mức 2 (xuất-trìn
 
 **Phạm-vi mở-rộng (lớp tài-liệu + Mức 3):**
 - **Lớp tài-liệu.** Nền: đính ảnh mã-hoá lên kho phân-tán + "dấu-vân-tay một-hash-mỗi-giấy-tờ" + neo bộ hồ-sơ vào hồ-sơ DID. Mở-rộng: *tiết-lộ chọn-lọc cho tài-liệu* (đưa đúng một ảnh trong khi các ảnh khác vẫn úp) + phiên-bản bất-biến + gửi-lại-riêng-cho-người-nhận, màn "Giấy tờ của tôi".
-- **Phiên-bản hồ-sơ bất-biến (Strata).** Dựa thư-viện Strata ngoài.
+- **Phiên-bản hồ-sơ bất-biến (Strata).** Strata là một thư-viện ngoài (tái dùng, không tự dựng lại) chuyên lưu các phiên-bản kế-tiếp của một hồ-sơ theo kiểu "chỉ thêm, không sửa/xoá" — mỗi lần bạn cập-nhật hồ-sơ, bản cũ vẫn còn nguyên trong lịch-sử, dùng để tra lại "hồ-sơ tại thời-điểm X trông thế nào".
 - **Xuất-trình lại chọn-lọc tài-liệu (re-seal cho người nhận).**
 - **Mức 3 — chứng thuộc-tính bằng ZK (BBS+), xuất-trình không-liên-kết, neo ZK-anchor + xoá GDPR.**
-- **Đọc qua cổng Query của VeData** (nhật-ký "ai đã xem", differential privacy).
+- **Đọc qua cổng Query của VeData** (nhật-ký "ai đã xem", cộng thêm nhiễu thống-kê có kiểm-soát vào số liệu tổng-hợp — kỹ thuật gọi là *differential privacy* — để không ai suy ngược ra được một cá nhân cụ thể từ báo-cáo tổng-hợp).
 
 Những gì **đã chắc** ở lớp lõi: bạn giữ chìa, dữ-liệu ở máy bạn, tiết-lộ chọn-lọc từng trường, tái dùng nhiều nơi không cần cơ-quan online — đó là Mức 1 + Mức 2.
 

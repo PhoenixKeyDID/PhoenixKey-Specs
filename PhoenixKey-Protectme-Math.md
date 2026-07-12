@@ -129,7 +129,15 @@ $$
 \mathrm{indep}(f) \Leftrightarrow (\text{PersonDID trên enclave KHÁC lineage/attestation})\ \vee\ (\text{kênh không-seed: VeData-Glint / EmailOracle})
 $$
 
-Không chứng thực được $\mathrm{indep}$ ⇒ **mặc định $\bot$** (bảo thủ). Đây là chỗ Protectme
+**Rigor note (2026-07-12):** khác các vị-từ khác trong tài-liệu này (vd $\mathrm{expected}(c,L,\pi)$
+ở §7, định-nghĩa đầy-đủ trên kiểu dữ-liệu đã khai ở §1), $\mathrm{indep}(f)$ ở trên **KHÔNG** phải
+một vị-từ hình-thức trên kiểu dữ-liệu đã định-nghĩa — "lineage/attestation" chưa có ký-hiệu/miền
+trong §1, và vế phải chỉ là mô-tả văn-xuôi. Đây là **tham-số kinh-tế** (định-giá premium theo
+mức độc-lập của yếu-tố thứ-hai), không phải bất-biến an-toàn on-chain — độ ưu-tiên hình-thức-hoá
+THẤP so với các định-lý §7. Muốn hình-thức-hoá đầy-đủ, cần trước-hết định-nghĩa `lineage`/
+`attestation` như hai trường dữ-liệu cụ-thể (nguồn: TAAD datum / enclave attestation record —
+xem `PhoenixKey-Anchorme-Math.md`) rồi viết lại $\mathrm{indep}$ như một hàm thuần trên hai
+trường đó thay vì mô-tả bằng lời. Không chứng thực được $\mathrm{indep}$ ⇒ **mặc định $\bot$** (bảo thủ). Đây là chỗ Protectme
 định-giá TRỰC TIẾP I-CURVE-5 ("second-factor phải khác seed"; nguồn canonical: Rebirthme-Math §, addendum Curve-Routing — CHƯA gộp vào `PhoenixKey-Math.md`) thành
 tham số phí.
 

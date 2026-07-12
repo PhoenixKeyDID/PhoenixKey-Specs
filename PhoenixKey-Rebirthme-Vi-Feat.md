@@ -66,19 +66,19 @@ Bạn có CẢ HAI, chọn theo nhu-cầu:
 Đây là ba tầng địa-chỉ **bên trong loại ví Phoenix** — KHÔNG phải ba loại ví. Ví CHỈ có 2 loại (§4.2: Standard / Phoenix); Phoenix có 3 tầng địa-chỉ dưới đây, chọn theo mức công-khai/riêng-tư bạn cần:
 - **L1 — Địa chỉ công-khai của bạn (danh-tính công-khai):** vừa nhận tiền vừa staking được, công-bố trong hồ-sơ DID. Là "gương mặt" của bạn.
 - **L2 — Địa chỉ công-khai doanh-nghiệp:** giống L1 nhưng cho tổ-chức (in lên hoá-đơn, README).
-- **L3 — Địa chỉ riêng-tư ×N:** doanh-nghiệp tạo một địa chỉ riêng cho mỗi khách-hàng để đối-soát, KHÔNG công-bố, và trên chuỗi không lộ chung một chủ, qua validator `did_subaddr`. Đây cũng chính là địa chỉ mà **Easteregg** dùng làm "địa chỉ riêng" (module Easteregg gọi biến-thể-ẩn dựa trên tầng này — xem [PhoenixKey-Easteregg-Vi-Feat.md](./PhoenixKey-Easteregg-Vi-Feat.md)).
+- **L3 — Địa chỉ riêng-tư ×N:** doanh-nghiệp tạo một địa chỉ riêng cho mỗi khách-hàng để đối-soát, KHÔNG công-bố, và trên chuỗi không lộ chung một chủ, được kiểm-soát bởi validator `did_subaddr` (validator = một đoạn hợp đồng thông minh chạy ngay trên chuỗi, tự động kiểm luật cho mỗi giao dịch, không ai sửa tay được). Đây cũng chính là địa chỉ mà **Easteregg** dùng làm "địa chỉ riêng" (module Easteregg gọi biến-thể-ẩn dựa trên tầng này — xem [PhoenixKey-Easteregg-Vi-Feat.md](./PhoenixKey-Easteregg-Vi-Feat.md)).
 
 > **Easteregg** không phải một loại ví thứ ba — nó là **các biến-thể ẩn-danh của chính Ví Phượng-hoàng**, chọn theo mức riêng-tư (công khai / ẩn danh / vào kho). Xem [PhoenixKey-Easteregg-Vi-Feat.md](./PhoenixKey-Easteregg-Vi-Feat.md).
 > → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
 
 ### 4.4 Người-bảo-chứng = uỷ-quyền, KHÔNG giữ mảnh
-Nhiều hệ recovery bắt người-bảo-chứng giữ một "mảnh" bí-mật của bạn — nếu họ thông-đồng hoặc bị hack, mất. PhoenixKey **đã bỏ hẳn mô-hình mảnh (Shamir)**. Người-bảo-chứng chỉ là một **khoá thành-viên ngủ-đông**: khi bạn còn khoẻ, khoá họ vô-hiệu; khi bạn cần, đủ số họ ký để uỷ-quyền đổi khoá cho bạn. Họ **không bao giờ thấy hay giữ** khoá/tài-sản của bạn. Đủ MỘT phương-thức là khôi-phục được (người-bảo-chứng / chứng-thực VeData-Glint / Midnight).
+Nhiều hệ recovery bắt người-bảo-chứng giữ một "mảnh" bí-mật của bạn — nếu họ thông-đồng hoặc bị hack, mất. PhoenixKey **đã bỏ hẳn mô-hình mảnh (Shamir)**. Người-bảo-chứng chỉ là một **khoá thành-viên ngủ-đông**: khi bạn còn khoẻ, khoá họ vô-hiệu; khi bạn cần, đủ số họ ký để uỷ-quyền đổi khoá cho bạn. Họ **không bao giờ thấy hay giữ** khoá/tài-sản của bạn. Đủ MỘT phương-thức là khôi-phục được (người-bảo-chứng / chứng-thực VeData-Glint — dịch-vụ xác-thực khuôn mặt/ảnh của đội VeData / Midnight — một mạng blockchain khác, chuyên về giao-dịch riêng-tư, dùng ở đây làm một kênh chứng-thực độc-lập bên ngoài PhoenixKey).
 
 ### 4.5 Chống rút-sạch (anti-drain) — cái két có van
 Ngay cả khi kẻ trộm có khoá, cái két có một **cái van**: mỗi cửa-sổ thời-gian chỉ chảy ra tối-đa một mức trần. Muốn rút nhiều hơn phải (a) mở yêu-cầu công-khai rồi chờ — trong lúc chờ bạn thấy và HUỶ được, hoặc (b) có thêm một khoá phụ/người-bảo-chứng ký. Rút nhỏ đời-thường vẫn một chữ-ký, nhanh gọn. Đây là lớp bảo-vệ CỐT-TỬ, bắt-buộc cho mọi DID giữ giá-trị đáng-kể — không phải tính-năng tuỳ-chọn (xem `PhoenixKey-Rebirthme-Math.md` I-CURVE-4).
 → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
 
-> **Safesend** (gửi-có-bảo-vệ — nút "hoàn-tác" cho giao-dịch) nay là module riêng — xem [PhoenixKey-Safesend-Vi-Feat.md](./PhoenixKey-Safesend-Vi-Feat.md).
+> **Smartsend** (gửi-có-bảo-vệ — nút "hoàn-tác" cho giao-dịch) nay là module riêng — xem [PhoenixKey-Smartsend-Vi-Feat.md](./PhoenixKey-Smartsend-Vi-Feat.md).
 
 ### 4.6 Phả-hệ khoá — giữ mọi khoá cũ, không xoá
 Đổi khoá thì khoá cũ KHÔNG bị xoá — nó được đánh dấu "đã xoay" và giữ lại. Vì địa chỉ cũ vẫn có thể nhận tiền tương-lai (airdrop, người trả nợ). Màn phả-hệ hiện dòng thời-gian mọi khoá của bạn, cảnh-báo khi địa chỉ cũ có tiền vào, cho nút "Quét & rút". Khoá cũ lộ cũng không mất DID (khoá đã đổi trên chuỗi).
@@ -108,7 +108,7 @@ PhoenixKey **không bắt** bạn chép 24 từ (sao-lưu tự-động đã lo k
 - Một ví bất-tử, địa chỉ vĩnh-viễn, sống qua đổi-khoá/khôi-phục.
 - Đường khôi-phục không cần chép tay 24 từ.
 - Sao-lưu tự-động, tự-chủ cho MỌI bí-mật (không riêng seed Cardano).
-- Các lớp chống-trộm: trần rút, đóng-băng. Gửi-có-bảo-vệ nay ở module riêng — xem [PhoenixKey-Safesend-Vi-Feat.md](./PhoenixKey-Safesend-Vi-Feat.md).
+- Các lớp chống-trộm: trần rút, đóng-băng. Gửi-có-bảo-vệ nay ở module riêng — xem [PhoenixKey-Smartsend-Vi-Feat.md](./PhoenixKey-Smartsend-Vi-Feat.md).
 
 **Bạn cần:**
 - **Đặt ít nhất 2 người-bảo-chứng** (hoặc bật một phương-thức khôi-phục khác) — 1 người là chưa an-toàn. Có 30 ngày ân-hạn nhắc-nhở.
@@ -144,8 +144,8 @@ PhoenixKey **không bắt** bạn chép 24 từ (sao-lưu tự-động đã lo k
 Ba luật sau là điều-kiện-bắt-buộc để lời hứa ở §2 ("mất seed không mất trắng, lộ khoá không mất sạch") đúng trong thực-tế — không phải tính-năng phụ:
 
 - **Anti-drain là LOAD-BEARING cho mọi DID giữ giá-trị đáng-kể**, không phải tính-năng trang-trí. Vì khoá phần-cứng (P-256, Secure Enclave) không verify được on-chain, quyền chi value quy về khoá gốc (seed, Ed25519 controller) — nên trần rút + đóng-băng chủ-động là lớp cản DUY-NHẤT giữa lộ seed và mất sạch. Xem `PhoenixKey-Rebirthme-Math.md` I-CURVE-4.
-- **Second-factor rút-lớn PHẢI khác gốc seed.** Khoá phụ/người-bảo-chứng dùng để duyệt rút-lớn không được dẫn-xuất từ cùng Master_KEK/seed — nếu không, một lần lộ seed sập luôn cả hai lớp bảo-vệ. Yêu-cầu phần-cứng độc-lập hoặc kênh khác (VeData-Glint, EmailOracle). Xem I-CURVE-5.
-- **L3 (địa chỉ riêng-tư ×N) và Easteregg dùng chung một validator `did_subaddr`** — không phải hai cơ-chế khác nhau. Thiết-kế phải giữ tính unlinkable khi NHẬN; khi CHI, lộ tối-thiểu một `tag_i` là giới-hạn bản-chất của eUTXO (ẩn cả lúc chi cần ZK/Midnight, ngoài phạm-vi module này).
+- **Second-factor rút-lớn PHẢI khác gốc seed.** Khoá phụ/người-bảo-chứng dùng để duyệt rút-lớn không được dẫn-xuất từ cùng **Master_KEK** (Master Key-Encryption-Key — chiếc khoá gốc mã-hoá mọi khoá con khác của bạn, sinh ra từ cùng một seed) — nếu không, một lần lộ seed sập luôn cả hai lớp bảo-vệ. Yêu-cầu phần-cứng độc-lập hoặc kênh khác (VeData-Glint, EmailOracle). Xem I-CURVE-5.
+- **L3 (địa chỉ riêng-tư ×N) và Easteregg dùng chung một validator `did_subaddr`** — không phải hai cơ-chế khác nhau. Thiết-kế phải giữ tính unlinkable (không lần ra được các địa chỉ đó là cùng một chủ) khi NHẬN; khi CHI, lộ tối-thiểu một `tag_i` (một nhãn nhận-dạng gắn theo mỗi địa chỉ con) là giới-hạn bản-chất của **eUTXO** — mô hình sổ-cái của Cardano, nơi mỗi khoản tiền là một "tờ tiền" rời rạc phải tiêu trọn rồi trả lại tiền thừa, khác mô hình "số dư tài khoản" quen thuộc; việc tiêu một tờ luôn để lại dấu-vết trên chuỗi về việc nó đã bị tiêu (ẩn cả lúc chi cần ZK — bằng-chứng mật-mã không tiết-lộ dữ-liệu gốc — hoặc Midnight, ngoài phạm-vi module này).
 
 → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
 
