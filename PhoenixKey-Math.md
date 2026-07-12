@@ -2722,7 +2722,14 @@ Op_restore_capacity(did: PersonDID, restoration_cert_hash: {0,1}^256, s: SlotNo)
 I-INCAP-1: Incapacity does NOT allow conservator to TAAD_Cancel_Recovery
            (TAAD Cancel is PersonDID_Privileged_Ops; requires hw_pub sig)
 I-INCAP-2: Incapacity does NOT transfer Full_Authority
-I-INCAP-3: conservator_scope excludes D9=private records of any domain
+I-INCAP-3: conservator_scope excludes the most-private-tier records of any domain
+           -- Errata (2026-07-12): previously labeled this tier "D9" — that numeral is
+           -- undefined in this document (no D1..D9 enum exists here) and collides with
+           -- an unrelated "D9" usage at I-GDPR-5 (public records, opposite meaning).
+           -- De-referenced to plain English; if a formal privacy-tier taxonomy from
+           -- Knowme/VeData ("D9+DP" gateway, PhoenixKey-Knowme-Tech.md) is meant to be
+           -- THE canonical source here, it must be imported explicitly with its own
+           -- definition, not invoked by an undefined shorthand.
 I-INCAP-4: Multiple incapacity declarations require sequential validity
            (cannot have overlapping incapacity periods)
 ```
@@ -3000,8 +3007,12 @@ I-GDPR-1: Only subject PersonDID can initiate erasure of records where entity_id
 I-GDPR-2: TombstoneRecord MUST NOT contain personal data (enforced by using H(content))
 I-GDPR-3: exception_applies check is mandatory before erasure; cannot be bypassed
 I-GDPR-4: Erasure request itself is logged in subject's audit trail (accountability)
-I-GDPR-5: D9=public records: erasure possible but third-party caches may have copies;
-          system can only control its own LampNet nodes
+I-GDPR-5: publicly-visible records: erasure possible but third-party caches may have
+          copies; system can only control its own LampNet nodes
+          -- Errata (2026-07-12): previously labeled this tier "D9" — collided with an
+          -- unrelated "D9" usage at I-INCAP-3 (private-tier, opposite meaning) with no
+          -- D1..D9 enum defined anywhere in this document. De-referenced to plain
+          -- English; see I-INCAP-3 errata for the same fix.
 ```
 
 ### §34.2 Creator Liability Period Access [N]

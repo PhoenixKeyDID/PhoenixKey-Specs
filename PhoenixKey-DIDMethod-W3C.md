@@ -12,8 +12,9 @@ This is version 1 of the `did:phoenix` method specification, published at `https
 
 This is version **v1** of the `did:phoenix` method specification, published at its canonical URL to back the registry entry merged into the W3C DID Method Registry:
 
-- Registry file: `w3c/did-extensions` → `methods/phoenix.json`
-- Registered fields: `"status": "registered"`, `"specification": "https://phoenixkey.me/did-method/v1"`, `"ledger": "Cardano Blockchain"`, contact: GreenSun Tech (`contact@greensun.tech`)
+- **Live registry page (verify here):** [w3c.github.io/did-extensions/methods/#did-methods](https://w3c.github.io/did-extensions/methods/#did-methods) — search for `phoenix` in the method-name column.
+- Registry source file: [`w3c/did-extensions` → `methods/phoenix.json`](https://github.com/w3c/did-extensions/blob/main/methods/phoenix.json)
+- Registered fields (verified against the source JSON): `"name": "phoenix"`, `"status": "registered"`, `"specification": "https://phoenixkey.me/did-method/v1"`, `"verifiableDataRegistry": "Cardano Blockchain"`, `"contactName": "GreenSun Tech"`, `"contactEmail": "contact@greensun.tech"`, `"contactWebsite": "https://greensun.tech"`.
 - Registry commit: `97c8197` (2026-07-04)
 
 ---

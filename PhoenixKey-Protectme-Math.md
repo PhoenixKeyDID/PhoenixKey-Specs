@@ -17,7 +17,7 @@
 > - Whitepaper §4 (nanogic = byte·ngày), §5 (P\*=1: 1 CARP = 1 MAGIC sức mua, KHÔNG neo fiat).
 > - Math canonical: [PhoenixKey-Math.md](./PhoenixKey-Math.md) (DID/danh tính/ví — KHÔNG định nghĩa đơn vị CARP/MAGIC, xem Whitepaper §4/§5 ở trên). Curve I-CURVE-4/5: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) + addendum Curve-Routing (CHƯA gộp vào Math.md).
 >
-> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
+> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-STATUS.md)
 >
 > **CONTRACT đơn vị (bất di):** premium **định giá MAGIC** (nanogic), **THANH TOÁN CARP**
 > (P\*=1, qua Feecover, KHÔNG `collectToTreasury`). `coverage_cap`, `loss_eligible`,
@@ -41,7 +41,7 @@ expected_amount(loss, policy, cause)` một cách chắc chắn; nhưng `loss` v
 committee ĐẶT vào datum. Định lý §7 đều có dạng "GIẢ SỬ input datum trung thực ⇒ …".
 Ranh giới tin cậy F3/F6 là chỗ giả thiết đó có thể vỡ — auditor tập trung ở đó.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 
@@ -159,10 +159,24 @@ $\Rightarrow \mathrm{pot}_{\mathsf{user}} \mathrel{+}= \sum \mathrm{premium\_CAR
 ## 3. Công thức Coverage (loss_eligible) — chống trùng ví theo-DID
 
 $$
-\boxed{\ L(\mathrm{did},\mathrm{inc}) = \underbrace{\sum_{\mathrm{tx}\in\text{theft}(\mathrm{inc})} W(\mathrm{tx})}_{\text{net rời ví theo-DID}} - R_{\mathrm{cancel}} - R_{\mathrm{freeze}} - R_{\mathrm{vault}}\ }
+\boxed{\ L(\mathrm{did},\mathrm{inc}) = \mathrm{Rate}_{\mathrm{CARP/lovelace}}(\mathrm{inc}) \times \underbrace{\sum_{\mathrm{tx}\in\text{theft}(\mathrm{inc})} W(\mathrm{tx})}_{\text{net rời kho, LOVELACE}} - R_{\mathrm{cancel}} - R_{\mathrm{freeze}} - R_{\mathrm{vault}}\ }
 $$
 
-- $W(\mathrm{tx})$ = **net-rời kho** — TÁI DÙNG ĐÚNG định nghĩa Withdrawal-Limit (đọc chain, không cãi).
+> **Errata đơn vị (2026-07-12):** $L \in$ CARP (§1.4) nhưng $W(\mathrm{tx})$ **TÁI DÙNG NGUYÊN** định
+> nghĩa Withdrawal-Limit của Rebirthme — `W(tx) ≜ Σ value(i).lovelace` (`PhoenixKey-Rebirthme-Math.md`
+> §2.3, dòng 72) — tức LOVELACE, không phải CARP. Bản trước thiếu hẳn bước quy đổi, cộng thẳng
+> lovelace vào một đại lượng khai CARP — sai thứ nguyên, ảnh hưởng Định lý 1/3 (bảo toàn giá trị/
+> solvency). Đã thêm $\mathrm{Rate}_{\mathrm{CARP/lovelace}}(\mathrm{inc})$ làm tường minh chỗ quy đổi
+> — **[CẦN CHỐT]** nguồn oracle/tỷ giá này CHƯA được định nghĩa ở đâu trong bộ spec (không có
+> trong Whitepaper §4/§5, không trong Feecover). Vì $L$ là số **committee off-chain chứng thực**
+> đưa vào datum (validator không tự tính, xem dưới), quy đổi này là HƯỚNG DẪN cho committee —
+> nhưng committee KHÔNG THỂ tính đúng nếu không có nguồn tỷ giá chính thức. Đề xuất hướng: (a)
+> nếu tài sản bị đánh cắp LÀ CARP token trực tiếp (không phải ADA), $W(\mathrm{tx})$ cần định nghĩa
+> LẠI để đếm chuyển-động CARP thay vì `.lovelace` — bỏ hẳn bước quy đổi; (b) nếu đúng là ADA bị
+> rút thì cần chốt nguồn oracle ADA/CARP tại thời điểm sự-cố. Chưa tự chọn (a) hay (b) — cần
+> maintainer/đội kinh tế xác nhận bản chất tài sản được bảo hiểm trước khi khoá công thức.
+
+- $W(\mathrm{tx})$ = **net-rời kho, đơn vị LOVELACE** — TÁI DÙNG ĐÚNG định nghĩa Withdrawal-Limit (đọc chain, không cãi).
 - $R_{\mathrm{cancel}}$ = phần `PendingLargeWithdrawal` chủ đã Cancel (I-LIMIT-CANCEL).
 - $R_{\mathrm{freeze}}$ = phần bị Freeze chặn kịp (Frozen→safe-address).
 - $R_{\mathrm{vault}}$ = UTxO còn tại `vault_addr(did)` sau rotate/recover (= KHÔNG mất).
@@ -450,7 +464,7 @@ Các mục sau **chính sách/kinh tế**, chưa normative — auditor KHÔNG đ
 - Math canonical đơn vị: [PhoenixKey-Math.md](./PhoenixKey-Math.md). Curve I-CURVE-4/5: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) + addendum Curve-Routing (CHƯA gộp Math.md).
 - Tài liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md), [PhoenixKey-Protectme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-Protectme-Exec.md).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 *Hết bản Math. Mọi [N]/[PROT-\*] là đề xuất, normative sau khi maintainer duyệt. Ba định lý §7
 đều CÓ ĐIỀU KIỆN trên input datum trung thực (§0, §5.2, §9) — auditor soi ranh giới F3/F6 trước.*

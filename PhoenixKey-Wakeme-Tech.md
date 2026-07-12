@@ -11,7 +11,7 @@
 >
 > **Khi văn ≠ code → code thắng.** Struct/enum thật neo tại `activation_logic.ak:110-140`.
 >
-> → Trạng thái build/test/deploy hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#wakeme)
+> → Trạng thái build/test/deploy hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 
@@ -434,7 +434,7 @@ Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code
 
 > **Ranh giới sửa code:** validator (đội on-chain) + backend (đội backend) thuộc PhoenixKey backend — tài liệu này chỉ đặc tả, KHÔNG sửa code. Phát hiện lỗi → báo maintainer / Issue giao đội backend/on-chain.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#wakeme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 

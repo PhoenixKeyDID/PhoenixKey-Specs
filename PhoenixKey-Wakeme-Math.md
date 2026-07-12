@@ -331,7 +331,7 @@ Vậy giảm-v ⟺ ClaimVested ⟺ owner ký ⟹ user toàn quyền phần đã 
 - Cross-ref canonical: `PhoenixKey-Specs/PhoenixKey-Math.md` (key hierarchy §6, TAAD §10, type catalog §12–21).
 - Tài liệu cùng bộ: [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md), [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md), [PhoenixKey-Wakeme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-Wakeme-Exec.md).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#wakeme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

@@ -127,7 +127,7 @@ Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (kho
 Đáp: Từ ngày 1002 trở đi, mỗi ngày 1 chiếc thành của bạn (miễn kỳ đó bạn còn dùng dịch vụ). Kiên trì đủ và không bị hao ngày nào ở PHA-1 → có thể sở hữu tối đa 1001 chiếc.
 
 **Hỏi: MAGIC (điều ước) là gì? Khác LAMP thế nào?**
-Đáp: **LAMP** là tài sản nền, tổng cung cố định 36 tỷ (không đốt). **MAGIC** là "quyền dùng dịch vụ" gắn với danh tính bạn — là số dư trong ví (account), **không chuyển cho người khác được**, và **tan biến nếu không dùng** (dùng hay mất). Đèn (LAMP) sinh ra điều ước (MAGIC) để bạn tiêu; khi thanh toán dịch vụ, hệ trả bằng CARP (1 CARP = 1 MAGIC).
+Đáp: **LAMP** là tài sản nền, tổng cung cố định 36 tỷ (không đốt). **MAGIC** là "quyền dùng dịch vụ" gắn với danh tính bạn — là số dư trong ví (account), **không chuyển cho người khác được**, và **tính lại mỗi kỳ theo số dư LAMP hiện tại, không cộng dồn phần bỏ lỡ từ kỳ trước** (dùng hay mất, không tích trữ — cơ chế tính chính xác từng kỳ **[CẦN CHỐT]**, xem `PhoenixKey-Wakeme-Math.md` §3.7/§9). Đèn (LAMP) sinh ra điều ước (MAGIC) để bạn tiêu; khi thanh toán dịch vụ, hệ trả bằng CARP (1 CARP = 1 MAGIC).
 
 **Hỏi: Chiếc đèn có bị "đốt" khi sinh điều ước không?**
 Đáp: Không. Đèn **đứng yên** trong ví. Hệ thống chỉ **đọc số dư đèn** để tính bao nhiêu điều ước — không hề đốt, không chuyển LAMP đi đâu. Đèn to thì điều ước nhiều; đèn hao thì điều ước ít theo.
@@ -154,7 +154,7 @@ Vài phần của Wakeme phụ thuộc thiết kế/hạ tầng ở đội khác
 - **Cân đối hồ chung PHA-2:** vì đèn PHA-2 rời hệ thống sang tay người dùng, hồ chung cần nguồn nạp bù chủ động (không được để hồ chung âm).
 - **"Một người một suất":** D keyed theo PersonDID sinh trắc, không theo số ví — tạo nhiều ví không nhân suất. Điều kiện tiên quyết: lớp neo danh tính trên chuỗi (anchor) cho DID cá nhân phải ràng đúng khoá gốc (UniquenessThread/PA2) trước khi mở GetLAMP rộng rãi cho cá nhân. DID doanh nghiệp/tổ chức không cần điều kiện này vì đã có chữ ký cha xác thực.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#wakeme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 

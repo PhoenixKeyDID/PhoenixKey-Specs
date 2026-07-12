@@ -226,7 +226,7 @@ với quỹ chung.
 
 Khi các quyết định trên được chốt, bản này sẽ được cập nhật với con số chính thức.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 

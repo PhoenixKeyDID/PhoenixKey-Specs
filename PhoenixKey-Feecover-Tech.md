@@ -8,7 +8,7 @@
 
 Tài liệu cùng bộ: [PhoenixKey-Feecover-Vi-Feat.md](./PhoenixKey-Feecover-Vi-Feat.md), [PhoenixKey-Feecover-Math.md](./PhoenixKey-Feecover-Math.md), [PhoenixKey-Feecover-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Feecover-Specs/blob/main/PhoenixKey-Feecover-Exec.md).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#feecover)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Feecover-Specs/blob/main/PhoenixKey-STATUS.md)
 
 > **Nguồn engine tái dùng:** `MAGIC/ConsumeMAGIC/{CONTRACT.md, onchain/lib/magiclamp/consume/types.ak, onchain/validators/consume.ak, onchain/lib/magiclamp/consume/pricing.ak}`; `MAGIC/Paymaster/onchain/lib/magiclamp/paymaster/types.ak`.
 > **Nguồn resolve API:** nguồn thiết kế nội bộ (không công khai).
@@ -418,7 +418,7 @@ Feecover on-chain (bước 1) KHÔNG chặn bởi blocker-1; chặn bởi 0a (CA
 - CHỈ CARP về Phoenix Treasury (FC-SET-2). KHÔNG LAMP (backing tầng khác), KHÔNG MAGIC.
 - PhoenixKey KHÔNG sửa code MAGIC-team/CARP-team — phát hiện lỗi → báo maintainer / tạo issue.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#feecover)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Feecover-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 

@@ -4,7 +4,7 @@
 >
 > **Nguồn chân lý = CODE (Mức 1+2) + SPEC (lớp tài liệu, Mức 3):** bất biến của lớp lõi neo trực tiếp về `file:hàm` trong `PhoenixKey-Frontend/src/lib/sdvc/`. Bất biến của lớp tài liệu + Mức 3 neo về thiết kế nội bộ (không công khai), đánh dấu **[SPEC]**. Khi văn ≠ code → code thắng.
 >
-> → Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#knowme)
+> → Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Knowme-Specs/blob/main/PhoenixKey-STATUS.md)
 >
 > **Phạm vi đặc tả này CHỨNG:** (a) tính đúng của commitment + membership tiết lộ chọn lọc; (b) ràng buộc holder ↔ subject chống mạo danh; (c) chống replay qua `aud`/`nonce`; (d) ràng buộc nội dung tài liệu qua `docHash` **[SPEC]**; (e) tính riêng tư Mức 3 (đúng một-bit, unlinkable) **[SPEC]**. **NGOÀI phạm vi:** duy nhất một người (sinh trắc Enclave — §8), catalog VC + issuer (VeData — §8), mạch ZK chi tiết (circuit constraints), backend PhoenixKey.
 >
@@ -234,7 +234,7 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 | K-4 | **Đường issued cho DocumentClaim** (cơ quan ký ảnh) — phase này hay sau. | Lộ trình tích hợp cơ quan. | maintainer (§10.6) |
 | K-5 | **Nơi chạy Spectra/Glint cho ảnh nhạy cảm** (on-device vs Splash-in-TEE) — phụ thuộc hợp đồng VeData. | Rủi ro gửi plaintext ra ngoài. | maintainer + VeData (§10.5, §12) |
 
-→ Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#knowme)
+→ Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Knowme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 
@@ -277,7 +277,7 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 - Code (nguồn chân lý Mức 1+2): `PhoenixKey-Frontend/src/lib/sdvc/{commit,canonical,credential,disclose,didDoc,didResolver,statusList,trust,trustList,crypto,lampnet,dossier,fingerprint,consent,schema,schemaRegistry,anchor,did}.ts`.
 - Spec (lớp tài liệu + Mức 3): thiết kế nội bộ (không công khai) — Knowme-Feat-Math (§3, §6, §9, §11), KYC-KYB-ZK-Feat-Math (§B).
 - `PhoenixKey-Math.md §34` (Privacy/GDPR tombstone — dẫn chiếu, KHÔNG sửa).
-- → Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#knowme)
+- → Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Knowme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

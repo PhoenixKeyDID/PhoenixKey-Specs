@@ -21,7 +21,7 @@
 > **Đơn vị:** mọi giá trị chi/thu = **CARP** (đơn vị dàn xếp). MAGIC = nhãn giá premium
 > (`P*=1`), tiêu qua Vault `BurnBatch`, KHÔNG token/mint. Xem [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md) §2 + §9.
 >
-> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
+> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 
@@ -382,7 +382,7 @@ Off-chain (backend, đội backend) dàn dựng; validator ép trên chain. Năm
 | POST | `/api/v1/protectme/claim` | mở claim; resolver auto-điền `loss_eligible` từ anti-drain log |
 | GET | `/api/v1/protectme/claim/{claim_id}` | trạng thái claim (triage → adjudicate → challenge → paid) |
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 
@@ -476,7 +476,7 @@ chính sách (maintainer + đội backend + DAO). Neo kiểm chứng theo hạng
 | 1-hash + config-reference-input | §8.3 |
 | tham số kinh tế (caps, rates, thời gian) | [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md) §11 [PROT-1..11] |
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#protectme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Protectme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 

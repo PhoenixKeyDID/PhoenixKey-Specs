@@ -133,7 +133,7 @@ Nếu nghi khoản gửi là do bị chiếm khoá, guardian **treo** hòm ký q
 
 **Nền tái dùng:** hạ tầng ví theo-DID `did_payment`, guardian-recovery theo ngưỡng + timelock + Cancel của module Rebirthme; Smartsend cắm lên nền này, không dựng lại.
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#smartsend)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Smartsend-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 

@@ -8,7 +8,7 @@
 
 Tài liệu cùng bộ: [PhoenixKey-Feecover-Vi-Feat.md](./PhoenixKey-Feecover-Vi-Feat.md), [PhoenixKey-Feecover-Tech.md](./PhoenixKey-Feecover-Tech.md), [PhoenixKey-Feecover-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Feecover-Specs/blob/main/PhoenixKey-Feecover-Exec.md).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#feecover)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Feecover-Specs/blob/main/PhoenixKey-STATUS.md)
 
 > **Ranh giới cứng:** Feecover KHÔNG chạm `consume.ak` (C-CM-1..5) và KHÔNG chạm bất biến CARP-lõi (INV-PEG-BY-DEMAND, INV-NO-LAMP-PEG-DEFENSE, `1 CARP = 1 MAGIC`). Feecover đọc `PriceParam` + `ServiceFeeSchedule` + `FeecoverGate` + DID credential dạng **reference input**, spend `FeecoverAccrual` của chính nó, CÙNG tx với consume.
 
@@ -353,7 +353,7 @@ Mỗi `ServiceFeeEntry` mang `op_type` trỏ dòng `OpPrice` trong `PriceParam`;
 | FEECOVER-* (GATE/PAY/SETTLE/HO/ACC) | `feecover/onchain/validators/feecover.ak` |
 | `EngageDatum.did_commit` field (immutable-enforced, MVP `#""`) | `types.ak:46-51`, `consume.ak:409` |
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#feecover)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Feecover-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 

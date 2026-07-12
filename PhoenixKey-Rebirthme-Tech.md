@@ -4,7 +4,7 @@
 > **Đối tượng đọc:** kỹ sư triển khai. HOW: kiến trúc, datum/redeemer CBOR, điều kiện tx, luồng e2e, API, ranh giới giao việc, thứ tự deploy, test.
 >
 > **Ranh giới (MECE):** module CHI + địa chỉ + anti-drain + kho bí mật/phả hệ + stake theo-DID + connector + di cư + pool-ops. **Smartsend** (gửi có bảo vệ) nay là module độc lập — xem [PhoenixKey-Smartsend-Tech.md](./PhoenixKey-Smartsend-Tech.md); module này chỉ cung cấp hạ tầng nạp nguồn/guardian/anti-drain mà Smartsend tái dùng. **TAAD state-machine (genesis/rotate/recovery-mechanics)** thuộc Core Anchorme — chỉ dẫn chiếu. Xem [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) cho bất biến, `PhoenixKey-Math.md` §10/§11 cho TAAD.
-> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#rebirthme)
+> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 
@@ -54,7 +54,7 @@ Nền tài sản: Ví Phượng hoàng = **địa chỉ script Plutus V3 statele
 
 ## 2.A Bất biến guardian/recovery (S4 — chiếm quyền qua guardian) [CHỜ BUILD]
 
-> Đích thiết kế cho `taad_logic.ak` (Core Anchorme sở hữu code, module này dẫn chiếu + tiêu thụ qua §4/§5.2). Nguồn PoC on-chain thật (Preview, tx `b80b394…`) đã rút được vault DID qua guardian-dup `[G,G]` + `timelock=0`. 6 tầng dưới đây là giải pháp đóng lỗ, CHƯA code — theo dõi tiến độ ở [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#rebirthme).
+> Đích thiết kế cho `taad_logic.ak` (Core Anchorme sở hữu code, module này dẫn chiếu + tiêu thụ qua §4/§5.2). Nguồn PoC on-chain thật (Preview, tx `b80b394…`) đã rút được vault DID qua guardian-dup `[G,G]` + `timelock=0`. 6 tầng dưới đây là giải pháp đóng lỗ, CHƯA code — theo dõi tiến độ ở [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-STATUS.md).
 
 **Tầng 1 — Đếm khoá duy nhất** (đóng lỗ guardian-dup `[G,G]`):
 - `I-GUARD-UNIQUE-WRITE`: mọi điểm ghi `guardians` (Genesis-mint, `UpdateGuardians:186-198`, `Transfer.new_guardians:202-219`) assert `list.unique(new_guardians) == new_guardians`.
@@ -108,7 +108,7 @@ prove_recovery(sigs, G_c, t) → π_rec           -- ∃ ≥t chữ ký guardian
 - `I-PRIV-4` (không lộ guardian-set khi chủ chọn shield): migration guardian-set public→shielded là **tuỳ chọn user**, không ép; DID đã ghi guardian public từ trước KHÔNG undo được phần đã public — chỉ shield từ thời điểm chuyển trở đi.
 - Tài sản ở Ví Phượng hoàng vẫn chi được **chỉ cần Cardano** (script address gated theo controller — không phụ thuộc Midnight, giữ nguyên §2 mục 1).
 
-**Điều CHƯA chắc (chặn bởi Phase 1 Midnight-Feasibility, KHÔNG code trước khi có báo cáo):** verify chữ ký (P-256 Secure Enclave hay Ed25519) trong circuit Compact có khả thi/rẻ; cơ chế neo chéo Cardano↔Midnight (bridge/relay-proof/on-chain-verify SNARK — ảnh hưởng ExUnit); SLA/độ chín Midnight (mainnet mới). Owner: Tuân + đối tác Midnight, theo dõi ở [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#rebirthme).
+**Điều CHƯA chắc (chặn bởi Phase 1 Midnight-Feasibility, KHÔNG code trước khi có báo cáo):** verify chữ ký (P-256 Secure Enclave hay Ed25519) trong circuit Compact có khả thi/rẻ; cơ chế neo chéo Cardano↔Midnight (bridge/relay-proof/on-chain-verify SNARK — ảnh hưởng ExUnit); SLA/độ chín Midnight (mainnet mới). Owner: Tuân + đối tác Midnight, theo dõi ở [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-STATUS.md).
 
 **Ranh giới:** đây KHÔNG thay Tầng 3 (`I-GUARD-ROLEDID`/`I-GUARD-VETO`/`I-GUARD-CAP`) hay FROST (PR-5) — Midnight-shielded là lớp riêng tư PHỦ LÊN guardian-set đã có, không thay cơ chế xác thực/ngưỡng.
 
@@ -515,7 +515,7 @@ SIGNED. `CORE-SIGN-3`: input base-addr seed DID (staking.rs) ⇒ seed ký, SIGNE
 | `GET /v1/telemetry/map/:cid` | bản đồ shard cho UI kho/khôi phục | UI-Spec S8 |
 
 Lưu-ý: `/wallet/magic/claim` → **410 Gone** (MAGIC = account-trong-Vault, không native). `BalanceResponse` field MAGIC = 0 (deprecated).
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#rebirthme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ### 6.1 Chi tiết Delegator-Claim offchain (Grant/stake-state/claim/merkle) — dev-ready cho Long
 
@@ -739,7 +739,7 @@ khai); `GET /identity/{did}/stake-status` → owner; `POST /claim/submit` → ow
   txid confirmed + LAMP balance trước/sau. Nếu cây Merkle LAMP (§6.1 B4) chưa publish → dùng
   snapshot 1-leaf tay cho bước (3), ghi rõ mock (khớp Core §5.2 gate).
 
-→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#rebirthme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
 
