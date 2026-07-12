@@ -28,8 +28,8 @@ PhoenixKey chia thành 8 module. Mỗi module có bộ 4 tài liệu (xem mục 
 | Module | Một câu | Vai trò |
 |---|---|---|
 | **Anchorme** | Danh tính của bạn, neo thẳng trên chuỗi (`did:phoenix:…`), chỉ vân tay + Secure Enclave điều khiển. | Tầng lõi (Layer‑0): DID, anchor NFT, controller, xoay chìa (rotation), cây sở hữu. |
-| **Rebirthme** | Chiếc ví đi theo bạn, không đi theo chìa khoá. | Ví đa‑địa‑chỉ theo DID + khôi phục theo tầng (guardian / phương thức đa dạng). |
-| **Smartsend** | Gửi có bảo vệ — nút "hoàn tác" cho giao dịch. | Escrow cửa‑sổ‑veto + đa‑yếu‑tố, opt‑in: huỷ được khi gửi nhầm, chống trộm khi lộ khoá. Tái dùng ví/guardian/anti‑drain của Rebirthme. |
+| **Rebirthme** | Chiếc ví đi theo bạn, không đi theo chìa khoá. | Ví đa địa chỉ theo DID + khôi phục theo tầng (guardian / phương thức đa dạng). |
+| **Smartsend** | Gửi có bảo vệ — nút "hoàn tác" cho giao dịch. | Escrow cửa sổ‑veto + đa yếu tố, opt‑in: huỷ được khi gửi nhầm, chống trộm khi lộ khoá. Tái dùng ví/guardian/anti‑drain của Rebirthme. |
 | **Wakeme** | Chiếc Đèn và Điều ước của bạn. | Kích hoạt / vesting → sinh MAGIC → tiêu dùng dịch vụ trong hệ sinh thái. |
 | **Feecover** | Lớp phủ phí giao dịch. | Trừu tượng hoá phí (fee abstraction) — hạ tầng, người dùng không tự lo ADA. |
 | **Protectme** | Lớp bồi hoàn cuối, phủ phần bị mất. | Bảo vệ / bồi hoàn tuỳ chọn. |
@@ -51,11 +51,11 @@ Mỗi module có 4 file theo khuôn `PhoenixKey-<Module>-<Loại>.md`:
 | **Tech** | `-Tech.md` | Kỹ sư tích hợp | Kiến trúc, API, cấu trúc dữ liệu (datum), luồng giao dịch. |
 | **Exec** | `-Exec.md` | Lãnh đạo, người ra quyết định | Quyết định + lý do + đánh đổi + rủi ro + lộ trình triển khai — đủ cụ thể để đội dev thực thi. Không lặp toán. Hiện trạng tách sang `PhoenixKey-STATUS.md`. |
 
-8 module × 4 loại = **32 file** + 4 tài liệu cấp‑kho ([`Whitepaper`](./PhoenixKey-Whitepaper.md) tổng quan · `PhoenixKey-Math.md` toán tổng · `PhoenixKey-DIDMethod-W3C.md` chuẩn DID · [`STATUS`](./PhoenixKey-STATUS.md) hiện trạng) = **36 tài liệu đặc tả** (chưa kể `README`/`LICENSE`).
+8 module × 4 loại = **32 file** + 4 tài liệu cấp kho ([`Whitepaper`](./PhoenixKey-Whitepaper.md) tổng quan · `PhoenixKey-Math.md` toán tổng · `PhoenixKey-DIDMethod-W3C.md` chuẩn DID · [`STATUS`](./PhoenixKey-STATUS.md) hiện trạng) = **36 tài liệu đặc tả** (chưa kể `README`/`LICENSE`).
 
 ---
 
-## 4. Spec là kim‑chỉ‑nam; hiện trạng ở STATUS
+## 4. Spec là kim chỉ nam; hiện trạng ở STATUS
 
 Bộ đặc tả này mô tả **hệ thống đích** — thiết kế mà các đội dev xây tới, đủ cụ thể để nhiều dev độc lập biết chính xác làm gì. **Không** trộn hiện trạng vào spec.
 
@@ -81,4 +81,7 @@ Phát hành theo **Apache License 2.0** (xem `LICENSE`). Cho phép dùng lại, 
 
 ---
 
-*Cập nhật: 2026-07-09. Bộ đặc tả là kim‑chỉ‑nam thiết kế; hiện trạng từng tính năng: xem [`PhoenixKey-STATUS.md`](./PhoenixKey-STATUS.md).*
+*Cập nhật: 2026-07-09. Bộ đặc tả là kim chỉ nam thiết kế; hiện trạng từng tính năng: xem [`PhoenixKey-STATUS.md`](./PhoenixKey-STATUS.md).*
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

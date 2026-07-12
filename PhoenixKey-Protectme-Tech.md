@@ -1,11 +1,11 @@
 # PhoenixKey — Protectme — Đặc tả KỸ THUẬT (cho kỹ sư)
 
-> **Module:** Protectme (Bảo-hiểm-phủ tài-sản) · **Loại doc:** Kỹ thuật (implementer) ·
+> **Module:** Protectme (Bảo hiểm phủ tài sản) · **Loại doc:** Kỹ thuật (implementer) ·
 > **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** KỸ SƯ triển khai — đội on-chain, đội backend (backend + Treasury), Core/
 > SuperApp (UI), MAGIC/CARP/Feecover-team.
-> **Mục đích:** kiến-trúc + datum/redeemer CBOR + luồng tx + ai-ký + ranh-giới đội + thứ-tự
-> deploy + phụ-thuộc-CHẶN. Đây là **HOW**; lý-do kinh-tế đọc [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md)/[PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md), toán
+> **Mục đích:** kiến trúc + datum/redeemer CBOR + luồng tx + ai ký + ranh giới đội + thứ tự
+> deploy + phụ thuộc CHẶN. Đây là **HOW**; lý do kinh-tế đọc [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md)/[PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md), toán
 > đọc [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md).
 >
 > **Ranh giới mã (branch `feat/protectme-payout`):**
@@ -14,9 +14,9 @@
 > - `PhoenixKey-Validator/validators/protectme_payout.ak`
 >
 > Ba trạng thái phân biệt xuyên suốt bản này:
-> - **ĐÃ-CÓ** — đã hiện thực trong branch trên (neo file:hàm cụ thể).
+> - **ĐÃ CÓ** — đã hiện thực trong branch trên (neo file:hàm cụ thể).
 > - **THÊM** — cần viết mới để chặn-merge (chủ yếu: **beacon one-shot per claim_id**).
-> - **CHỜ-CHỐT** — lệch spec/chưa quyết, KHÔNG code tới khi maintainer + đội backend chốt hướng.
+> - **CHỜ CHỐT** — lệch spec/chưa quyết, KHÔNG code tới khi maintainer + đội backend chốt hướng.
 >
 > **Đơn vị:** mọi giá trị chi/thu = **CARP** (đơn vị dàn xếp). MAGIC = nhãn giá premium
 > (`P*=1`), tiêu qua Vault `BurnBatch`, KHÔNG token/mint. Xem [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md) §2 + §9.
@@ -25,7 +25,7 @@
 
 ---
 
-# 1. Kiến-trúc + sơ-đồ thành-phần
+# 1. Kiến trúc + sơ đồ thành phần
 
 Protectme chia làm **bốn khối hợp tác**, ranh giới đội rõ (§7):
 
@@ -55,21 +55,21 @@ Protectme chia làm **bốn khối hợp tác**, ranh giới đội rõ (§7):
 
 **Bốn khối:**
 
-1. **Cổng CHI-TRẢ (validator payout)** — `validators/protectme_payout.ak`. Gác UTxO
+1. **Cổng CHI TRẢ (validator payout)** — `validators/protectme_payout.ak`. Gác UTxO
    escrow của một claim ĐÃ DUYỆT. Ép bất biến **phía chi** (NO-DOUBLE, CHALLENGE,
-   SINGLE-FACTOR, POOL/INCIDENT-CAP, T2, CAUSE-SPLIT/NO-CROSS-BUCKET). **ĐÃ-CÓ.**
+   SINGLE-FACTOR, POOL/INCIDENT-CAP, T2, CAUSE-SPLIT/NO-CROSS-BUCKET). **ĐÃ CÓ.**
 2. **Escrow ↔ bucket** — nạp escrow từ đúng bucket khi committee duyệt (release-gate
-   Treasury B.6). **CHỜ-CHỐT** (escrow-tự-giữ hiện tại vs release-from-bucket B.6, §8.2).
+   Treasury B.6). **CHỜ CHỐT** (escrow-tự giữ hiện tại vs release-from-bucket B.6, §8.2).
 3. **Committee/panel** — authority phân xử M-of-N Ed25519, cấu hình trong
-   `ProtectmeConfig`. Ép Reject cần ≥`committee_threshold` khoá **khác nhau**. **ĐÃ-CÓ.**
+   `ProtectmeConfig`. Ép Reject cần ≥`committee_threshold` khoá **khác nhau**. **ĐÃ CÓ.**
 4. **Beacon one-shot per claim_id** — state NFT singleton `asset_name = claim_id`, policy
    ≡ own-hash. Mint khi nạp escrow (provenance Feecover→bucket→escrow), burn khi
    Payout/Reject. Đóng #6 (escrow-giả) + F3 (double-payout). **THÊM — chặn-merge.**
 
-## 1.1 Bất biến kiến-trúc (load-bearing)
+## 1.1 Bất biến kiến trúc (load-bearing)
 
 - **Validator payout KHÔNG tin lời khai** — nó ép công thức `expected_amount` trên
-  `loss_eligible` + `policy` đã committee-chứng-thực off-chain (không có oracle on-chain
+  `loss_eligible` + `policy` đã committee-chứng thực off-chain (không có oracle on-chain
   cho "có phải trộm không", [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md) §0/§9, C.6). Validator **CHỈ** gác đường CHI/HOÀN
   của escrow đã nạp.
 - **Escrow chi đúng một lần** — eUTXO đảm bảo trong-tx + liên-tx-cùng-UTxO; liên-CLAIM
@@ -80,7 +80,7 @@ Protectme chia làm **bốn khối hợp tác**, ranh giới đội rõ (§7):
 
 ---
 
-# 2. Validator payout — ĐÃ-CÓ (đối chiếu mã branch)
+# 2. Validator payout — ĐÃ CÓ (đối chiếu mã branch)
 
 ## 2.1 Entry point
 
@@ -106,7 +106,7 @@ Neo `lib/phoenixkey/protectme_logic.ak:payout_ok`. Mọi mệnh đề dưới đ
 
 | # | Bất biến | Mệnh đề trong mã | Chống |
 |---|---|---|---|
-| P1 | miền tham số | `policy_domain_ok(loss, policy)` + `amount > 0` | payout âm / tạo-giá-trị (F1/F4) |
+| P1 | miền tham số | `policy_domain_ok(loss, policy)` + `amount > 0` | payout âm / tạo giá trị (F1/F4) |
 | P2 | I-PROT-NO-DOUBLE | `d.amount == expected_amount(cause, loss, policy)` | trả sai công thức |
 | P3 | I-PROT-INCIDENT-CAP | `d.amount <= cfg.incident_cap` | vượt trần/incident |
 | P4 | ràng buộc giá trị escrow | `escrow_carp == d.amount` | escrow không khớp amount |
@@ -124,11 +124,11 @@ Công thức chi (`expected_amount`): SYS = `min(loss, cap_sys)` (không co-pay)
 
 | # | Bất biến | Mệnh đề | Chống |
 |---|---|---|---|
-| R1 | committee M-of-N | `committee_ok(tx, cfg)` — `list.unique` rồi đếm ≥ threshold | một-khoá grief / khoá trùng (F7) |
+| R1 | committee M-of-N | `committee_ok(tx, cfg)` — `list.unique` rồi đếm ≥ threshold | một khoá grief / khoá trùng (F7) |
 | R2 | double-satisfaction | `count_inputs_at(tx, own_cred) == 1` | gộp escrow |
 | R3 | NO-CROSS-BUCKET + bảo toàn | `sole_output_value_at(outputs, bucket_cred(cause)) == Some(escrow_val)` | hoàn sai bucket / skim (HIGH4) |
 
-## 2.4 Ai ký (ĐÃ-CÓ)
+## 2.4 Ai ký (ĐÃ CÓ)
 
 - **Payout:** **permissionless-after-window.** `payee_cred` + `amount` đã CỐ ĐỊNH trong
   datum → ai kích hoạt cũng an toàn (tiền chỉ chảy về claimant). Không đòi committee ký
@@ -136,7 +136,7 @@ Công thức chi (`expected_amount`): SYS = `min(loss, cap_sys)` (không co-pay)
 - **Reject:** committee ký, ≥ `committee_threshold` khoá **khác nhau** trong
   `extra_signatories` (dedup qua `list.unique`).
 
-## 2.5 🟡 Siết hẹp P9 — stake_credential + payee VerificationKey-cred (CHỜ-LÀM, rẻ, trước-merge)
+## 2.5 🟡 Siết hẹp P9 — stake_credential + payee VerificationKey-cred (CHỜ LÀM, rẻ, trước-merge)
 
 P9 (`sole_output_value_at(outputs, payee_cred) == Some(escrow_val)`) hiện chỉ khớp
 **`payment_credential`**, bỏ qua `stake_credential`; và `payee_cred` giả định output đích
@@ -144,7 +144,7 @@ luôn mang **`Script`**-credential. Hai chỗ hẹp cần đóng trước merge 
 
 - **(a) `stake_credential` bị bỏ:** hiện chỉ ép đúng payment-cred tại output payee, không ép
   stake-cred. Cần siết thêm (khớp cả cặp payment+stake) HOẶC ghi rõ trong `protectme_types.ak`
-  rằng bỏ-qua-stake là **cố ý** (ví dụ nếu payee luôn none-stake theo thiết kế ví Phượng hoàng).
+  rằng bỏ qua-stake là **cố ý** (ví dụ nếu payee luôn none-stake theo thiết kế ví Phượng hoàng).
   Chưa quyết — đội on-chain xác nhận rồi chốt.
 - **(b) `payee_cred` giả định luôn `Script`-cred:** ví Phượng hoàng ở **L1 công khai**
   ([multiaddress-custody-model] — L1 base công khai payment+stake) có thể là
@@ -239,11 +239,11 @@ validate_mint(redeemer, own_policy, self):
 
 ---
 
-# 4. Schema datum / redeemer (ĐÃ-CÓ + THÊM) — khuôn CBOR
+# 4. Schema datum / redeemer (ĐÃ CÓ + THÊM) — khuôn CBOR
 
-Thứ-tự field CỐ ĐỊNH, khớp `aiken` ↔ `rust_core`.
+Thứ tự field CỐ ĐỊNH, khớp `aiken` ↔ `rust_core`.
 
-## 4.1 `ClaimDatum` (escrow, ĐÃ-CÓ — `protectme_types.ak`)
+## 4.1 `ClaimDatum` (escrow, ĐÃ CÓ — `protectme_types.ak`)
 
 ```
 ClaimDatum {
@@ -267,19 +267,19 @@ PolicySnapshot {
 }
 ```
 
-## 4.2 `ClaimRecord` (T2, ĐÃ-CÓ)
+## 4.2 `ClaimRecord` (T2, ĐÃ CÓ)
 
 ```
 ClaimRecord { claim_id, did, amount, cause }   -- output bất biến tại record_cred
 ```
 
-## 4.3 Redeemer (ĐÃ-CÓ)
+## 4.3 Redeemer (ĐÃ CÓ)
 
 ```
 ProtectmeRedeemer { Payout | Reject { reason: Int } }
 ```
 
-## 4.4 `ProtectmeConfig` (apply-param, ĐÃ-CÓ + THÊM cho beacon)
+## 4.4 `ProtectmeConfig` (apply-param, ĐÃ CÓ + THÊM cho beacon)
 
 ```
 ProtectmeConfig {
@@ -298,7 +298,7 @@ ProtectmeConfig {
 }
 ```
 
-> **Ghi trung-thực:** `beacon_policy` hiện là **comment** (`protectme_types.ak` khu THÊM),
+> **Ghi trung thực:** `beacon_policy` hiện là **comment** (`protectme_types.ak` khu THÊM),
 > chưa phải field thật. `require_antidrain_for_single_factor` thì ĐÃ có (khớp I-PROT-CFG).
 
 ## 4.5 Kiểu THÊM cho beacon
@@ -322,7 +322,7 @@ Off-chain (backend, đội backend) dàn dựng; validator ép trên chain. Năm
 - **Ký:** committee ≥ threshold (họ duyệt + set datum + release bucket).
 - **Ép:** beacon mint gate (§3.2) — provenance bucket + carrier=escrow + `name==claim_id`
   + `escrow CARP == amount`; release-gate Treasury (đội backend).
-- **CHỜ-CHỐT:** input đến từ bucket (B.6) VS escrow-tự-giữ (§8.2).
+- **CHỜ CHỐT:** input đến từ bucket (B.6) VS escrow-tự giữ (§8.2).
 
 ## Tx-B — mở claim (off-chain, KHÔNG on-chain)
 
@@ -355,7 +355,7 @@ Off-chain (backend, đội backend) dàn dựng; validator ép trên chain. Năm
 - Truy hồi tài sản kẻ trộm → nạp về đúng bucket qua đường thu Treasury (đội backend). Không
   validator payout — thuộc Treasury release/deposit (I-PROT-SUBROGATION).
 
-## Bảng ai-ký (tổng hợp)
+## Bảng ai ký (tổng hợp)
 
 | Tx | Hành động | Ai ký | Ép bởi |
 |---|---|---|---|
@@ -366,11 +366,11 @@ Off-chain (backend, đội backend) dàn dựng; validator ép trên chain. Năm
 
 ---
 
-# 6. API backend (tham-chiếu)
+# 6. API backend (tham chiếu)
 
 > Prefix `/api/v1`, JSON snake_case, `DataResponse<T>{code,message,result}`. Đây là **đề
-> xuất** — backend PhoenixKey = ranh giới đội backend, tài-liệu này KHÔNG code. Endpoint dưới đi
-> cùng resolver + hai bucket (CHỜ-CHỐT, xem §8).
+> xuất** — backend PhoenixKey = ranh giới đội backend, tài liệu này KHÔNG code. Endpoint dưới đi
+> cùng resolver + hai bucket (CHỜ CHỐT, xem §8).
 
 | Method | Path | Vai trò |
 |---|---|---|
@@ -383,25 +383,25 @@ Off-chain (backend, đội backend) dàn dựng; validator ép trên chain. Năm
 
 ---
 
-# 7. Ranh-giới đội
+# 7. Ranh giới đội
 
 | Khối | Chủ | Phạm vi | File / neo |
 |---|---|---|---|
 | **Validator payout** | **đội on-chain** | escrow gate: `payout_ok`/`reject_ok`, single-factor tunable, T2, cred-collision, double-satisfaction | `protectme_payout.ak`, `protectme_logic.ak`, `protectme_types.ak` |
 | **Beacon one-shot (THÊM)** | **đội on-chain** | `protectme_beacon` policy + logic, mint/burn gate, provenance bucket | `protectme_beacon.ak` (viết mới) |
 | **Escrow ↔ bucket** | **đội backend** | release bucket→escrow lúc duyệt (B.6), committee-gate Treasury, ghi claim-record deposit | `LAMP/Treasury` |
-| **Hai bucket** | **đội backend** | `protectme_pot_system` + `protectme_pot_user`, DAO-gated release (T1 Model A), KHÔNG sổ-phụ | `LAMP/Treasury/CONTRACT.md` |
+| **Hai bucket** | **đội backend** | `protectme_pot_system` + `protectme_pot_user`, DAO-gated release (T1 Model A), KHÔNG sổ phụ | `LAMP/Treasury/CONTRACT.md` |
 | **Feecover-integration** | **đội backend** | wire `service_id="protectme.*"`, `FeecoverAccrual`→`FeecoverEpochSettle`→bucket, `app_id="feecover"`, grace/`last_paid_epoch`; KHÔNG `collectToTreasury` | `PhoenixKey-Feecover` |
 | **Resolver/indexer claim** | **đội backend** | trạng thái ClaimPacket, đọc anti-drain log + vault UTxO scan, tính `loss_eligible` | backend PhoenixKey |
 | **UI** | **Core/SuperApp** | màn Protectme (bật/cap/premium breakdown), mở claim (auto-điền từ anti-drain log), trạng thái claim | app |
 | **Governance committee/panel** | **DAO/maintainer** | thành phần Security Committee + Adjudication Panel, ngưỡng vote, recuse/challenge | LAMP/Governance |
 
-> Ranh giới code: **backend PhoenixKey = đội backend, tài-liệu này KHÔNG sửa.** Validator = đội on-chain,
+> Ranh giới code: **backend PhoenixKey = đội backend, tài liệu này KHÔNG sửa.** Validator = đội on-chain,
 > không tự merge; phát hiện lỗi → báo maintainer / Issue giao đội backend/on-chain.
 
 ---
 
-# 8. Thứ-tự deploy + phụ-thuộc-CHẶN
+# 8. Thứ tự deploy + phụ thuộc CHẶN
 
 ## 8.1 🔴 CHẶN-MERGE — beacon one-shot per claim_id (THÊM)
 
@@ -411,17 +411,17 @@ Off-chain (backend, đội backend) dàn dựng; validator ép trên chain. Năm
 - **Hành động:** đội on-chain viết `protectme_beacon.ak` + ghép burn vào `payout_ok`/`reject_ok` +
   thêm `beacon_policy` vào `ProtectmeConfig`. Sau đó merge.
 
-## 8.2 🟡 CHỜ-CHỐT — escrow-tự-giữ VS release-from-bucket (B.6)
+## 8.2 🟡 CHỜ CHỐT — escrow-tự giữ VS release-from-bucket (B.6)
 
 - **Lệch:** spec **B.6** = release-from-bucket qua Treasury (mọi CARP ra bucket có
-  claim-record đối ứng, T2). **Mã hiện tại** = escrow-tự-giữ (validator giả định escrow "đã
+  claim-record đối ứng, T2). **Mã hiện tại** = escrow-tự giữ (validator giả định escrow "đã
   nạp hợp lệ", chỉ kiểm `escrow_carp == amount`, KHÔNG kiểm nguồn bucket).
 - **Chờ:** **đội backend + maintainer** chốt hướng nạp. Nếu chốt B.6 (release-from-bucket) → beacon
-  provenance (§3.2 `spends_from_bucket`) trở thành ràng buộc bắt buộc; nếu escrow-tự-giữ
+  provenance (§3.2 `spends_from_bucket`) trở thành ràng buộc bắt buộc; nếu escrow-tự giữ
   đứng → provenance nới nhưng #6 chỉ đóng một phần.
 - **KHÔNG code** đường nạp tới khi chốt — chỉ chuẩn bị beacon để cả hai hướng đều dùng được.
 
-## 8.3 🟡 CHỜ-CHỐT — 1-hash + config-reference-input
+## 8.3 🟡 CHỜ CHỐT — 1-hash + config-reference-input
 
 - **Refactor SAU:** gộp payout+beacon về 1-hash + đọc config qua reference-input thay
   apply-param. **KHÔNG chặn** nếu beacon đã đóng #2/#6/F3. Beacon làm policy độc lập trước
@@ -449,10 +449,10 @@ Off-chain (backend, đội backend) dàn dựng; validator ép trên chain. Năm
 
 ---
 
-# 9. Ranh giới kiểm chứng + Ghi trung-thực (ĐÃ-CÓ vs THÊM vs CHỜ-CHỐT)
+# 9. Ranh giới kiểm chứng + Ghi trung thực (ĐÃ CÓ vs THÊM vs CHỜ CHỐT)
 
-Hạng mục chặn-merge kỹ-thuật-thuần DUY NHẤT là **beacon one-shot** (§3); còn lại là CHỜ-CHỐT
-chính sách (maintainer + đội backend + DAO). Neo kiểm-chứng theo hạng mục:
+Hạng mục chặn-merge kỹ thuật thuần DUY NHẤT là **beacon one-shot** (§3); còn lại là CHỜ CHỐT
+chính sách (maintainer + đội backend + DAO). Neo kiểm chứng theo hạng mục:
 
 | Hạng mục | Neo |
 |---|---|
@@ -479,10 +479,13 @@ chính sách (maintainer + đội backend + DAO). Neo kiểm-chứng theo hạng
 
 ## Nguồn
 
-- Nguồn thiết-kế nội-bộ (không công khai).
+- Nguồn thiết kế nội bộ (không công khai).
 - Code: `PhoenixKey-Validator` nhánh `feat/protectme-payout` — `protectme_{types,logic}.ak`
   + `validators/protectme_payout.ak` + mẫu `state_nft_logic.ak`.
-- Tài-liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md), [PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md).
+- Tài liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md), [PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md).
 
 *Bản kỹ thuật này bám branch `feat/protectme-payout`. Không normative tới khi maintainer
 duyệt + hợp thức vào PhoenixKey-Specs.*
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

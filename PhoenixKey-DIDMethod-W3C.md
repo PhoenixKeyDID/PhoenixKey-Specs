@@ -302,3 +302,6 @@ This method is registered in the W3C DID Method Registry (`w3c/did-extensions`, 
 | Mint-gate logic | `lib/phoenixkey/state_nft_logic.ak` |
 | Spend state-machine logic | `lib/phoenixkey/taad_logic.ak` |
 | Wallet-side authorization read | `auth_logic.anchor_controller_ok`, used by `did_payment.ak` / `did_stake.ak` |
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

@@ -18,7 +18,7 @@
 
 ---
 
-> **→ Hiện-trạng triển-khai từng phần:** xem [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
+> **→ Hiện trạng triển khai từng phần:** xem [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
 
 ---
 
@@ -2138,13 +2138,13 @@ và AI đám mây phải dùng hai loại khác nhau dù cùng bản chất tác
 | Ứng viên | Có cần loại mới? | Khuyến nghị |
 |---|---|---|
 | Tài khoản/ví tài chính | Không | thuộc ví Cardano + Person/Org owner |
-| Place/địa điểm (cửa hàng, toà nhà) | Cân nhắc | tạm dùng **AssetDID** (vật thụ động) hoặc ContextDID nếu có thời hạn; loại "PlaceDID" chỉ khi cần thuộc tính không-gian normative riêng |
+| Place/địa điểm (cửa hàng, toà nhà) | Cân nhắc | tạm dùng **AssetDID** (vật thụ động) hoặc ContextDID nếu có thời hạn; loại "PlaceDID" chỉ khi cần thuộc tính không gian normative riêng |
 | Sự kiện (event, vé) | Không | **ContextDID** (§14, có expiry) đúng bản chất |
 | Tài liệu/giấy tờ/credential | **Không** (quan trọng) | KHÔNG phải DID — là **VC** do issuer phát hành về một subject-DID (§35.2 [M-3]) |
-| Nhóm/cộng đồng phi pháp-nhân | Không | **OrgDID** |
+| Nhóm/cộng đồng phi pháp nhân | Không | **OrgDID** |
 | Mô hình AI / dataset | Cân nhắc | nếu là "tác tử" → Agent; nếu là tài sản số thụ động → Asset; nếu là dịch vụ → Service |
 | Tài sản thật token-hoá (RWA: nhà, vàng) | Không (phần lớn) | **AssetDID** + attestation; pháp lý ở VC/§34 |
-| Tài khoản/khoá liên-chuỗi | Không | `linked_dids`/DIDLink của PersonDID (§12) |
+| Tài khoản/khoá liên chuỗi | Không | `linked_dids`/DIDLink của PersonDID (§12) |
 
 → 10 loại + reserved range hiện ĐỦ cho gần hết nhu cầu; phần lớn "loại mới"
 thực ra là **VC về một DID** chứ không phải DID mới. Chỉ nên thêm type mới khi
@@ -2231,7 +2231,7 @@ I-REG-4 [N]: Cấm bake hash-script-khác làm tham số chéo vòng (vd policy 
 | Đọc lúc | xuất trình | reference input lúc validate |
 
 **Tổng quát hoá.** Cùng primitive dùng cho mint token / chi quỹ DN (treasury
-m-of-n) / DAO-exec / thiết-bị-chung (xe·két·robot) / di sản. Verifier-agnostic
+m-of-n) / DAO-exec / thiết bị chung (xe·két·robot) / di sản. Verifier-agnostic
 — mỗi verifier (token policy, treasury validator, device validator) tự đọc
 registry.
 
@@ -3849,14 +3849,14 @@ Slot 201: DelegationToken_valid(dt, 201):
 
 All links valid as of 2026-05-28. Click to open.
 
-> **Rà-soát dẫn-nguồn 2026-07-12:** đây là kho tham-chiếu chung của toàn bộ hệ PhoenixKey — KHÔNG
-> phải mọi mục dưới đây đều được trích trực-tiếp bằng tag `[TAG]` tại một claim cụ-thể trong văn
-> bản (một số như RFC 5869/8032/9106 được nêu bằng chữ thường "RFC 9106" ngay tại claim liên-quan,
-> coi như đã có căn-cứ; các mục khác là nguồn nền cho các module con dùng chung công-nghệ, ví-dụ
+> **Rà soát dẫn nguồn 2026-07-12:** đây là kho tham chiếu chung của toàn bộ hệ PhoenixKey — KHÔNG
+> phải mọi mục dưới đây đều được trích trực tiếp bằng tag `[TAG]` tại một claim cụ thể trong văn
+> bản (một số như RFC 5869/8032/9106 được nêu bằng chữ thường "RFC 9106" ngay tại claim liên quan,
+> coi như đã có căn cứ; các mục khác là nguồn nền cho các module con dùng chung công nghệ, ví dụ
 > `[BBS-CRYPT]`/`[SAFECURVES]`/`[BLAKE2]`/`[CIP-0381]`/`[SHAMIR79]` — SHAMIR79 giữ làm nguồn
-> lịch-sử để đối-chiếu khi giải-thích "vì sao đã bỏ Shamir", xem `guardian-recovery-model`).
-> Đừng đọc sự có-mặt của một mục ở đây như bằng-chứng mọi dòng phía trên trong tài-liệu đã được
-> kiểm-chứng đối-chiếu chuẩn đó — coi bảng này là thư-mục nguồn, không phải chứng-nhận.
+> lịch sử để đối chiếu khi giải thích "vì sao đã bỏ Shamir", xem `guardian-recovery-model`).
+> Đừng đọc sự có mặt của một mục ở đây như bằng chứng mọi dòng phía trên trong tài liệu đã được
+> kiểm chứng đối chiếu chuẩn đó — coi bảng này là thư mục nguồn, không phải chứng nhận.
 
 ## G.1 Standards and Specifications
 
@@ -3942,3 +3942,6 @@ All links valid as of 2026-05-28. Click to open.
 *— PhoenixKey Cardano Validator Reference v1.0 (Aiken/PlutusV3)*
 *— PhoenixKey BA Spec v2.0 (business rules, user journeys)*
 *— PhoenixKey Validator PR: §11.0 non-Person recovery + §11.6 Tier 5 + I-RECOVERY-4 enforcement*
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

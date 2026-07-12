@@ -1,8 +1,8 @@
 # PhoenixKey — Wakeme: Chiếc Đèn và Điều ước của bạn
 
-> **Module:** Wakeme (GetLAMP — kích-hoạt nhận LAMP). **Loại doc:** Feature (tiếng Việt, hướng người-dùng/sản-phẩm). **Ngày:** 2026-07-09.
-> **Đối-tượng đọc:** người dùng PhoenixKey và đội sản-phẩm — KHÔNG phải kỹ sư hay auditor. Mục tiêu: hiểu **Wakeme là gì**, **được lợi gì**, **làm sao giữ**, bằng ngôn ngữ đời thường.
-> Chi-tiết toán/bất-biến ở [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md); kỹ-thuật + API ở [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md); quyết-định điều-hành ở [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
+> **Module:** Wakeme (GetLAMP — kích hoạt nhận LAMP). **Loại doc:** Feature (tiếng Việt, hướng người dùng/sản phẩm). **Ngày:** 2026-07-09.
+> **Đối tượng đọc:** người dùng PhoenixKey và đội sản phẩm — KHÔNG phải kỹ sư hay auditor. Mục tiêu: hiểu **Wakeme là gì**, **được lợi gì**, **làm sao giữ**, bằng ngôn ngữ đời thường.
+> Chi tiết toán/bất biến ở [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md); kỹ thuật + API ở [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md); quyết định điều hành ở [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
 
 ---
 
@@ -28,7 +28,7 @@ Trước đây, muốn bắt đầu bạn phải **nạp 200.000đ** để đổ
 **Wakeme mới bỏ hết ba cái đó:**
 - **Miễn phí khởi tạo.** Không nạp đồng nào. Bấm một nút là có đèn.
 - **Không cần hiểu tỷ giá.** Bạn chỉ thấy một nút và dòng điều ước hằng ngày. Phí mạng do hệ thống (Feecover) lo thay bạn.
-- **Tự nuôi nhau.** Ai bỏ cuộc thì phần chưa-kiếm-được quay về "hồ chung" nuôi người mới. Ai kiên trì thì được thưởng đèn thật.
+- **Tự nuôi nhau.** Ai bỏ cuộc thì phần chưa kiếm được quay về "hồ chung" nuôi người mới. Ai kiên trì thì được thưởng đèn thật.
 
 ---
 
@@ -79,7 +79,7 @@ Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (kho
 - Phần đã thành của bạn (**đã tháo khoá**) thì **an toàn tuyệt đối** — không bao giờ bị đụng, kể cả khi bạn nghỉ hẳn.
 - Chỉ khi bạn **bỏ bê rất lâu — 1001 kỳ liên tục không dùng gì** — thì phần đèn **còn khoá** (chưa kiếm được) mới quay về hồ chung.
 
-*Ví von:* đèn đã "vào biên chế". Mỗi ngày một mảnh thành của bạn, miễn bạn còn ghé dùng. Bỏ hẳn thật lâu thì phần chưa-tháo mới trả lại — phần đã cầm trong tay thì giữ mãi.
+*Ví von:* đèn đã "vào biên chế". Mỗi ngày một mảnh thành của bạn, miễn bạn còn ghé dùng. Bỏ hẳn thật lâu thì phần chưa tháo mới trả lại — phần đã cầm trong tay thì giữ mãi.
 
 ---
 
@@ -106,59 +106,62 @@ Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (kho
 - Không phải lo phí mạng, không phải hiểu tỷ giá.
 
 **Bạn cần:**
-- **Dùng dịch vụ đều đặn.** PHA-1: mỗi ngày. PHA-2: mỗi kỳ (~5 ngày). Không dùng thì đèn hao dần (phần chưa-kiếm).
+- **Dùng dịch vụ đều đặn.** PHA-1: mỗi ngày. PHA-2: mỗi kỳ (~5 ngày). Không dùng thì đèn hao dần (phần chưa kiếm).
 - Hiểu rõ **hai loại đèn** trên màn hình:
-  - **LAMP điều-kiện** (khoá, đang sinh điều ước) — chưa của bạn, **không rút được**.
-  - **LAMP đã-của-bạn** (đã tháo khoá) — của bạn thật, **rút/bán được**.
+  - **LAMP điều kiện** (khoá, đang sinh điều ước) — chưa của bạn, **không rút được**.
+  - **LAMP đã của bạn** (đã tháo khoá) — của bạn thật, **rút/bán được**.
 
-> Một điều công bằng (ý-định thiết-kế): **một người = một suất.** Suất đèn tính theo danh tính sinh-trắc (vân tay) của bạn, không theo số ví — tạo nhiều ví không nhân suất. *Lưu ý kỹ-thuật: lớp neo-danh-tính-trên-chuỗi (anchor) cho DID cá-nhân đang hoàn thiện (xem §8) — nên việc mở GetLAMP rộng-rãi cho cá-nhân tạm hoãn tới khi xong. DID doanh-nghiệp/tổ-chức không dính vì có chữ-ký-cha xác thực.*
+> Một điều công bằng (ý-định thiết kế): **một người = một suất.** Suất đèn tính theo danh tính sinh trắc (vân tay) của bạn, không theo số ví — tạo nhiều ví không nhân suất. *Lưu ý kỹ thuật: lớp neo danh tính trên chuỗi (anchor) cho DID cá nhân đang hoàn thiện (xem §8) — nên việc mở GetLAMP rộng rãi cho cá nhân tạm hoãn tới khi xong. DID doanh nghiệp/tổ chức không dính vì có chữ ký cha xác thực.*
 
 ---
 
 ## 7. Câu hỏi thường gặp
 
 **Hỏi: "Mượn" nghĩa là tôi phải trả lại?**
-Đáp: Không phải trả tiền. Đèn nằm trong ví bạn ngay. "Có điều kiện" nghĩa là: dùng đều đặn thì giữ và cuối cùng sở hữu; bỏ bê thì phần chưa-kiếm hao về hồ chung. Không có nợ, không có lãi.
+Đáp: Không phải trả tiền. Đèn nằm trong ví bạn ngay. "Có điều kiện" nghĩa là: dùng đều đặn thì giữ và cuối cùng sở hữu; bỏ bê thì phần chưa kiếm hao về hồ chung. Không có nợ, không có lãi.
 
 **Hỏi: Tôi mất gì nếu quên dùng vài ngày?**
-Đáp: PHA-1 — mỗi ngày quên mất 1 LAMP (phần chưa-kiếm), dùng lại là ngừng mất. Có 7 ngày đầu miễn trừ. PHA-2 — quên một kỳ chỉ làm việc nhả đèn tạm dừng, đèn không mất; phần đã sở hữu thì an toàn tuyệt đối dù bạn nghỉ bao lâu.
+Đáp: PHA-1 — mỗi ngày quên mất 1 LAMP (phần chưa kiếm), dùng lại là ngừng mất. Có 7 ngày đầu miễn trừ. PHA-2 — quên một kỳ chỉ làm việc nhả đèn tạm dừng, đèn không mất; phần đã sở hữu thì an toàn tuyệt đối dù bạn nghỉ bao lâu.
 
 **Hỏi: Bao giờ tôi thật sự sở hữu LAMP?**
 Đáp: Từ ngày 1002 trở đi, mỗi ngày 1 chiếc thành của bạn (miễn kỳ đó bạn còn dùng dịch vụ). Kiên trì đủ và không bị hao ngày nào ở PHA-1 → có thể sở hữu tối đa 1001 chiếc.
 
 **Hỏi: MAGIC (điều ước) là gì? Khác LAMP thế nào?**
-Đáp: **LAMP** là tài sản nền, tổng cung cố định 36 tỷ (không đốt). **MAGIC** là "quyền dùng dịch vụ" gắn với danh tính bạn — là số dư trong ví (account), **không chuyển cho người khác được**, và **tan biến nếu không dùng** (dùng-hay-mất). Đèn (LAMP) sinh ra điều ước (MAGIC) để bạn tiêu; khi thanh toán dịch vụ, hệ trả bằng CARP (1 CARP = 1 MAGIC).
+Đáp: **LAMP** là tài sản nền, tổng cung cố định 36 tỷ (không đốt). **MAGIC** là "quyền dùng dịch vụ" gắn với danh tính bạn — là số dư trong ví (account), **không chuyển cho người khác được**, và **tan biến nếu không dùng** (dùng hay mất). Đèn (LAMP) sinh ra điều ước (MAGIC) để bạn tiêu; khi thanh toán dịch vụ, hệ trả bằng CARP (1 CARP = 1 MAGIC).
 
 **Hỏi: Chiếc đèn có bị "đốt" khi sinh điều ước không?**
 Đáp: Không. Đèn **đứng yên** trong ví. Hệ thống chỉ **đọc số dư đèn** để tính bao nhiêu điều ước — không hề đốt, không chuyển LAMP đi đâu. Đèn to thì điều ước nhiều; đèn hao thì điều ước ít theo.
 
 **Hỏi: Tôi tự làm app rồi tiêu điều ước của chính mình có được không?**
-Đáp: **Được, và được khuyến khích** — miễn app của bạn đăng ký qua Registry (danh sách các dịch vụ đã được duyệt là "tiêu tài nguyên thật", do đội vận hành PhoenixKey xét duyệt trước khi cho phép tính vào anti-idle/vest-gate — không phải một trang tự-đăng-ký công khai) và thật sự tiêu tài nguyên thật (lưu trữ, băng thông, tính toán, sức lao động…). Mỗi lượt tiêu đều tốn phí về ngân quỹ chung nên hệ thống có lợi. Chỉ "tiêu rỗng" không tài nguyên mới bị loại — ngay ở khâu duyệt đăng ký.
+Đáp: **Được, và được khuyến khích** — miễn app của bạn đăng ký qua Registry (danh sách các dịch vụ đã được duyệt là "tiêu tài nguyên thật", do đội vận hành PhoenixKey xét duyệt trước khi cho phép tính vào anti-idle/vest-gate — không phải một trang tự đăng ký công khai) và thật sự tiêu tài nguyên thật (lưu trữ, băng thông, tính toán, sức lao động…). Mỗi lượt tiêu đều tốn phí về ngân quỹ chung nên hệ thống có lợi. Chỉ "tiêu rỗng" không tài nguyên mới bị loại — ngay ở khâu duyệt đăng ký.
 
 **Hỏi: Tôi có phải trả phí mạng (ADA) không?**
 Đáp: Không. Feecover lo phí mạng thay bạn.
 
 **Hỏi: Tôi muốn dừng giữa chừng thì sao?**
-Đáp: PHA-1 không có nút "từ bỏ" chủ động — bạn chỉ cần ngừng dùng, cơ chế anti-idle tự xử lý: mỗi ngày không dùng đủ, hệ thống tự thu 1 LAMP (phần chưa-kiếm) về hồ chung, không cần bạn bấm gì. PHA-2 bạn rút phần đã-của-mình ra bất cứ lúc nào; phần chưa tháo khoá cứ để đó, hệ thống tự xử lý.
+Đáp: PHA-1 không có nút "từ bỏ" chủ động — bạn chỉ cần ngừng dùng, cơ chế anti-idle tự xử lý: mỗi ngày không dùng đủ, hệ thống tự thu 1 LAMP (phần chưa kiếm) về hồ chung, không cần bạn bấm gì. PHA-2 bạn rút phần đã của mình ra bất cứ lúc nào; phần chưa tháo khoá cứ để đó, hệ thống tự xử lý.
 
 ---
 
 ## 8. Ranh giới thiết kế — luật cho các phần phụ thuộc đội khác
 
-Vài phần của Wakeme phụ thuộc thiết-kế/hạ-tầng ở đội khác. Luật áp dụng khi các phần đó nối vào:
+Vài phần của Wakeme phụ thuộc thiết kế/hạ tầng ở đội khác. Luật áp dụng khi các phần đó nối vào:
 
-- **Validator lõi (khoá/vest/rút trên chuỗi)** là nguồn chân-lý duy nhất cho sổ-sách LAMP: mọi app/backend PHẢI đọc-ghi qua đúng redeemer của validator, không được tự suy luận số dư.
+- **Validator lõi (khoá/vest/rút trên chuỗi)** là nguồn chân lý duy nhất cho sổ sách LAMP: mọi app/backend PHẢI đọc ghi qua đúng redeemer của validator, không được tự suy luận số dư.
 - **Điều ước (MAGIC) sinh ra sao:** nguyên lý cố định là "đèn đứng yên, chỉ đọc số dư, không đúc thêm token" — engine Gen KHÔNG được spend/đốt LAMP dưới bất kỳ hình thức nào, chỉ đọc.
-- **Chuẩn "dịch vụ tiêu tài nguyên thật" (Registry):** Registry là danh sách các dịch vụ đã qua xét-duyệt của đội vận hành PhoenixKey, xác nhận dịch vụ đó tiêu tài nguyên thật (lưu trữ/băng thông/tính toán/lao động) chứ không phải giao dịch giả tạo dựng để "cày" phần thưởng. Chỉ dịch vụ có tên trong Registry mới được tính là "đã dùng dịch vụ" cho anti-idle/vest-gate. Dịch vụ "tiêu rỗng" không tài nguyên bị loại ngay ở khâu duyệt đăng ký.
+- **Chuẩn "dịch vụ tiêu tài nguyên thật" (Registry):** Registry là danh sách các dịch vụ đã qua xét duyệt của đội vận hành PhoenixKey, xác nhận dịch vụ đó tiêu tài nguyên thật (lưu trữ/băng thông/tính toán/lao động) chứ không phải giao dịch giả tạo dựng để "cày" phần thưởng. Chỉ dịch vụ có tên trong Registry mới được tính là "đã dùng dịch vụ" cho anti-idle/vest-gate. Dịch vụ "tiêu rỗng" không tài nguyên bị loại ngay ở khâu duyệt đăng ký.
 - **Mua điều ước bằng tiền thật (GetMAGIC):** hệ **không đúc CARP tự do** — user luôn trả CARP đã có, có bảo chứng qua GreenBack (hệ thống/đối tác giữ dự trữ đối ứng cho CARP, đảm bảo mỗi CARP lưu hành có giá trị thật đứng sau, không phát hành khống).
 - **Cân đối hồ chung PHA-2:** vì đèn PHA-2 rời hệ thống sang tay người dùng, hồ chung cần nguồn nạp bù chủ động (không được để hồ chung âm).
-- **"Một người một suất":** D keyed theo PersonDID sinh-trắc, không theo số ví — tạo nhiều ví không nhân suất. Điều kiện tiên quyết: lớp neo-danh-tính-trên-chuỗi (anchor) cho DID cá-nhân phải ràng đúng khoá-gốc (UniquenessThread/PA2) trước khi mở GetLAMP rộng-rãi cho cá-nhân. DID doanh-nghiệp/tổ-chức không cần điều kiện này vì đã có chữ-ký-cha xác thực.
+- **"Một người một suất":** D keyed theo PersonDID sinh trắc, không theo số ví — tạo nhiều ví không nhân suất. Điều kiện tiên quyết: lớp neo danh tính trên chuỗi (anchor) cho DID cá nhân phải ràng đúng khoá gốc (UniquenessThread/PA2) trước khi mở GetLAMP rộng rãi cho cá nhân. DID doanh nghiệp/tổ chức không cần điều kiện này vì đã có chữ ký cha xác thực.
 
-→ Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
+→ Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
 
 ---
 
 ## Nguồn
 
-- Nguồn thiết-kế nội-bộ (không công khai). (đã qua rà-soát nội-bộ)
-- Tài-liệu cùng bộ: [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md), [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md), [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
+- Nguồn thiết kế nội bộ (không công khai). (đã qua rà soát nội bộ)
+- Tài liệu cùng bộ: [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md), [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md), [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

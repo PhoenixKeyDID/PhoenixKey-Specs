@@ -255,7 +255,7 @@ public record BalanceResponse(
 
 **Việc Long (offchain, cùng PR này hoặc PR kề):**
 1. **Grep toàn bộ** truy vấn owner-key: `grep -rn "key_role = 'owner'" src/` — đảm bảo MỌI query
-   đọc-đơn owner-key đều có `AND status='active' … ORDER BY created_at DESC, id DESC LIMIT 1`
+   đọc đơn owner-key đều có `AND status='active' … ORDER BY created_at DESC, id DESC LIMIT 1`
    và trả `Optional`, không có biến thể trả single-throw.
 2. **Đúng hơn — sửa recovery để revoke owner cũ:** trong `RecoverDeviceService`, khi chèn HW_Key owner mới,
    set các owner-key active cũ của DID về `status='revoked'` **trong cùng transaction**
@@ -301,3 +301,6 @@ Chạy trên preprod (Blockfrost preprod key). Ghi output thật vào PR.
 | §5 Bug `/identity/{did}/pubkey` 500 (recover) | 🔴 sửa | Long | — (offchain thuần) |
 
 **Interface do PhoenixKey chốt. Long ước lượng thời gian + build. Không đụng onchain/validator.**
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._
