@@ -101,6 +101,8 @@ did:phoenix:<slot>:<hash>
 
 `H` is the same primitive as the on-chain anchor name function (§4.5); `entity_type` is encoded as a fixed single byte per the canonical byte table in §2 (`Person=0, Org=1, Device=2, Machine=3, Asset=4, Bot=5, Agent=6, Service=7, Context=8, Avatar=9`). The byte **value** is the hash-contract invariant consumed on-chain; the type's display label (`Agent`, `Avatar`) is documentation-only and carries no on-chain meaning, so labelling is fixed by the value, not the name.
 
+**Note (informative) — key material.** The identifier above is distinct from the key material that backs the verification methods in §5. The controller/verification keys and the associated Cardano wallet are produced off-ledger inside the secure element by a deterministic chain: a hardware-random 256-bit root secret is HKDF-separated ([RFC 5869](https://www.rfc-editor.org/rfc/rfc5869), domain label `wallet-seed-v1`) into a distinct HD seed, which then feeds the standard [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) / [CIP-1852](https://cips.cardano.org/cip/CIP-1852) ([CIP-3](https://cips.cardano.org/cip/CIP-3) Icarus) derivation. Biometric authentication only unlocks the secure element that releases the root secret; it does not itself derive any key. The normative construction, with its per-step invariants, is specified in the PhoenixKey Formal Mathematical Specification §6.1.1 and §8.1.
+
 ### 4.5 On-chain anchor name — `N(did)`
 
 Every `did:phoenix` identifier has a corresponding deterministic 32-byte **anchor name**, which is the exact asset name of its NFT on Cardano:

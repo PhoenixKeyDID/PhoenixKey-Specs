@@ -67,6 +67,14 @@ Danh tính không dính vĩnh viễn vào một chiếc chìa. Con dấu ghi "ch
 ### Khóa gốc nằm trong két phần cứng (HW-key P-256 Secure Enclave)
 (P-256 là tên một "đường cong" mật mã cụ thể — một công thức toán chuẩn dùng để sinh cặp khóa công khai/riêng tư; đây là cùng chuẩn Apple/Google dùng cho Face ID, vân tay trong Secure Enclave/StrongBox.) Chìa gốc của bạn sinh ra và **không bao giờ rời con chip an toàn** (Secure Enclave của iPhone / StrongBox của Android). Khác mật khẩu hay giấy 24-từ, khóa này không xuất ra được → chống lừa đảo, chống keylogger ngay ở tầng gốc.
 
+**Vân tay chỉ MỞ két, không TẠO ra chìa.** Nhiều người tưởng "vân tay sinh ra ví" — không phải. Vân tay chỉ **mở khoá** con chip an toàn; bên trong chip có sẵn một chìa gốc là **số ngẫu nhiên 256-bit** (gọi là `Master_KEK`) do phần cứng sinh. Từ chìa gốc đó, máy tính ra "hạt giống ví" (wallet seed) theo đúng chuẩn Cardano — không cần bạn ghi nhớ gì:
+
+1. **Trộn tách khoá** — chìa gốc đi qua một hàm trộn chuẩn (HKDF-SHA256, [RFC 5869](https://www.rfc-editor.org/rfc/rfc5869), thư viện [`hkdf`](https://crates.io/crates/hkdf)) với nhãn `"wallet-seed-v1"` → ra **hạt giống ví** 32 byte. Bước này tách hạt giống ví khỏi các chìa khác, để lộ một chìa không kéo theo chìa còn lại.
+2. **24 từ chuẩn** — hạt giống ví → 24 từ [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) (thư viện [`bip39`](https://crates.io/crates/bip39)). Bạn **không bắt buộc** ghi 24 từ này; nó chỉ hiện khi bạn chủ động chọn xuất.
+3. **Địa chỉ Cardano** — 24 từ → ví theo chuẩn [CIP-1852](https://cips.cardano.org/cip/CIP-1852) (thư viện [`cardano-serialization-lib`](https://crates.io/crates/cardano-serialization-lib)), **giống hệt** cách Eternl/Yoroi/Lace làm → xuất 24 từ mang sang ví khác vẫn ra **đúng cùng địa chỉ**.
+
+Điểm cốt lõi: cùng một chìa gốc **luôn** cho ra cùng một ví và cùng một danh tính — kiểm chứng được công khai trên trình duyệt Cardano. (Chi tiết toán: `PhoenixKey-Math.md` §6.1.1; mã thật: `derive-demo/src/main.rs`.)
+
 ### Đọc danh tính "tại đúng thời điểm" (Point-in-time resolver)
 Một chữ ký cũ được ký bằng chìa cũ, trước khi bạn xoay chìa. Hệ thống lưu lịch sử: "tại thời điểm ký, chìa nào hợp lệ?" — nên hợp đồng cũ vẫn kiểm tra đúng dù bạn đã đổi chìa nhiều lần. Không bao giờ sửa quá khứ.
 

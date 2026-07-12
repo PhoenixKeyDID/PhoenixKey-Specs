@@ -68,6 +68,24 @@
 | `N(did)` / `did_hash` | `blake2b_256(UTF-8(did))` — 32B, KHÔNG salt, KHÔNG BLAKE3 | `phoenix_address.rs:52`; `…-Feat §1.1` |
 | type-byte trong hash | `encode(type)` = BYTE enum. Java+Aiken **KHỚP byte-exact** (Person=0…Device=2,Machine=3,Asset=4,Bot=5,Agent=6,Service=7,Context=8,Avatar=9); chỉ **văn Math §2.2 lệch thứ-tự** (Context=2). §10 CID-4. | `DidPhoenixGenerator.java:56-65` ≡ `types.ak:21-32`; văn Math §2.2 |
 
+**Chuỗi sinh khoá ví + seed (Enclave → CIP-1852).** Vân tay **mở** cổng P-256 của
+Secure Enclave để giải phóng `Master_KEK` (số ngẫu nhiên 256-bit); nó **KHÔNG** dẫn
+xuất seed. Từ `Master_KEK`, chuỗi dẫn xuất **tất định** (cùng `Master_KEK` → cùng
+địa chỉ + cùng DID):
+
+| Bước | Hàm (thật, khớp `rust_core`) | Thư viện (bản) | Chuẩn |
+|---|---|---|---|
+| 1. Master_KEK | `SecureEnclave.Generate()` → 32B | phần cứng (P-256 gate) | — |
+| 2. wallet_seed | `HKDF-SHA256(ikm=Master_KEK, salt=SHA256("genesis"), info="wallet-seed-v1")` → 32B | [`hkdf`](https://crates.io/crates/hkdf) 0.12 · `sha2` 0.10 | [RFC 5869](https://www.rfc-editor.org/rfc/rfc5869) |
+| 3. 24 từ | `Mnemonic::from_entropy(wallet_seed)` | [`bip39`](https://crates.io/crates/bip39) 2.0 | [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) |
+| 4. HD derive | `Bip32PrivateKey::from_bip39_entropy(wallet_seed,[])` → `m/1852'/1815'/0'/{0,2}/0` (0=payment, 2=stake) | [`cardano-serialization-lib`](https://crates.io/crates/cardano-serialization-lib) 13.2.0 | [CIP-1852](https://cips.cardano.org/cip/CIP-1852) · [CIP-3](https://cips.cardano.org/cip/CIP-3) |
+| 5. DID | `Blake2b-256(payment_pubkey)` → `did:phoenix:base32(slot):hex(hash)` | [`blake2`](https://crates.io/crates/blake2) 0.10 · `data-encoding` | — |
+
+Đường cong HD = Ed25519-BIP32 (Icarus, CIP-3). **Bước 2 (`wallet-seed-v1`) là mắt
+xích Math §6 từng thiếu** — nay đã bổ sung ở Math **§6.1.1**. Mã: `rust_core/src/cardano.rs`
+(`derive_address_inner:43-77`) + `sign.rs` (helper HKDF); bản tái lập độc lập
+`derive-demo/src/main.rs` (review Tuân, commit `b5305f6`).
+
 ---
 
 ## 2. Datum / Redeemer — khuôn CBOR (khớp aiken ↔ rust_core)

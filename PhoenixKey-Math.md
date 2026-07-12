@@ -588,9 +588,64 @@ Master_KEK = BIP39_ToEntropy(user_24_words)   ∈ {0,1}^256
 -- Security note: entropy depends on original wallet's key generation.
 -- See I-PERSON-6 for scope restrictions on import_mode PersonDIDs.
 
--- In both modes: Master_KEK serves as the Cardano HD wallet seed.
--- 24-word export: BIP39_Encode(Master_KEK)  (§9)
+-- Master_KEK is NOT the Cardano HD seed directly. The HD seed (wallet_seed)
+-- is HKDF-separated from Master_KEK (§6.1.1). Biometric UNLOCKS the Enclave
+-- that releases Master_KEK; it does NOT derive the seed.
+-- 24-word export: BIP39_Encode(wallet_seed)  (§6.1.1, §9)
 ```
+
+### §6.1.1 Wallet Seed Derivation — HKDF `wallet-seed-v1` [N] *(v4.7)*
+
+The Cardano HD wallet is **not** seeded by `Master_KEK` directly. A dedicated,
+domain-separated HKDF step derives a distinct `wallet_seed`, so the entropy that
+feeds BIP-39 / CIP-1852 is cryptographically independent from every other key
+derived from the same `Master_KEK` (e.g. `TAAD_Key` uses `info = "taad-controller-v1"`,
+§6.3; `Device_KEK` uses `info = "device-kek-v1"`, §6.2). This binding was implicit
+in earlier revisions (§6.1 previously read *"Master_KEK serves as the HD wallet
+seed"*, which contradicts the shipped enclave code); §6.1.1 makes it **normative**
+and byte-for-byte identical to the enclave implementation.
+
+```
+-- Generate mode (Mode A) — the HD seed is HKDF-separated from Master_KEK:
+salt        = H_sha256("genesis")                        -- 32 bytes, SHA-256
+wallet_seed = HKDF( key  = Master_KEK,                    -- ikm = 256-bit Enclave secret
+                    info = "wallet-seed-v1",
+                    salt = salt )                ∈ {0,1}^256   -- 32-byte BIP-39 entropy
+-- HKDF = HKDF-SHA256 (RFC 5869, extract-then-expand, output length L = 32).
+
+-- Import mode (Mode B) — an externally-generated mnemonic IS the HD seed:
+wallet_seed = BIP39_ToEntropy(user_24_words)   ∈ {0,1}^256
+-- No HKDF "genesis" step is applied to imported wallets, so the derived
+-- addresses reproduce EXACTLY those of the source wallet (Eternl/Yoroi/Lace).
+-- In this mode Master_KEK ≜ wallet_seed (the imported entropy plays both roles).
+
+-- Both modes then share the SAME BIP-39 / CIP-1852 pipeline (§8.1):
+24_words    = BIP39_Encode(wallet_seed)                   -- human-readable form (§9.1)
+root_xsk    = BIP32_FromEntropy(wallet_seed)              -- CIP-3 Icarus master key
+```
+
+**MẤU CHỐT — sinh trắc mở Enclave, KHÔNG dẫn xuất seed.** Dữ liệu sinh trắc (vân
+tay / Face ID) **không tham gia** bất kỳ phép dẫn xuất seed nào. Nó chỉ **mở khoá**
+cổng P-256 của Secure Enclave (iOS Secure Enclave / Android StrongBox) để **giải
+phóng** `Master_KEK` — vốn là một số ngẫu nhiên 256-bit do phần cứng sinh
+(`SecureEnclave.Generate()`). Toàn bộ chuỗi `Master_KEK → wallet_seed → BIP-39 →
+CIP-1852 → DID` là **tất định**: cùng một `Master_KEK` luôn cho ra cùng địa chỉ
+Cardano và cùng DID (kiểm chứng được trên Cardano explorer).
+
+**Ràng buộc mã nguồn (single source of truth).** Chuỗi trên khớp **từng byte** với
+mã enclave đã ship + đã review (Tuân, commit `b5305f6`):
+
+| Bước | Hàm (thật) | Thư viện Rust (bản) | Chuẩn |
+|---|---|---|---|
+| HKDF `wallet-seed-v1` | `Hkdf::<Sha256>::new(Some(&Sha256::digest(b"genesis")), &Master_KEK).expand(b"wallet-seed-v1", …)` | [`hkdf`](https://crates.io/crates/hkdf) 0.12 · `sha2` 0.10 | [RFC 5869](https://www.rfc-editor.org/rfc/rfc5869) |
+| BIP-39 (24 từ) | `Mnemonic::from_entropy(&wallet_seed)` | [`bip39`](https://crates.io/crates/bip39) 2.0 | [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) |
+| CIP-1852 HD | `Bip32PrivateKey::from_bip39_entropy(&wallet_seed, &[])` → `m/1852'/1815'/0'/{0,2}/0` | [`cardano-serialization-lib`](https://crates.io/crates/cardano-serialization-lib) 13.2.0 | [CIP-1852](https://cips.cardano.org/cip/CIP-1852) · [CIP-3](https://cips.cardano.org/cip/CIP-3) |
+| DID hash | `Blake2b::<U32>::digest(payment_pubkey)` → `did:phoenix:<base32(slot)>:<hex(hash)>` | [`blake2`](https://crates.io/crates/blake2) 0.10 · `data-encoding` (`BASE32_NOPAD`) | — |
+
+Đường cong HD là **Ed25519-BIP32** (biến thể Icarus, CIP-3). Mã tham chiếu:
+`PhoenixKey-Core/Enclave/rust_core/src/cardano.rs` (`derive_address_inner`, dòng
+43–77) + `.../sign.rs` (helper HKDF, hằng `GENESIS_LABEL = b"genesis"`). Bản chạy
+độc lập tái lập 100% chuỗi này: `derive-demo/src/main.rs`.
 
 ### §6.2 Device Encryption Key
 
@@ -650,6 +705,10 @@ EncSeed = Enc(Device_KEK, Master_KEK ∥ H(DID))   -- authenticated encryption
 | Device_KEK | derived | In-memory only | No | Re-derive after recovery |
 | TAAD_Key | derived | Derived at use | No | Re-derive from Master_KEK |
 | HW_Key | 256 bits | Secure Enclave | No | Generate fresh on new device |
+
+> The Master_KEK "24-word export" in the table encodes `wallet_seed` (§6.1.1),
+> not `Master_KEK` directly — importing those 24 words into an external Cardano
+> wallet reproduces the identical addresses.
 
 ### §6.6 Guardian-Based Master_KEK Protection
 
@@ -733,14 +792,18 @@ I-LAMP-3: LocatorSecret never transmitted in plaintext
 ### §8.1 Key Derivation (CIP-1852)
 
 ```
--- Standard Cardano HD wallet derivation from Master_KEK:
+-- Standard Cardano HD wallet derivation from wallet_seed (§6.1.1 — NOT Master_KEK
+-- directly; wallet_seed = HKDF(Master_KEK, "wallet-seed-v1", H_sha256("genesis"))
+-- in generate mode, or the imported BIP-39 entropy in import mode).
+-- BIP32_Derive here is CIP-3 Icarus (cardano-serialization-lib 13.2.0,
+-- Bip32PrivateKey::from_bip39_entropy → derive).
 -- Path: m / purpose' / coin_type' / account' / role / index
 
 -- Payment keys (external chain):
-payment_key(account, index) = BIP32_Derive(Master_KEK, [1852h, 1815h, account, 0, index])
+payment_key(account, index) = BIP32_Derive(wallet_seed, [1852h, 1815h, account, 0, index])
 
 -- Staking key:
-staking_key(account) = BIP32_Derive(Master_KEK, [1852h, 1815h, account, 2, 0])
+staking_key(account) = BIP32_Derive(wallet_seed, [1852h, 1815h, account, 2, 0])
 
 -- Standard enterprise address (no staking):
 address_enterprise(account, index) =
@@ -756,10 +819,12 @@ address_base(account, index) =
 ### §8.2 DID-Wallet Relationship
 
 ```
--- PhoenixKey DID and Cardano wallet are derived from the same Master_KEK:
+-- PhoenixKey DID and Cardano wallet both root in the same Master_KEK, but the
+-- wallet is seeded via the HKDF-separated wallet_seed (§6.1.1), NOT Master_KEK:
 DID = DID_construct(Person, None, registration_slot)      -- §2.1
-SeedData = Master_KEK                                     -- same bits
-24_words = BIP39_Encode(Master_KEK)                       -- human-readable form
+wallet_seed = HKDF(Master_KEK, "wallet-seed-v1", H_sha256("genesis"))  -- §6.1.1 (generate)
+SeedData = wallet_seed                                    -- the Cardano HD seed
+24_words = BIP39_Encode(wallet_seed)                      -- human-readable form
 
 -- Compatibility proof (§9.2): exporting 24 words and importing into Eternl/Yoroi/Lace
 -- yields the exact same wallet addresses → no trust assumption needed.
@@ -772,14 +837,16 @@ SeedData = Master_KEK                                     -- same bits
 ### §9.1 Export Protocol (24 words)
 
 ```
--- §6.1: SeedData = Master_KEK. Export = BIP39_Encode(Master_KEK).
+-- §6.1.1: the exportable seed is wallet_seed, NOT Master_KEK. Exporting
+-- BIP39_Encode(wallet_seed) is what lets an external wallet (Eternl/Yoroi/Lace)
+-- reproduce the EXACT same addresses (§8.2 compatibility claim).
 
 Op_export_seed(did: PersonDID, s: SlotNo):
   Pre:
     Biometric_HW_sig(did, Export_Seed_Cap, s)   -- biometric required
     ∧ Consent_confirmed(did, [security_warning_1, security_warning_2])
   Effect:
-    words = BIP39_Encode(Master_KEK)             -- 24 BIP-39 words
+    words = BIP39_Encode(wallet_seed)            -- 24 BIP-39 words (wallet_seed, §6.1.1)
     seed_exported ← s                            -- recorded on-chain
     Display(words, blur=True, timer=30s)          -- secure display
     security_note on-chain: "seed exported at slot s; hardware model degraded"
@@ -796,12 +863,15 @@ I-EXPORT-3: Hardware security model degrades to software-level for the exported 
 -- Import: user provides existing 24-word mnemonic from Yoroi, Eternl, etc.
 
 Op_import_seed(user_24_words: List<Word>, s: SlotNo) → PersonDID:
-  -- Step 1: Validate BIP-39 checksum
-  Master_KEK = BIP39_ToEntropy(user_24_words)
+  -- Step 1: Validate BIP-39 checksum. Import mode SKIPS the HKDF "genesis"
+  -- step (§6.1.1), so the imported entropy is used DIRECTLY as wallet_seed —
+  -- that is what makes the derived addresses match the source wallet.
+  wallet_seed = BIP39_ToEntropy(user_24_words)
+  Master_KEK  ≜ wallet_seed                     -- import mode: entropy plays both roles
   assert BIP39_Verify(user_24_words)
 
   -- Step 2: Derive Cardano spending key and construct ownership proof
-  spend_key = BIP32_Derive(Master_KEK, [1852h, 1815h, 0h, 0, 0])
+  spend_key = BIP32_Derive(wallet_seed, [1852h, 1815h, 0h, 0, 0])
   challenge = H("phoenixkey-import-v1" ∥ DID_new ∥ nonce_server ∥ encode(s))
   proof     = Sign(spend_key, challenge)
 
