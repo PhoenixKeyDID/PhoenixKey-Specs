@@ -2,7 +2,7 @@
 
 > **Tài liệu này viết cho ai:** người dùng PhoenixKey và đội sản phẩm — KHÔNG phải kỹ sư hay auditor. Mục tiêu: hiểu **Ví Phượng hoàng là gì**, **khôi phục ra sao khi mất máy/mất seed**, **tiền được bảo vệ thế nào**, bằng ngôn ngữ đời thường.
 > **Module:** Rebirthme (slug `Rebirthme`). **Ngày:** 2026-07-09.
-> Nội dung bám các đặc tả cùng bộ: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) (toán), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md) (kỹ thuật), [PhoenixKey-Rebirthme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-Rebirthme-Exec.md) (điều hành).
+> Nội dung bám các đặc tả cùng bộ: PhoenixKey-Rebirthme-Math.md (repo module nội bộ — private, chưa public) (toán), PhoenixKey-Rebirthme-Tech.md (repo module nội bộ — private, chưa public) (kỹ thuật), [PhoenixKey-Rebirthme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-Rebirthme-Exec.md) (điều hành).
 > → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
@@ -164,7 +164,7 @@ Ba luật sau là điều kiện bắt buộc để lời hứa ở §2 ("mất 
 
 Nguồn thiết kế nội bộ (không công khai).
 Code: `PhoenixKey-Validator/validators/did_payment.ak`, `lib/phoenixkey/{taad_logic,auth_logic}.ak`.
-Tài liệu cùng bộ: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md), [PhoenixKey-Rebirthme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-Rebirthme-Exec.md).
+Tài liệu cùng bộ: PhoenixKey-Rebirthme-Math.md (repo module nội bộ — private, chưa public), PhoenixKey-Rebirthme-Tech.md (repo module nội bộ — private, chưa public), [PhoenixKey-Rebirthme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-Rebirthme-Exec.md).
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

@@ -2,7 +2,7 @@
 
 > **Tài liệu này viết cho ai:** người dùng PhoenixKey và đội sản phẩm — KHÔNG phải kỹ sư hay auditor. Mục tiêu: hiểu **Smartsend là gì**, giải quyết gì, dùng ra sao, bằng ngôn ngữ đời thường.
 > **Module:** Smartsend (gửi có bảo vệ). **Loại doc:** Feature (hướng người dùng/sản phẩm). **Ngày:** 2026-07-09.
-> Đặc tả toán ở [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md); kỹ thuật ở [PhoenixKey-Smartsend-Tech.md](./PhoenixKey-Smartsend-Tech.md); điều hành ở [PhoenixKey-Smartsend-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Smartsend-Specs/blob/main/PhoenixKey-Smartsend-Exec.md).
+> Đặc tả toán ở PhoenixKey-Smartsend-Math.md (repo module nội bộ — private, chưa public); kỹ thuật ở PhoenixKey-Smartsend-Tech.md (repo module nội bộ — private, chưa public); điều hành ở [PhoenixKey-Smartsend-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Smartsend-Specs/blob/main/PhoenixKey-Smartsend-Exec.md).
 > Smartsend dùng chung hạ tầng ví (`did_payment` — validator: một đoạn hợp đồng thông minh chạy trên chuỗi, tự động kiểm luật cho mỗi giao dịch, không ai sửa tay được), guardian và anti-drain của module **Rebirthme** — xem [PhoenixKey-Rebirthme-Vi-Feat.md](./PhoenixKey-Rebirthme-Vi-Feat.md).
 
 ---
@@ -140,8 +140,8 @@ Nếu nghi khoản gửi là do bị chiếm khoá, guardian **treo** hòm ký q
 ## Nguồn
 
 Nguồn thiết kế nội bộ (không công khai).
-Hạ tầng nền (ví/guardian/anti-drain): [PhoenixKey-Rebirthme-Vi-Feat.md](./PhoenixKey-Rebirthme-Vi-Feat.md), [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md), [PhoenixKey-Rebirthme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-Rebirthme-Exec.md).
-Tài liệu cùng bộ: [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md), [PhoenixKey-Smartsend-Tech.md](./PhoenixKey-Smartsend-Tech.md), [PhoenixKey-Smartsend-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Smartsend-Specs/blob/main/PhoenixKey-Smartsend-Exec.md).
+Hạ tầng nền (ví/guardian/anti-drain): [PhoenixKey-Rebirthme-Vi-Feat.md](./PhoenixKey-Rebirthme-Vi-Feat.md), PhoenixKey-Rebirthme-Math.md (repo module nội bộ — private, chưa public), PhoenixKey-Rebirthme-Tech.md (repo module nội bộ — private, chưa public), [PhoenixKey-Rebirthme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Rebirthme-Specs/blob/main/PhoenixKey-Rebirthme-Exec.md).
+Tài liệu cùng bộ: PhoenixKey-Smartsend-Math.md (repo module nội bộ — private, chưa public), PhoenixKey-Smartsend-Tech.md (repo module nội bộ — private, chưa public), [PhoenixKey-Smartsend-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Smartsend-Specs/blob/main/PhoenixKey-Smartsend-Exec.md).
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

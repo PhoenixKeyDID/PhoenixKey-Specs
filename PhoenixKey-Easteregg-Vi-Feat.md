@@ -2,8 +2,8 @@
 
 > Module: **Easteregg** (biến thể ẩn danh của Ví Phượng hoàng) · Loại doc: Feature (hướng người dùng/sản phẩm) · Ngày: 2026-07-09
 > Đối tượng đọc: người dùng cuối + đội sản phẩm. Viết dễ hiểu, ít thuật ngữ.
-> Tài liệu cùng bộ: [PhoenixKey-Easteregg-Math.md](./PhoenixKey-Easteregg-Math.md) (toán) ·
-> [PhoenixKey-Easteregg-Tech.md](./PhoenixKey-Easteregg-Tech.md) (kỹ thuật) ·
+> Tài liệu cùng bộ: PhoenixKey-Easteregg-Math.md (repo module nội bộ — private, chưa public) (toán) ·
+> PhoenixKey-Easteregg-Tech.md (repo module nội bộ — private, chưa public) (kỹ thuật) ·
 > [PhoenixKey-Easteregg-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Easteregg-Specs/blob/main/PhoenixKey-Easteregg-Exec.md) (điều hành).
 >
 > **Quyết định maintainer (2026-07-09):** ví CHỈ có **2 LOẠI** — `Phoenix` và `Standard` (xem
@@ -60,8 +60,8 @@ thì nhiều lớp. Đúng mô hình: **loại ví (Phoenix) × mức riêng tư
 > **Ghi chú thuật ngữ:** bản này trước đây gọi các mức trên là "Tầng 0/1/2/3" của một "kho
 > Easteregg" độc lập. Đã reframe (2026-07-09): đây là **các mức riêng tư của ví Phoenix**, không
 > phải tầng của một loại ví riêng. Tên kỹ thuật giữ nguyên (`did_subaddr`, `did_pool`) — chỉ đổi
-> cách trình bày phân loại. Xem chi tiết đối chiếu ở [PhoenixKey-Easteregg-Math.md §1](./PhoenixKey-Easteregg-Math.md#1-ký-hiệu-notation)
-> · kiến trúc 4 tầng (ai build gì) ở [PhoenixKey-Easteregg-Tech.md §1](./PhoenixKey-Easteregg-Tech.md#1-kiến-trúc--sơ-đồ-thành-phần-ai-build-gì)
+> cách trình bày phân loại. Xem chi tiết đối chiếu ở PhoenixKey-Easteregg-Math.md §1 (repo module nội bộ — private, chưa public)
+> · kiến trúc 4 tầng (ai build gì) ở PhoenixKey-Easteregg-Tech.md §1 (repo module nội bộ — private, chưa public)
 > · bảng quyết định ở [PhoenixKey-Easteregg-Exec.md §2](https://github.com/PhoenixKeyDID/PhoenixKey-Easteregg-Specs/blob/main/PhoenixKey-Easteregg-Exec.md#2-bảng-quyết-định-quyết--lý-do-4-trục--đánh-đổi).
 
 **Điểm mấu chốt: Tầng 1 là mặc định** vì nó đạt cả hai điều quan trọng nhất — **chi phí gần

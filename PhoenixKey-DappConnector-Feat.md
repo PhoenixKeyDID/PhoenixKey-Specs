@@ -4,7 +4,7 @@
 > **Thuộc:** hạ tầng ví (Rebirthme) — dùng chung ví Standard (`m/1852'/1815'/…`) đã có, không dựng ví riêng. **Loại doc:** Feature + kỹ thuật gộp. **Ngày:** 2026-07-14.
 > **Nguồn đối chiếu code thật** (nhánh local `claude/dapp-connector-webview`, worktree `wt-dapp-connector/Enclave`):
 > `lib/screens/dapp_browser_screen.dart`, `lib/services/dapp_connector_service.dart`, `lib/services/cip30_injection.dart`, `lib/screens/dapp_sign_tx_screen.dart`, `lib/screens/dapp_sign_data_screen.dart`, `rust_core/src/dapp_connector.rs`, `test/dapp_connector_service_test.dart`.
-> **Đây là "Hướng-2" đã nhắc trước ở [PhoenixKey-Rebirthme-Math.md §4.L](./PhoenixKey-Rebirthme-Math.md) (I-CONN-3, I-CONN-5) — "PhoenixKey là bên ký cho dApp ngoài", tức PhoenixKey đóng vai **ví**, dApp bên ngoài (Minswap, JPG Store…) là bên **kết nối tới**. Khác "Hướng-1" ở [PhoenixKey-Rebirthme-Tech.md §5.7](./PhoenixKey-Rebirthme-Tech.md) (PhoenixKey là dApp kết nối TỚI ví Lace, dùng cho di cư ví cũ) — hai hướng dùng chung khái niệm CIP-30 nhưng ngược vai, đừng lẫn.
+> **Đây là "Hướng-2" đã nhắc trước ở PhoenixKey-Rebirthme-Math.md §4.L (repo module nội bộ — private, chưa public) (I-CONN-3, I-CONN-5) — "PhoenixKey là bên ký cho dApp ngoài", tức PhoenixKey đóng vai **ví**, dApp bên ngoài (Minswap, JPG Store…) là bên **kết nối tới**. Khác "Hướng-1" ở PhoenixKey-Rebirthme-Tech.md §5.7 (repo module nội bộ — private, chưa public) (PhoenixKey là dApp kết nối TỚI ví Lace, dùng cho di cư ví cũ) — hai hướng dùng chung khái niệm CIP-30 nhưng ngược vai, đừng lẫn.
 > **Đính chính giả định cũ:** Rebirthme-Tech §5.7-A viết "Mobile không có `window.cardano` → dùng CIP-45 pairing (Phase-2)" — giả định đó áp cho lúc PhoenixKey **là dApp** (Hướng-1). Cho Hướng-2 (tài liệu này), giải pháp đã chọn khác: **WebView riêng + tiêm shim**, không cần CIP-45 — lý do ở mục 3.
 
 ---
@@ -183,7 +183,7 @@ Không có cơ chế cooldown/rate-limit nào giữa các lệnh `enable()`/`sig
 Nguồn thiết kế nội bộ (không công khai) + code tham chiếu trực tiếp (nhánh local `claude/dapp-connector-webview`, chưa merge/push):
 `Enclave/lib/screens/dapp_browser_screen.dart`, `Enclave/lib/services/dapp_connector_service.dart`, `Enclave/lib/services/cip30_injection.dart`, `Enclave/lib/screens/dapp_sign_tx_screen.dart`, `Enclave/lib/screens/dapp_sign_data_screen.dart`, `Enclave/rust_core/src/dapp_connector.rs`, `Enclave/test/dapp_connector_service_test.dart`.
 Chuẩn tham chiếu: CIP-0030 (`github.com/cardano-foundation/CIPs/blob/master/CIP-0030/README.md`), CPS-0010 (mức áp dụng CIP-45 thực tế).
-Đối chiếu bất biến/định hướng trước đó (cần soát lại cho khớp — xem hộp đính chính đầu file): [PhoenixKey-Rebirthme-Math.md §4.L](./PhoenixKey-Rebirthme-Math.md) (I-CONN-1..7, Hướng-1/Hướng-2), [PhoenixKey-Rebirthme-Tech.md §5.7](./PhoenixKey-Rebirthme-Tech.md) (kiến trúc CIP-30 Lace connector — Hướng-1, khác chiều với tài liệu này).
+Đối chiếu bất biến/định hướng trước đó (cần soát lại cho khớp — xem hộp đính chính đầu file): PhoenixKey-Rebirthme-Math.md §4.L (repo module nội bộ — private, chưa public) (I-CONN-1..7, Hướng-1/Hướng-2), PhoenixKey-Rebirthme-Tech.md §5.7 (repo module nội bộ — private, chưa public) (kiến trúc CIP-30 Lace connector — Hướng-1, khác chiều với tài liệu này).
 Tài liệu liên quan: [PhoenixKey-Rebirthme-Vi-Feat.md](./PhoenixKey-Rebirthme-Vi-Feat.md) (ví đa địa chỉ theo DID, hạ tầng dùng chung).
 
 ---

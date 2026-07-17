@@ -69,7 +69,7 @@ SRCL (**Staking Reward Contribution Launch**) là cơ chế ra mắt của hệ 
 
 Cơ chế SRCL (canonical): `LAMP/SPEC/SRCL-Spec-Vi.md`, `LAMP/SPEC/Launch-Framework-Vi.md`.
 Quản trị nội bộ LAMP (để phân biệt, không phải nội dung tài liệu này): `LAMP/Governance/VotingPower/CONTRACT.md`.
-Nền tảng ví: [PhoenixKey-Rebirthme-Vi-Feat.md](./PhoenixKey-Rebirthme-Vi-Feat.md), [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md).
+Nền tảng ví: [PhoenixKey-Rebirthme-Vi-Feat.md](./PhoenixKey-Rebirthme-Vi-Feat.md), PhoenixKey-Rebirthme-Math.md (repo module nội bộ — private, chưa public), PhoenixKey-Rebirthme-Tech.md (repo module nội bộ — private, chưa public).
 Code nền hiện có: `PhoenixKey-Core/Enclave/rust_core/src/staking.rs`.
 
 ---

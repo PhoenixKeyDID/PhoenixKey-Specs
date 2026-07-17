@@ -2,7 +2,7 @@
 
 > **Module:** Wakeme (GetLAMP — kích hoạt nhận LAMP). **Loại doc:** Feature (tiếng Việt, hướng người dùng/sản phẩm). **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** người dùng PhoenixKey và đội sản phẩm — KHÔNG phải kỹ sư hay auditor. Mục tiêu: hiểu **Wakeme là gì**, **được lợi gì**, **làm sao giữ**, bằng ngôn ngữ đời thường.
-> Chi tiết toán/bất biến ở [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md); kỹ thuật + API ở [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md); quyết định điều hành ở [PhoenixKey-Wakeme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-Wakeme-Exec.md).
+> Chi tiết toán/bất biến ở PhoenixKey-Wakeme-Math.md (repo module nội bộ — private, chưa public); kỹ thuật + API ở PhoenixKey-Wakeme-Tech.md (repo module nội bộ — private, chưa public); quyết định điều hành ở [PhoenixKey-Wakeme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-Wakeme-Exec.md).
 
 ---
 
@@ -161,7 +161,7 @@ Vài phần của Wakeme phụ thuộc thiết kế/hạ tầng ở đội khác
 ## Nguồn
 
 - Nguồn thiết kế nội bộ (không công khai). (đã qua rà soát nội bộ)
-- Tài liệu cùng bộ: [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md), [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md), [PhoenixKey-Wakeme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-Wakeme-Exec.md).
+- Tài liệu cùng bộ: PhoenixKey-Wakeme-Math.md (repo module nội bộ — private, chưa public), PhoenixKey-Wakeme-Tech.md (repo module nội bộ — private, chưa public), [PhoenixKey-Wakeme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Wakeme-Specs/blob/main/PhoenixKey-Wakeme-Exec.md).
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

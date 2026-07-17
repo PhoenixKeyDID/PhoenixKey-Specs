@@ -1,7 +1,7 @@
 # PhoenixKey — Knowme: Kho giấy tờ của bạn, bạn giữ chìa
 
 > **Tài liệu này viết cho ai:** người dùng PhoenixKey và đội sản phẩm — KHÔNG phải kỹ sư hay auditor. Mục tiêu: hiểu **Knowme là gì**, **được lợi gì so với KYC tập trung**, **dùng thế nào an toàn**, bằng ngôn ngữ đời thường.
-> Nội dung bám đặc tả [PhoenixKey-Knowme-Math.md](./PhoenixKey-Knowme-Math.md) + [PhoenixKey-Knowme-Tech.md](./PhoenixKey-Knowme-Tech.md) + [PhoenixKey-Knowme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Knowme-Specs/blob/main/PhoenixKey-Knowme-Exec.md); code tham chiếu `PhoenixKey-Frontend/src/lib/sdvc/`.
+> Nội dung bám đặc tả PhoenixKey-Knowme-Math.md (repo module nội bộ — private, chưa public) + PhoenixKey-Knowme-Tech.md (repo module nội bộ — private, chưa public) + [PhoenixKey-Knowme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Knowme-Specs/blob/main/PhoenixKey-Knowme-Exec.md); code tham chiếu `PhoenixKey-Frontend/src/lib/sdvc/`.
 > → Trạng thái & tiến độ: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Knowme-Specs/blob/main/PhoenixKey-STATUS.md)
 
 ---
@@ -160,7 +160,7 @@ Những gì **đã chắc** ở lớp lõi: bạn giữ chìa, dữ liệu ở m
 
 - Nguồn thiết kế nội bộ (không công khai): DocumentClaim/Strata/re-seal/anchor-qua-Stamp/Query — design; Mức 3 BBS+ ZK predicate — spec; lớp riêng tư on-chain — DRAFT.
 - Code: `PhoenixKey-Frontend/src/lib/sdvc/{credential,disclose,commit,canonical,didDoc,didResolver,statusList,trust,trustList,crypto,lampnet,dossier,fingerprint,consent}.ts`; `src/app/verify/page.tsx`.
-- Tài liệu cùng bộ: [PhoenixKey-Knowme-Math.md](./PhoenixKey-Knowme-Math.md), [PhoenixKey-Knowme-Tech.md](./PhoenixKey-Knowme-Tech.md), [PhoenixKey-Knowme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Knowme-Specs/blob/main/PhoenixKey-Knowme-Exec.md).
+- Tài liệu cùng bộ: PhoenixKey-Knowme-Math.md (repo module nội bộ — private, chưa public), PhoenixKey-Knowme-Tech.md (repo module nội bộ — private, chưa public), [PhoenixKey-Knowme-Exec.md](https://github.com/PhoenixKeyDID/PhoenixKey-Knowme-Specs/blob/main/PhoenixKey-Knowme-Exec.md).
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._
