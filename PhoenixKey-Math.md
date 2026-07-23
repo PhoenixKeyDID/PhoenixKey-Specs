@@ -450,7 +450,8 @@ Authority(did: DID, op: Capability, s: SlotNo) : 𝔹 ≜
 ```
 Auth_satisfied(did, op, s) ≜ case type(did) of
   | Person    → Biometric_HW_sig(did, op, s)
-  | Org       → Threshold_sig(did, op, s)
+  | Org       → ( authority_model(did) = single ? SoleOwner_sig(did, op, s)   -- §13: single-member Org
+                                                : Threshold_sig(did, op, s) ) -- §13: m-of-n Org
   | Context   → Admin_sig(did, op, s) ∧ s ∈ [start(did), end(did)]
   | Device    → HW_Attestation(did, op, s)
   | Machine   → Stakeholder_sig(did, op, s)
@@ -1692,7 +1693,8 @@ Invariants:
 ```
 OrgDID ≜ DIDBase { type=Org, security_level=Threshold(m,n) }
   extended by {
-    policy          : { threshold: ℕ, total: ℕ, time_window: ℕ },
+    authority_model : {single, threshold},   -- first-class; `single` is NOT a degenerate threshold
+    policy          : { threshold: Option<ℕ>, total: ℕ, time_window: ℕ },   -- threshold=⊥ iff authority_model=single
     members         : Set<DID>,   -- PersonDID or OrgDID
     parent          : Option<DID>,
     org_class       : Company|DAO|Government|NGO|Cooperative|Partnership|Trust|Informal,
@@ -1709,20 +1711,229 @@ EmergencyAdmin ≜ {
   -- Permitted: Write_DID, Operate_Device, Access_Service, Read_DID
 }
 
+-- Authorisation predicate for authority_model=threshold (threshold=⊥ under `single`,
+-- where authorisation is instead the lone owner's signature — see SoleOwner_sig below):
 Threshold_sig(did, op, s) ≜
   ∃ S ⊆ members: |S| ≥ threshold ∧ ∀ m∈S: Verify(key(m,s), H(op++seq(did)), sig_m)
   ∧ all_sigs_within(S, time_window, s) ∧ ∀ m∈S: Active(m, s)
 
--- F-14: Constitutional threshold for policy changes:
+-- Authorisation predicate for authority_model=single (exactly one member, the sole owner).
+-- Distinct from Owner_sig (§4.3, Asset/Char inheriting their OWNER-DID's auth): here the
+-- authoriser is the Org's own lone member.
+SoleOwner_sig(did, op, s) ≜
+  ∃ o: members(did) = {o} ∧ Active(o, s) ∧ Verify(key(o, s), H(op++seq(did)), sig_o)
+
+-- F-14: Constitutional threshold for policy changes (threshold model only):
 constitutional_threshold(n) = ⌊2n/3⌋ + 1   -- strict supermajority; n=3→3, n=7→5
 
+-- ─── Authority models ────────────────────────────────────────────────
+-- An OrgDID is authorised under exactly one of two first-class models. `single` is
+-- its OWN model, not a threshold=1 special case: it carries NO threshold at all.
+--
+--   single    : |members| = 1 (the owner), policy.threshold = ⊥ (NULL), authorised by
+--               that one member's signature. A PERMANENT, legitimate single-signer Org
+--               (e.g. công ty TNHH 1 thành viên — single-member LLC). This is the
+--               shipped code model (OrgDID authority_model='single', live on main).
+--   threshold : m-of-n multisig — |members| ≥ 2 ∧ threshold ≥ 2 ∧ threshold ≤ |members|.
+--               A degenerate threshold=1 is FORBIDDEN in this model; use `single` instead.
+--
+-- The ≥2 / |members|≥2 / "never single-signer" invariants below (I-ORG-2, I-ORG-9) are
+-- scoped to authority_model=threshold ONLY. A single-model Org is a legitimate
+-- single-signer BY DESIGN — it has not decayed. Growth path: single → threshold (§13.2).
+
 Invariants:
-  I-ORG-1: threshold ≤ |members|; I-ORG-2: threshold ≥ 2
+  I-ORG-1  [threshold]: threshold ≤ |members|
+  I-ORG-2  [threshold]: threshold ≥ 2       -- forbids degenerate threshold=1; use `single`
   I-ORG-3: type(m) ∈ {Person, Org} for m ∈ members
   I-ORG-4: scope(OrgDID) ⊆ scope(parent)
   I-ORG-5: no circular membership
   I-ORG-6: admin_emergency_cap ⊊ scope(OrgDID)
   I-ORG-7: all emergency ops subject to admin_timelock_tier
+  I-ORG-10 [single]: authority_model=single ⟺ ( |members| = 1 ∧ policy.threshold = ⊥ ).
+           A single-model Org is a SANCTIONED permanent single-signer (không phải thực thể
+           suy biến); its lone member's signature is the sole authorisation. The ≥2 floors
+           (I-ORG-2, I-ORG-9) do not apply to it — they are threshold-model invariants.
+```
+
+### §13.1 Op_create(OrgDID) [N]  (MVP — founding owner-group)
+
+An OrgDID is born under one of two authority models (§13):
+- **single** — a **founding owner**: exactly one already-active PersonDID (or OrgDID) who
+  authorises genesis with its own signature. `policy.threshold = ⊥` (no threshold).
+  This is the shipped path (công ty TNHH 1 thành viên / single-member LLC).
+- **threshold** — a **founding owner-group**: a set of ≥2 already-active PersonDIDs
+  (and/or OrgDIDs) who jointly authorise genesis under the org's own `policy.threshold`
+  via `Threshold_sig` (§13). The signing set IS the initial `members`.
+
+`parent` is optional (None ⇒ top-level / root Org).
+
+```
+Op_create(Org):
+  Inputs:
+    authority_model : {single, threshold},
+    members  : Set<DID>,    -- founders; ∀ m: type(m) ∈ {Person, Org}
+    policy   : { threshold: Option<ℕ>, total: ℕ, time_window: ℕ },
+    parent   : Option<DID>,
+    org_class, legal_hash, admin_emergency,        -- §13 fields (admin_emergency optional)
+    slot     : SlotNo
+  Pre:
+    ∀ m ∈ members: Active(m, slot) ∧ type(m) ∈ {Person, Org}          -- I-ORG-3
+    ∧ policy.total = |members|
+    -- Model-specific founding authorisation:
+    ∧ ( authority_model = single →                                    -- I-ORG-10
+          |members| = 1 ∧ policy.threshold = ⊥
+          ∧ ( ∃! o ∈ members: Active(o, slot)
+              ∧ Verify(key(o, slot), H("OP_CREATE_ORG" ++ encode(slot)), sig_o) ) )
+    ∧ ( authority_model = threshold →                                 -- I-ORG-1, I-ORG-2, I-ORG-9
+          |members| ≥ 2 ∧ policy.threshold ≥ 2 ∧ policy.threshold ≤ |members|
+          -- Inline founding m-of-n: Threshold_sig(did,…) reads seq(did)/members(did) of an
+          -- EXISTING did; the Org is not yet on-chain, so the founding signature is checked
+          -- directly over the prospective members:
+          ∧ ∃ S ⊆ members: |S| ≥ policy.threshold
+              ∧ ∀ m ∈ S: Active(m, slot)
+                         ∧ Verify(key(m, slot), H("OP_CREATE_ORG" ++ encode(slot)), sig_m)
+              ∧ all_sigs_within(S, policy.time_window, slot) )
+    ∧ (parent = None) ∨ ( Active(parent, slot)
+                          ∧ CanOwn(type(parent), Org)                  -- §22.1, I-OWN-6
+                          ∧ scope(Org) ⊆ scope(parent)                 -- I-ORG-4 / I-OWN-3
+                          ∧ Org ∉ Ancestors(parent)                    -- G1 (§22.3): no cycle
+                          ∧ depth(parent) + 1 ≤ MAX_DELEGATION_DEPTH ) -- G3 / I-OWN-5
+    ∧ no_circular_membership(Org, members)                            -- I-ORG-5
+    ∧ G2: the new Org's owner-chain roots in {Person, Org}             -- I-OWN-7 (§22.3)
+  Effect:
+    DID_new = DID_construct(Org, parent ?? "root", slot)              -- §2.1
+    create OrgDID { did=DID_new, type=Org, schema_version=1, authority_model,
+                    security_level = ( authority_model=single
+                                       ? Threshold(1, 1)                -- lone owner; score 5 (§2.4)
+                                       : Threshold(policy.threshold, |members|) ),
+                    members, policy, parent, org_class, legal_hash, admin_emergency,
+                    created_slot=slot, seq=0 }
+    -- owner(DID_new) = parent (§22.0; parent=None ⇒ root Org, depth 0)
+    publish DIDDocMetadata(DID_new) to metadata label 6789 (§2.5): controller = DID_new;
+      record members + policy inline, or by reference hash if the encoded set exceeds
+      the metadata size budget.
+  Post:
+    I-ORG-3..7 hold; I-ORG-1/2/9 hold when authority_model=threshold; I-ORG-10 holds when
+    authority_model=single; I-STR-1/2, I-OWN-5/6/7 hold; roots(G) updated if parent = None.
+```
+
+> **Scope note.** §13.1 covers PersonDID/OrgDID founders only (MVP). Founding by an
+> automated entity (Bot/Agent/Service holding a signing key) is deferred to v1.1.
+
+### §13.2 OrgDID Governance Operations [N]
+
+Member-set and policy mutations. **These operations govern the `threshold` model.** All
+three require a constitutional supermajority of the CURRENT **living** members
+(`constitutional_threshold(n) = ⌊2n/3⌋ + 1`, F-14), signed within `policy.time_window`.
+`living(org, s)` excludes every member not Active at slot s (Posthumous, Revoked, Archived,
+Suspended) from the quorum denominator. Note the distinction: a **Suspended** member is
+excluded from `living` (cannot vote, not counted) but is NOT auto-removable — it recovers.
+Only Posthumous / Revoked / Archived members are auto-eligible for removal
+(`posthumous_or_revoked`, §13.2.1).
+
+> **Single-model authorisation & growth path.** For `authority_model=single`, every
+> OrgDID mutation is authorised by the lone owner's signature alone (`constitutional_threshold`
+> does not apply — n=1). The **growth path** single → threshold is `Op_add_member` (owner adds
+> a ≥1 second member) immediately followed by / atomic with `Op_update_policy` setting
+> `authority_model=threshold` and `threshold ≥ 2` (I-ORG-2). Từ mốc đó Org chịu quản trị
+> supermajority. The reverse (threshold → single, collapsing to one owner) is NOT a §13.2
+> operation — an Org that has become a collective does not silently decay into a single-signer.
+
+```
+living(org, s) ≜ {m ∈ org.members | Active(m, s)}
+
+-- Auxiliary symbols used below (and by Threshold_sig, §13):
+signers              ≜ {m ∈ V | a valid signature by key(m, s) is present on this tx}   -- tx-level signer set; distinct from the proof_signers(·) function of §10 (A-5)
+key(m, s)            ≜ the current verification key of member m at slot s (its hw_pub / controller)
+all_sigs_within(S,w,s) ≜ all signatures from S were produced within a window of w slots ending at s
+no_circular_membership(org, M) ≜ org ∉ ⋃_{m∈M, type(m)=Org} ({m} ∪ transitive-members(m))
+
+-- ─── Op_add_member ───────────────────────────────────────────────────
+Op_add_member(org: OrgDID, new_m: DID, s):
+  Pre:
+    Active(org, s) ∧ type(new_m) ∈ {Person, Org} ∧ Active(new_m, s)   -- I-ORG-3
+    ∧ new_m ∉ org.members
+    ∧ |signers| ≥ constitutional_threshold(|living(org, s)|)
+       ∧ all_sigs_within(signers, policy.time_window, s)
+       ∧ signers ⊆ living(org, s)
+    ∧ ( type(new_m) ≠ Org ∨ ( org ∉ Ancestors(new_m)                  -- I-ORG-5 / G1
+                              ∧ new_m ∉ Ancestors(org) ) )
+  Effect:
+    org.members ← org.members ∪ {new_m};  org.policy.total ← |org.members|;  seq++
+  Post: I-ORG-1 holds (adding never breaks threshold ≤ |members|).
+
+-- ─── Op_remove_member ────────────────────────────────────────────────
+Op_remove_member(org: OrgDID, m: DID, s):
+  Pre:
+    Active(org, s) ∧ m ∈ org.members
+    ∧ ( ( |signers| ≥ constitutional_threshold(|living(org, s)|)      -- normal path
+          ∧ all_sigs_within(signers, policy.time_window, s)
+          ∧ signers ⊆ living(org, s) \ {m} )                          -- removee can't self-quorum
+        ∨ posthumous_or_revoked(m, s) )                               -- auto-eligible path (§13.2.1)
+    -- Floors apply to the threshold model only (an Org here never decays to <2 members):
+    ∧ ( authority_model = threshold →
+          |org.members| − 1 ≥ org.policy.threshold                    -- I-ORG-1 preserved
+          ∧ |org.members| − 1 ≥ 2 )                                   -- I-ORG-9 floor
+    -- authority_model=single has |members|=1: Op_remove_member does not apply
+    -- (removing the lone owner is dissolution, §32.3 — not a member-set mutation).
+  Effect:
+    org.members ← org.members \ {m};  org.policy.total ← |org.members|;  seq++
+    -- Hard floor (threshold model): if removal would drop |members| below threshold, this
+    -- Op fails its Pre — the org MUST first (or atomically in the same tx) lower threshold
+    -- via Op_update_policy.
+  Post: I-ORG-1, I-ORG-2 hold (threshold model); no quorum is computed over a dead-member denominator.
+
+-- ─── Op_update_policy ────────────────────────────────────────────────
+Op_update_policy(org: OrgDID, new_model: {single, threshold}, new_policy, s):
+  Pre:
+    Active(org, s)
+    -- Authorisation: single owner signs alone; threshold Org needs supermajority.
+    ∧ ( org.authority_model = single
+        → ( ∃ o ∈ org.members: |org.members| = 1 ∧ signers = {o}
+            ∧ all_sigs_within(signers, org.policy.time_window, s) )
+      | ( |signers| ≥ constitutional_threshold(|living(org, s)|)
+          ∧ all_sigs_within(signers, policy.time_window, s) ∧ signers ⊆ living(org, s) ) )
+    -- Target model well-formedness:
+    ∧ ( new_model = single    → |org.members| = 1 ∧ new_policy.threshold = ⊥ )        -- I-ORG-10
+    ∧ ( new_model = threshold → |org.members| ≥ 2                                     -- I-ORG-1/2/9
+                                ∧ new_policy.threshold ≥ 2
+                                ∧ new_policy.threshold ≤ |org.members| )
+    ∧ new_policy.total = |org.members|
+  Effect:
+    org.authority_model ← new_model                                     -- growth: single→threshold
+    org.policy ← new_policy
+    org.security_level ← ( new_model=single ? Threshold(1, 1)
+                                            : Threshold(new_policy.threshold, |org.members|) )  -- §2.4 sync
+    seq++
+  Post: new_model=threshold ⇒ I-ORG-1, I-ORG-2 hold; new_model=single ⇒ I-ORG-10 holds;
+        SecurityLevel_score (§2.4) recomputed.
+```
+
+#### §13.2.1 Posthumous / Revoked Member Handling [N]
+
+A member PersonDID entering Posthumous (§32.1) or Revoked (§24), or a member OrgDID
+entering Archived (§32.3), can no longer sign (Active = False). To keep the org
+governable it becomes auto-eligible for removal:
+
+```
+posthumous_or_revoked(m, s) ≜
+    ¬Active(m, s)
+    ∧ ( (type(m) = Person ∧ state(TAAD(m), s) = Posthumous)   -- Person revocation handled by revoked_slot below
+        ∨ (type(m) = Org    ∧ m.state = Archived(_))   -- §32.3 Org dissolution state (constructor)
+        ∨ (revoked_slot(m) ≠ None ∧ revoked_slot(m) ≤ s) )
+
+-- Such m is excluded from living(org, s): it never inflates the
+-- constitutional_threshold denominator and never blocks a vote by abstention.
+-- Op_remove_member(org, m, s) is then valid WITHOUT m's signature (auto path),
+-- subject to the |members|−1 ≥ max(threshold, 2) floor.
+
+I-ORG-8 [N]: governance quorum is always computed over living(org, s), never the raw
+             members set — a dead member cannot deadlock the collective.
+I-ORG-9 [N, threshold model]: for authority_model=threshold, |members| ≥ 2 ∧
+             policy.threshold ≥ 2 are preserved by every §13.2 Op (a THRESHOLD Org never
+             decays into a single-signer or zero-quorum entity). This does NOT constrain
+             authority_model=single, which is a sanctioned permanent single-signer (I-ORG-10);
+             the only single↔threshold transition is the sanctioned growth path in §13.2.
 ```
 
 ---
