@@ -398,7 +398,7 @@ Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code
 | 5a-c | — | `/activation/getmagic/*` | (fiat→CARP) | auth | GreenBack/CARP |
 | 7 | GET | `/activation/pot` | (đọc pot) | public | pot deploy |
 
-**Endpoint 2 (`vault/{did}`) — map field validator → JSON:** `phase = (days_elapsed≤1001?1:2)`; `conditional_lamp`, `vested_unlocked` (datum field 3,4); `reclaimed_to_pot_lamp` (field 5); `days_elapsed = ⌊(now−vest_start)/86400⌋`; `activity_gate.idle_epochs_p2` (field 7, chỉ audit — cảnh-báo forfeit tính từ `last_tick_epoch` gap); `activity_gate.used_this_period = null` tới khi Registry-team có chuẩn. Field `activity_gate` áp **cả 2 pha** (thay `anti_idle` chỉ-PHA-1); self-consumption HỢP-LỆ (KHÔNG đòi counterparty≠owner). Mã-lỗi mới nhánh **135x**.
+**Endpoint 2 (`vault/{did}`) — map field validator → JSON:** `phase = (days_elapsed≤1001?1:2)`; `conditional_lamp`, `vested_unlocked` (datum field 3,4); `reclaimed_to_pot_lamp` (field 5); `days_elapsed = ⌊(now−vest_start)/86400⌋`; `activity_gate.idle_epochs_p2` (field 7, chỉ audit — cảnh-báo forfeit tính từ `last_tick_epoch` gap); `activity_gate.used_this_period = null` tới khi Registry-team có chuẩn. Field `activity_gate` áp **cả 2 pha** (thay `anti_idle` chỉ-PHA-1); chống-wash 2 lớp: baseline on-chain `counterparty≠owner` (lớp-đệm, `has_counterparty_consume` — nối enforce ở PA-1) + cổng chính Registry tiêu-tài-nguyên-thật (I-ACT-3). Mã-lỗi mới nhánh **135x**.
 
 **Nhóm endpoint (chi-tiết request/response ở API-for-SuperApp gốc):**
 - **1a getlamp/build** → `{unsigned_tx_cbor, required_signer_key_hash, vault_address, d_lamp, d_oildrop, pot_balance_lamp, vest_start_slot, phase1_days, ttl_slot}`. Precondition 1-DID-1-vault (`VAULT_ALREADY_EXISTS` 1350).

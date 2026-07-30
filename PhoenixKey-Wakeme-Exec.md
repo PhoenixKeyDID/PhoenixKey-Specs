@@ -33,7 +33,7 @@
 | **Q2** | **Tách quyền-tiêu-dịch-vụ (MAGIC) khỏi sở-hữu-LAMP** | (b) first-principles: LAMP = GATE mở tư-cách, biến quyết-định = lượng-MAGIC-tiêu (WP §7.2). Gen chỉ ĐỌC số dư → LAMP không cạn vì Gen. MAGIC = account-trong-Vault (KHÔNG native token). | Cần engine Gen mới (đọc-số-dư) — code MAGIC-repo cũ (fire→Treasury) lỗi-thời, phải viết lại. Blocker kiến-trúc. |
 | **Q3** | **Cung-bán hoãn qua rào cam-kết** (không cung-tức-thời) | (a)(b) chỉ user tiêu-thật đủ 1001 ngày mới có LAMP-sống-sót để bán; vest nhỏ-giọt 1/ngày. Cung rải đều ≥1001 ngày, không sốc. | Người-dùng thật phải chờ rất lâu mới sở-hữu — trải-nghiệm "chậm được thưởng". |
 | **Q4** | **Người bỏ-cuộc nuôi người-mới** (pot tự-nuôi phản-chu-kỳ) | (a)(d) anti-idle PHA-1 + forfeit PHA-2 + phí-thu-bằng-LAMP-theo-giá-trị (giá xuống → thu nhiều LAMP → pot phình đúng lúc thị-trường lạnh). LAMP về pot = kế-toán, KHÔNG đốt. | PHA-2 LAMP-vest RỜI-HỆ sang user → pot cần nguồn bù đủ. Rủi-ro pot-cạn thật hơn v3 (xem R1). |
-| **Q5** | **Self-consumption HỢP-LỆ + khuyến-khích; cổng chống-wash = chuẩn Registry** (bỏ counterparty≠owner) | (b)(d) mỗi lượt tiêu tốn-phí → CARP/LAMP về Treasury → hệ CÓ LỢI. Cổng đúng = dịch-vụ phải tiêu tài-nguyên THẬT (lưu-trữ/băng-thông/tính-toán/lao-động), duyệt ở tầng Registry. | Đẩy trách-nhiệm chống-lạm-dụng sang **chuẩn Registry** — blocker mới ở Registry-team. Nếu Registry lỏng, wash-rỗng lọt. |
+| **Q5** | **Chống-wash 2 lớp: (1) baseline on-chain `counterparty≠owner` + (2) cổng chính = chuẩn Registry tiêu-tài-nguyên-thật** | (b)(d) mỗi lượt tiêu tốn-phí → CARP/LAMP về Treasury → hệ CÓ LỢI. Lớp-đệm `counterparty≠owner` rẻ, on-chain, nâng chi-phí wash (phải nuôi ≥2 DID). Cổng chính = dịch-vụ phải tiêu tài-nguyên THẬT (lưu-trữ/băng-thông/tính-toán/lao-động), duyệt ở tầng Registry (MagicLamp). | `counterparty≠owner` MỘT-MÌNH sybil-bypass được (attacker 2 DID wash tự-do) → nó CHỈ là lớp-đệm, Registry vẫn là cổng chính. Nếu Registry lỏng, wash-rỗng qua-nhiều-DID lọt. |
 | **Q6** | **D keyed per-PersonDID** (1 người sinh-trắc = 1 suất) | (b) đa-địa-chỉ/đa-DID (Org/Device) KHÔNG nhân suất; sinh-trắc Secure Enclave lo trùng-người. | Uniqueness ở tầng **neo-anchor** (did-string ↔ khoá-gốc) nằm NGOÀI phạm-vi vault — hở tới khi PA2 land (KHÔNG phải lo sinh-trắc). |
 
 ---
@@ -55,7 +55,7 @@
 ## 4. Luật chặn production (áp-dụng khi nối phần phụ-thuộc đội khác)
 
 - **B1 — Engine Gen đọc-số-dư (MAGIC/CARP-team).** Chỉ nối Gen production sau khi MAGIC/CARP-team spell-out validator on-chain đọc-số-dư (KHÔNG spend/đốt LAMP — mẫu cũ fire→Treasury bị cấm tái dùng). Validator vault khoá+vest thuần build/chạy độc-lập, không cần chờ Gen.
-- **B2 — Chuẩn Registry dịch-vụ tiêu-tài-nguyên-thật (Registry-team).** Cổng chống-wash = dịch-vụ Registry, thay counterparty-gate. Anti-idle/epoch-gate CHỈ bật production sau khi chuẩn này tồn tại.
+- **B2 — Chuẩn Registry dịch-vụ tiêu-tài-nguyên-thật (Registry-team).** Cổng chống-wash CHÍNH = dịch-vụ Registry; baseline `counterparty≠owner` (lớp-đệm on-chain, nối ở PA-1) xếp DƯỚI nó, không thay. Anti-idle/epoch-gate CHỈ bật production sau khi chuẩn Registry tồn tại.
 - **B3 — GetLAMP-PersonDID production chặn tới khi PA2 UniquenessThread land** (đóng lỗ anchor-uniqueness, xem §7). Org/Service/Enterprise DID (parent-sig) không dính luật này.
 - **B4 (phụ) — GreenBack settlement + shadow-price (CARP-team); vesting-release kho→pot + phí-bằng-LAMP (LAMP-team)** phải sẵn sàng trước khi bật GetMAGIC + phản-chu-kỳ production.
 
