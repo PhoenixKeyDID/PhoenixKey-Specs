@@ -1,6 +1,6 @@
 # PhoenixKey — Wakeme: Chiếc Đèn và Điều ước của bạn
 
-> **Module:** Wakeme (GetLAMP — kích-hoạt nhận LAMP). **Loại doc:** Feature (tiếng Việt, hướng người-dùng/sản-phẩm). **Ngày:** 2026-07-09.
+> **Module:** Wakeme (kích-hoạt nhận LAMP). **Loại doc:** Feature (tiếng Việt, hướng người-dùng/sản-phẩm). **Ngày:** 2026-07-31.
 > **Đối-tượng đọc:** người dùng PhoenixKey và đội sản-phẩm — KHÔNG phải kỹ sư hay auditor. Mục tiêu: hiểu **Wakeme là gì**, **được lợi gì**, **làm sao giữ**, bằng ngôn ngữ đời thường.
 > Chi-tiết toán/bất-biến ở [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md); kỹ-thuật + API ở [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md); quyết-định điều-hành ở [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
 
@@ -30,6 +30,8 @@ Trước đây, muốn bắt đầu bạn phải **nạp 200.000đ** để đổ
 - **Không cần hiểu tỷ giá.** Bạn chỉ thấy một nút và dòng điều ước hằng ngày. Phí mạng do hệ thống (Feecover) lo thay bạn.
 - **Tự nuôi nhau.** Ai bỏ cuộc thì phần chưa-kiếm-được quay về "hồ chung" nuôi người mới. Ai kiên trì thì được thưởng đèn thật.
 
+> **Hồ chung lấy đèn ở đâu ra để nuôi mãi?** Nguồn **chủ yếu** làm hồ chung đầy lên là **thặng-dư LAMP từ Feecover** (cơ-chế lo-phí của hệ). Mỗi giao-dịch bạn tiêu điều-ước, hệ thu một khoản **phí cố-định bằng CARP** tương-ứng lượng MAGIC tiêu-thụ. Khoản CARP đó được hệ dùng để **mua lại LAMP khi giá xuống thấp** hoặc **đổi (redeem) ra LAMP từ GreenCheck khi phù-hợp** — phần LAMP thu về đó **chảy vào hồ chung**. Nói cách khác: càng nhiều người dùng dịch-vụ thật, hồ chung càng được nạp bù → càng đủ đèn cho người mới. Đây là vòng bền-vững, không phải in thêm LAMP (tổng-cung LAMP cố-định 36 tỷ, không đốt).
+
 ---
 
 ## 3. Hành trình của bạn — từng bước bấm gì, thấy gì
@@ -37,12 +39,12 @@ Trước đây, muốn bắt đầu bạn phải **nạp 200.000đ** để đổ
 ### Bước 1 — Tạo ví bằng vân tay
 Bạn chạm vân tay. Điện thoại tự sinh khoá bảo mật trong Secure Enclave (con chip an toàn của máy). Ví Phoenix ra đời. Không mật khẩu, không giấy 24-từ bắt buộc.
 
-### Bước 2 — Bấm "Nhận LAMP" (GetLAMP)
+### Bước 2 — Bấm "Nhận LAMP" (Wakeme)
 Một nút duy nhất. Bấm xong, bạn nhận **D chiếc LAMP vào ví của mình** (túi LAMP có khoá tạm). D nhiều hay ít tuỳ hồ chung lúc đó, **tối đa 1001**.
 
 Màn hình báo: *"Nhận D LAMP vào ví của bạn — dùng dịch vụ mỗi ngày để giữ trọn. Sau 1001 ngày, phần còn lại thành CỦA BẠN (rút/bán được)."*
 
-> **"Mượn" chỉ là cách nói.** Đèn nằm trong ví bạn ngay từ đầu. Chỉ là **có điều kiện** — chưa hẳn của bạn cho tới khi bạn kiếm được qua việc dùng thật.
+> **Đây là "quyền dùng", không phải cho vay.** Đèn nằm trong ví bạn ngay từ đầu, nhưng phần khoá-tạm này bạn mới chỉ được **cấp quyền DÙNG** nó để sinh điều-ước — **chưa SỞ HỮU**: chưa rút/bán/mang đi được, cũng không dùng vào việc khác (không đúc token riêng, không biểu-quyết). Dùng thật đủ lâu → phần sống sót mới thành SỞ HỮU của bạn. **Không nợ, không lãi, không phải trả lại.**
 
 ### Bước 3 — Đèn sinh điều ước, bạn dùng dịch vụ
 Mỗi ngày túi LAMP tự sinh ra **MAGIC** (điều ước). Bạn tiêu MAGIC để dùng các dịch vụ trong hệ sinh thái. Không phải bấm gì để "bật đèn" — nó tự chạy nền.
@@ -51,7 +53,7 @@ Mỗi ngày túi LAMP tự sinh ra **MAGIC** (điều ước). Bạn tiêu MAGIC
 Ngày nào bạn **không dùng dịch vụ đủ**, cuối ngày **1 LAMP quay về hồ chung**. Đây là phần bạn **chưa kiếm được**, không phải tài sản bị tịch thu. Dùng lại → ngừng mất ngay.
 
 ### Bước 5 — Sau 1001 ngày: đèn bắt đầu thành của bạn
-Từ ngày 1002, phần LAMP còn sống sót **mỗi ngày nhả 1 chiếc thành SỞ HỮU thật của bạn** — rút ra ví ngoài, bán, hoặc giữ lại cho sinh tiếp điều ước. Nút **[Rút LAMP]** xuất hiện.
+**Sau 1001 ngày đầu**, đèn vào giai đoạn **theo kỳ (mỗi kỳ 5 ngày)**. Kỳ nào bạn **còn dùng dịch vụ đủ** → tối đa **5 chiếc LAMP thành SỞ HỮU thật của bạn** *(5 là mức tối đa — dành cho người tham gia sớm; người vào sau nhận theo tỷ lệ phần đèn được cấp quyền dùng)*. Đèn đã sở-hữu bạn **tự chọn**: **giữ trong ví-đèn** để tiếp-tục sinh MAGIC (đèn càng giữ lâu, tuổi càng cao, sinh MAGIC càng lợi), **rút về ví** để giao-dịch, hoặc **đúc CARP**. Kỳ nào bạn **nghỉ** → phần đèn còn khoá **dồn sang kỳ sau, KHÔNG mất**.
 
 ### (Tuỳ chọn) Mua thêm điều ước — GetMAGIC
 Muốn tiêu nhiều hơn dòng đèn tự sinh? Bạn có thể **mua CARP bằng tiền thật** (VietQR/thẻ) để tiêu dần. Đây là lựa chọn, không bắt buộc.
@@ -70,27 +72,27 @@ Chiếc đèn **ở trong ví bạn nhưng còn khoá tạm**. Nó vẫn sáng �
 
 *Ví von:* đèn đang "thử việc" với bạn. Chăm dùng thì đèn ở lại; bỏ bê thì đèn hao dần về hồ chung cho người khác.
 
-### PHA-2 · "Đang sở hữu" (từ ngày 1002)
+### PHA-2 · "Đang sở hữu" (sau 1001 ngày đầu, tính theo KỲ 5 ngày)
 
-Bạn đã qua đủ 1001 ngày cam kết. Giờ **mỗi ngày 1 chiếc LAMP tháo khoá, thành của bạn thật sự** — rút, bán, hay giữ tuỳ ý.
+Bạn đã qua đủ 1001 ngày cam kết. Giờ đèn nhả theo **kỳ (mỗi kỳ 5 ngày)**:
 
-Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (khoảng 5 ngày) bạn phải còn dùng dịch vụ đủ.** Kỳ nào bạn nghỉ hẳn → việc nhả đèn **tạm dừng** kỳ đó (đèn không mất, chỉ chưa tháo thêm).
+- **Kỳ bạn dùng dịch vụ đủ (tiêu đủ mức tối thiểu):** tối đa **5 chiếc LAMP thành của bạn thật sự** *(5 là mức tối đa cho người tham gia sớm; người sau nhận theo tỷ lệ phần đèn được cấp quyền dùng)*. Đèn đã sở-hữu bạn **tự chọn**: **giữ trong ví-đèn** để tiếp-tục sinh MAGIC (giữ càng lâu, tuổi đèn càng cao, sinh MAGIC càng lợi), **rút về ví** giao-dịch, hoặc **đúc CARP**.
+- **Kỳ bạn nghỉ:** phần đèn còn khoá **DỒN sang kỳ sau, KHÔNG mất gì** — cứ ghé lại là nhả tiếp.
+- Phần LAMP **đã sở-hữu** thì **an toàn tuyệt đối** — không bao giờ bị đụng, kể cả khi bạn nghỉ hẳn (dù bạn để nó trong ví-đèn hay đã rút ra).
+- Chỉ khi bạn **bỏ bê rất lâu — 1001 kỳ LIÊN TỤC không dùng gì** — thì phần đèn **còn khoá** (chưa kiếm được) mới quay về hồ chung.
 
-- Phần đã thành của bạn (**đã tháo khoá**) thì **an toàn tuyệt đối** — không bao giờ bị đụng, kể cả khi bạn nghỉ hẳn.
-- Chỉ khi bạn **bỏ bê rất lâu — 1001 kỳ liên tục không dùng gì** — thì phần đèn **còn khoá** (chưa kiếm được) mới quay về hồ chung.
-
-*Ví von:* đèn đã "vào biên chế". Mỗi ngày một mảnh thành của bạn, miễn bạn còn ghé dùng. Bỏ hẳn thật lâu thì phần chưa-tháo mới trả lại — phần đã cầm trong tay thì giữ mãi.
+*Ví von:* đèn đã "vào biên chế". Mỗi kỳ ghé dùng thì được cầm 5 mảnh về tay; nghỉ kỳ nào thì mảnh đó chờ bạn ở kỳ sau. Bỏ hẳn thật lâu thì phần chưa-cầm mới trả lại — phần đã cầm trong tay thì giữ mãi.
 
 ---
 
 ## 5. Các cải tiến — bảng cũ vs mới
 
-| Điểm | Bản cũ | Bản mới (v4.1) |
+| Điểm | Bản cũ | Bản mới (A) |
 |---|---|---|
 | **Khởi tạo** | Nạp 200.000đ đổi LAMP + ADA | **Miễn phí** — bấm một nút |
-| **LAMP thuộc về ai** | Mượn, luôn "thuộc hồ chung", không bao giờ của bạn | **Vào ví bạn ngay**; sau 1001 ngày phần sống sót **thành của bạn** |
-| **Phần thưởng trung thành** | Không có — dùng mãi vẫn chỉ hưởng dòng, không sở hữu | **Có** — kiên trì đủ 1001 ngày → sở hữu đèn thật (rút/bán được) |
-| **Rút LAMP** | Không có đường rút | **Rút được** ở PHA-2 (nút [Rút LAMP]) |
+| **LAMP thuộc về ai** | Mượn, luôn "thuộc hồ chung", không bao giờ của bạn | Khoá-tạm trong ví-đèn của bạn; **sau 1001 ngày đầu**, mỗi kỳ dùng đủ → tối đa **5 chiếc thành SỞ HỮU thật** (mức tối đa cho người sớm) |
+| **Phần thưởng trung thành** | Không có — dùng mãi vẫn chỉ hưởng dòng, không sở hữu | **Có** — kiên trì đủ 1001 ngày → sở hữu đèn thật |
+| **Đèn đã sở-hữu dùng được gì** | Không có đường rút | **Giữ trong ví-đèn** (sinh MAGIC, tuổi cao càng lợi) / **rút về ví** giao-dịch / **đúc CARP** — bạn tự chọn |
 | **Nếu bỏ cuộc** | Trả toàn bộ về hồ chung | Chỉ phần **chưa kiếm được** về hồ; phần **đã sở hữu giữ nguyên** |
 | **Phí mạng (ADA)** | Bạn phải lo | **Feecover lo thay** — bạn không thấy phí ADA |
 | **Tự tạo app tiêu điều ước của mình** | Bị nghi ngờ / chặn | **Hợp lệ + khuyến khích** — miễn app đăng ký đúng chuẩn (xem §7) |
@@ -111,20 +113,20 @@ Nhưng vẫn có một điều kiện nhẹ để nhả đèn: **mỗi kỳ (kho
   - **LAMP điều-kiện** (khoá, đang sinh điều ước) — chưa của bạn, **không rút được**.
   - **LAMP đã-của-bạn** (đã tháo khoá) — của bạn thật, **rút/bán được**.
 
-> Một điều công bằng (ý-định thiết-kế): **một người = một suất.** Suất đèn tính theo danh tính sinh-trắc (vân tay) của bạn, không theo số ví — tạo nhiều ví không nhân suất. *Lưu ý kỹ-thuật: lớp neo-danh-tính-trên-chuỗi (anchor) cho DID cá-nhân đang hoàn thiện (xem §8) — nên việc mở GetLAMP rộng-rãi cho cá-nhân tạm hoãn tới khi xong. DID doanh-nghiệp/tổ-chức không dính vì có chữ-ký-cha xác thực.*
+> Một điều công bằng (mục-tiêu thiết-kế): **mỗi người chỉ một suất.** Đây là hướng đang xây, **chưa đạt đủ ở tầng hiện tại** — sinh-trắc trên máy chỉ đảm bảo một-suất-mỗi-máy, chưa chặn được một người dùng nhiều máy. Để đạt "một người một suất" thật, hệ dùng nhiều lớp: xác-thực hai-yếu-tố, kiểm-tra trùng-người bằng công-nghệ bảo-mật (Glint) và chứng-từ (Spectra), và về sau là nhận-diện đa-đặc-điểm trên một video selfie. *Trong lúc các lớp này hoàn thiện, việc mở Wakeme rộng-rãi cho cá-nhân tạm hoãn. DID doanh-nghiệp/tổ-chức không dính vì đã có chữ-ký-cha xác thực (mỗi tổ-chức một OrgDID).*
 
 ---
 
 ## 7. Câu hỏi thường gặp
 
-**Hỏi: "Mượn" nghĩa là tôi phải trả lại?**
-Đáp: Không phải trả tiền. Đèn nằm trong ví bạn ngay. "Có điều kiện" nghĩa là: dùng đều đặn thì giữ và cuối cùng sở hữu; bỏ bê thì phần chưa-kiếm hao về hồ chung. Không có nợ, không có lãi.
+**Hỏi: Đèn khoá-tạm là "cho vay"? Tôi phải trả lại?**
+Đáp: Không. Đây là **quyền DÙNG**, không phải khoản vay. Đèn nằm trong ví bạn ngay. Phần khoá-tạm bạn được **cấp quyền dùng** để sinh điều-ước — nhưng **chưa phải của bạn**: không rút/bán/mang đi được, và **không dùng vào việc khác** (không đúc token riêng, không biểu-quyết). Dùng đều đặn thì giữ và cuối cùng **sở hữu** phần sống sót; bỏ bê thì phần chưa-kiếm hao về hồ chung. **Không nợ, không lãi, không phải trả lại.**
 
 **Hỏi: Tôi mất gì nếu quên dùng vài ngày?**
 Đáp: PHA-1 — mỗi ngày quên mất 1 LAMP (phần chưa-kiếm), dùng lại là ngừng mất. Có 7 ngày đầu miễn trừ. PHA-2 — quên một kỳ chỉ làm việc nhả đèn tạm dừng, đèn không mất; phần đã sở hữu thì an toàn tuyệt đối dù bạn nghỉ bao lâu.
 
 **Hỏi: Bao giờ tôi thật sự sở hữu LAMP?**
-Đáp: Từ ngày 1002 trở đi, mỗi ngày 1 chiếc thành của bạn (miễn kỳ đó bạn còn dùng dịch vụ). Kiên trì đủ và không bị hao ngày nào ở PHA-1 → có thể sở hữu tối đa 1001 chiếc.
+Đáp: **Sau 1001 ngày đầu**, tính theo **kỳ (5 ngày)**: kỳ nào bạn dùng dịch vụ đủ → tối đa 5 chiếc thành **của bạn thật sự** (giữ trong ví-đèn để sinh MAGIC, rút về ví, hoặc đúc CARP — tuỳ bạn). Kỳ nghỉ thì phần còn khoá dồn sang kỳ sau, không mất. Kiên trì đủ và không bị hao ngày nào ở PHA-1 → có thể sở hữu tối đa 1001 chiếc *(mức trần cho người tham gia sớm; người vào sau nhận theo tỷ lệ phần đèn được cấp quyền dùng)*.
 
 **Hỏi: MAGIC (điều ước) là gì? Khác LAMP thế nào?**
 Đáp: **LAMP** là tài sản nền, tổng cung cố định 36 tỷ (không đốt). **MAGIC** là "quyền dùng dịch vụ" gắn với danh tính bạn — là số dư trong ví (account), **không chuyển cho người khác được**, và **tan biến nếu không dùng** (dùng-hay-mất). Đèn (LAMP) sinh ra điều ước (MAGIC) để bạn tiêu; khi thanh toán dịch vụ, hệ trả bằng CARP (1 CARP = 1 MAGIC).
@@ -151,8 +153,8 @@ Vài phần của Wakeme phụ thuộc thiết-kế/hạ-tầng ở đội khác
 - **Điều ước (MAGIC) sinh ra sao:** nguyên lý cố định là "đèn đứng yên, chỉ đọc số dư, không đúc thêm token" — engine Gen KHÔNG được spend/đốt LAMP dưới bất kỳ hình thức nào, chỉ đọc.
 - **Chuẩn "dịch vụ tiêu tài nguyên thật" (Registry):** Registry là danh sách các dịch vụ đã qua xét-duyệt của đội vận hành PhoenixKey, xác nhận dịch vụ đó tiêu tài nguyên thật (lưu trữ/băng thông/tính toán/lao động) chứ không phải giao dịch giả tạo dựng để "cày" phần thưởng. Chỉ dịch vụ có tên trong Registry mới được tính là "đã dùng dịch vụ" cho anti-idle/vest-gate. Dịch vụ "tiêu rỗng" không tài nguyên bị loại ngay ở khâu duyệt đăng ký.
 - **Mua điều ước bằng tiền thật (GetMAGIC):** hệ **không đúc CARP tự do** — user luôn trả CARP đã có, có bảo chứng qua GreenBack (hệ thống/đối tác giữ dự trữ đối ứng cho CARP, đảm bảo mỗi CARP lưu hành có giá trị thật đứng sau, không phát hành khống).
-- **Cân đối hồ chung PHA-2:** vì đèn PHA-2 rời hệ thống sang tay người dùng, hồ chung cần nguồn nạp bù chủ động (không được để hồ chung âm).
-- **"Một người một suất":** D keyed theo PersonDID sinh-trắc, không theo số ví — tạo nhiều ví không nhân suất. Điều kiện tiên quyết: lớp neo-danh-tính-trên-chuỗi (anchor) cho DID cá-nhân phải ràng đúng khoá-gốc (UniquenessThread/PA2) trước khi mở GetLAMP rộng-rãi cho cá-nhân. DID doanh-nghiệp/tổ-chức không cần điều kiện này vì đã có chữ-ký-cha xác thực.
+- **Cân đối hồ chung PHA-2:** vì đèn PHA-2 rời hệ thống sang tay người dùng, hồ chung cần nguồn nạp bù chủ động (không được để hồ chung âm). **Nguồn nạp CHỦ YẾU = thặng-dư LAMP từ Feecover:** hệ thu **phí cố-định bằng CARP** tương-ứng lượng MAGIC tiêu-thụ mỗi giao-dịch → **mua lại LAMP khi giá thấp** hoặc **redeem LAMP từ GreenCheck khi phù-hợp** → phần LAMP thu về nạp vào hồ chung. Cơ-chế mua-lại/redeem nằm ở tầng **Feecover/LAMP** (Wakeme chỉ là bên NHẬN nguồn); toán cân-đối tốc-độ-nạp vs tốc-độ-đèn-rời-hệ ở [Math](./PhoenixKey-Wakeme-Math.md).
+- **"Một người một suất" (1 PersonDID/người, 1 OrgDID/tổ-chức):** D keyed theo PersonDID, không theo số ví — đa-ví/đa-DID không nhân suất. **Sinh-trắc-per-thiết-bị KHÔNG đủ** (chỉ 1-DID/máy). Uniqueness person-level thật cần nhiều lớp: 2FA + Glint (ZK-uniqueness, VeData) + Spectra (chứng-từ, LampNet) + MCR (nhận-diện đa-đặc-điểm trên 1 video selfie, thuật-toán tất-định, OriLife). Điều-kiện CẦN đã có phần: PA-2 UniquenessThread (SMT non-membership, đóng đúc-anchor-thứ-hai). Wakeme-PersonDID production chặn tới khi các lớp person-level land. DID doanh-nghiệp/tổ-chức không cần vì đã có chữ-ký-cha xác thực.
 
 → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
 
