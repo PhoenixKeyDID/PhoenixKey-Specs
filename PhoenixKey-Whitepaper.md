@@ -182,6 +182,8 @@ Nó giải quyết việc trước đây phải nạp 200.000đ mới bắt đ�
 
 Nói dễ hiểu: túi LAMP giống một **gói dùng-thử có điều kiện**. Nếu bạn dùng dịch vụ đều đặn trong **1001 ngày** (khoảng 2 năm rưỡi), gói đó chính thức thành tài sản của bạn — rút/bán được. Nếu bỏ dùng giữa chừng, phần chưa hết hạn sẽ được thu hồi lại, giống thẻ tích điểm hết hạn nếu không dùng. (LAMP là "vốn mồi"; MAGIC là tiền tiêu hằng ngày sinh ra từ nó — xem Từ điển nhanh ở mục 1.5.)
 
+**Hồ chung được nuôi thế nào để cấp mãi cho người mới?** Nguồn **chủ yếu** là **thặng dư LAMP từ Feecover**: mỗi giao dịch bạn tiêu dịch vụ, hệ thu một khoản **phí cố định bằng CARP** tương ứng lượng MAGIC tiêu thụ, rồi dùng khoản đó **mua lại LAMP khi giá thấp** hoặc **đổi ra LAMP từ GreenCheck** — phần LAMP thu về chảy vào hồ chung. Càng nhiều người dùng thật, hồ chung càng được bù → vòng bền vững, **không in thêm LAMP** (tổng cung cố định 36 tỷ). Đây cũng là điều kiện để "gói dùng-thử" tiếp tục cấp được cho lớp người dùng sau.
+
 Xem sau: [Tính năng chi tiết](./PhoenixKey-Wakeme-Vi-Feat.md) · Toán/bất biến: [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md)
 
 ### Feecover — Lớp trả phí gọn
