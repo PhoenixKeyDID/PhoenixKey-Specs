@@ -2,7 +2,7 @@
 
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
-> Cập nhật: 2026-07-09. Nguồn: audit per-module + đối chiếu code/CI thật.
+> Cập nhật: 2026-08-08. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy.
 
 ---
 
@@ -11,13 +11,13 @@
 | Module | Nền đã chạy được | Blocker chính | Production |
 |---|---|---|---|
 | **Anchorme** | validator `taad` Design-2 (genesis Người/con, rotate, transfer 2-of-2, deactivate, CanOwn); resolver W3C; register metadata-6789 | PA2 (CID-1 anchor-forgery Person), DeviceDID, resolve-by-hash | NO-GO PersonDID-custody tới khi PA2/PA5-a land |
-| **Rebirthme** | ví theo-DID `did_payment`, đóng-băng theo trạng-thái, guardian recovery ngưỡng+timelock, P-256 low-s, `lampnet.rs` (173/173 Aiken PASS) | 🔴 `limit_meter.ak` anti-drain KHÔNG tồn tại; `did_subaddr`/`did_stake` chưa có | NO-GO ví-giá-trị-lớn tới khi anti-drain land |
-| **Wakeme** | validator `activation_vault`+`activation_logic` (5 redeemer, vest-gated, forfeit; 69 test riêng) | B1 engine Gen đọc-số-dư, B2 Registry consume-gate, B3 PA2 cho GetLAMP-PersonDID | NO-GO tới khi Registry + PA2 land |
+| **Rebirthme** | ví theo-DID `did_payment`, đóng-băng theo trạng-thái, guardian recovery ngưỡng+timelock, P-256 low-s, `lampnet.rs`; **`limit_meter_vault` + `did_stake` nay build được** (hash `f3be6d6d…` / `eb535cc1…`) | `did_subaddr` chưa có; **khoá thiết bị (yếu-tố-2 chi tiêu) chưa tồn tại trong mã app** | NO-GO ví-giá-trị-lớn tới khi khoá thiết bị land |
+| **Wakeme** | validator `wakeme_vault` build được (hash `8655974a…`); backend `buildGetLamp`/`submitGetLamp` là hiện thực thật | B1 engine Gen đọc-số-dư, B2 Registry consume-gate, B3 PA2 cho GetLAMP-PersonDID; **3 biến môi trường `ACTIVATION_*` rỗng ⇒ mọi lời gọi trả `501`** | NO-GO tới khi Registry + PA2 land |
 | **Feecover** | ConsumeMAGIC lõi (kế thừa) | Layer Feecover 0 dòng; B1 MAGIC-model, B2 CARP policy-id, B3 did_commit per-DID; FG-4 EpochSettle tự-vá | NO-GO tới khi B1+B2+B3 + FG-4 |
 | **Protectme** | cổng chi-trả `protectme_logic`+`protectme_payout` (39 test đối-kháng sạch, branch `feat/protectme-payout`) | 🔴 `protectme_beacon.ak` one-shot 0 dòng (chặn-merge); 2-bucket + resolver + UI chưa có; 11 quyết-định PROT-1..11 | NO-GO tới khi beacon + blocker + quyết-định |
 | **Knowme** | Mức 1+2 SD-VC có code+test, demo `/vc` (20 file / 415 test PASS) | B1 lib BBS (Mức 3), B2 LampNet gateway (lớp tài-liệu), B4 StampRecord | M1 chạy; Mức 3/tài-liệu chờ blocker |
-| **Easteregg** | 1 PoC Python off-chain trên Preview (3 tx-hash, không validator) | `did_pool.ak`/`did_subaddr.ak` chưa có; ZK Tầng 2 verifier chưa viết; G1/G3/G5 chưa vá | NO-GO; chỉ GO build+test Preview T1 + T3-mode-1 |
-| **Smartsend** | spec đầy đủ SS-1..12 | `smartsend_escrow.ak` 0 dòng; phụ-thuộc `limit_meter.ak` (Rebirthme); verifier Glint/Spectra (Phase 2) | NO-GO; money-critical, review trước code |
+| **Easteregg** | 1 PoC Python off-chain trên Preview (3 tx-hash); **`did_pool` nay build được** (hash `9ba97ba4…`) | `did_subaddr.ak` chưa có; ZK Tầng 2 verifier chưa viết; G1/G3/G5 chưa vá | NO-GO; chỉ GO build+test Preview T1 + T3-mode-1 |
+| **Smartsend** | spec đầy đủ SS-1..12; **validator `smartsend` nay build được** (hash `9ed1b56f…`) | verifier Glint/Spectra (Phase 2); SS-11 vừa khôi phục điều kiện `amount ≥ large_threshold` (PR #23) | NO-GO; money-critical, review trước code |
 
 ---
 
@@ -30,7 +30,9 @@
 | **B3 — Registry consume-gate + `did_commit` per-DID** | Wakeme, Feecover | MAGIC team + backend | `has_counterparty_consume` còn placeholder; `did_commit` field có, nội-dung sentinel rỗng |
 | **PA2 — UniquenessThread (anchor uniqueness on-chain)** | Anchorme (PersonDID-custody), Wakeme (GetLAMP-Person) | on-chain | Đóng hẳn CID-1 (giả-mạo anchor did-string — KHÔNG phải sybil-sinh-trắc). Chốt trục chi-phí: sorted-list K=256 vs Merkle dân-số |
 | **PA5-a — entity-gate** | Anchorme (thu hẹp bề mặt PersonDID) | on-chain (Tuân) | PoC 4 test, chờ vào code |
-| 🔴 **`limit_meter.ak` — anti-drain** | Rebirthme (I-CURVE-4 load-bearing), Smartsend (SS-6 chống-trộm) | on-chain | KHÔNG tồn tại. Ưu-tiên số 1 (M2). value chỉ bảo-vệ mức SEED |
+| ~~`limit_meter.ak` — anti-drain~~ **GỠ 2026-08-08** | — | — | `lib/phoenixkey/limit_meter.ak` + validator `limit_meter_vault` (hash `f3be6d6d…`) build được trên `main`; nằm trong 577/577 test PASS |
+| 🔴 **Khoá thiết bị — yếu-tố-2 khi chi từ ví Phoenix** | Rebirthme (ví Phoenix), Anchorme (datum genesis) | app + on-chain | Aiken đã ép 2-of-2 (`auth_logic.ak:37-58`), nhưng phía app **chưa tồn tại**: grep `device_pkh`/`deviceKey` trong `rust_core/src` và `lib/` = 0. Thiếu cả sinh khoá, lưu trữ, API ký, và đưa `device_pkh` vào datum. Phải Ed25519/secp256k1 — P-256 không verify được on-chain |
+| 🔴 **CBOR `did_payment` đang dùng là bản CŨ 1-chữ-ký** | Rebirthme, Anchorme | on-chain + app + backend | CBOR trong `rust_core/assets/` và vector test backend khớp byte-for-byte bản build 25-06, **trước** khi thêm 2-of-2 ⇒ mọi địa chỉ Phoenix đã dẫn ứng với validator chỉ cần 1 chữ ký seed. Phải re-pin cùng lượt: asset CBOR + 3 vector `AikenPhoenixCustodyDeriverTest` + env `DID_PAYMENT_CBOR_HEX` |
 | **DeviceDID `Op_create_device`** | LampNet node, Knowme device, Rada | on-chain + backend | + hw_cert verify endpoint |
 | **FG-4 — Feecover EpochSettle validator** | Feecover | đội Feecover | Pseudo-code, 0 validator, dựa provider trung-thực — tự vá khi build |
 | **B4 — Math `⊑` + type-code canonical** | delegation PersonDID, author-DID phi-nhân | Math/maintainer | Chốt vào Math v4.7; bảng-byte code làm canonical |
@@ -131,3 +133,35 @@ Hiện-trạng triển-khai các phần của đặc-tả toán v4.6 (đã tách
 | 2026-07-09 | Knowme | SD-VC `vitest` 20 file / 415 test PASS |
 | 2026-07-09 | Feecover | Spec MERGED #14; layer Feecover 0 dòng (grep xác nhận) |
 | 2026-07-09 | Easteregg | 1 PoC Python trên Preview (3 tx-hash), 0 validator/test |
+| 2026-08-08 | Validator (toàn bộ) | `aiken check` **577/577 PASS**, `aiken build` exit 0, **9 validator** ra blueprint: `did_payment` `bac16cec…` · `did_pool` `9ba97ba4…` · `did_stake` `eb535cc1…` · `lamp_policy` `ba0dd83a…` · `limit_meter_vault` `f3be6d6d…` · `protectme_payout` `b1f90fca…` · `smartsend` `9ed1b56f…` · `taad` `5ac17898…` · `wakeme_vault` `8655974a…` (hash chưa-apply-param) |
+| 2026-08-08 | Đăng nhập web | Gọi thật máy chủ đang chạy: `POST /auth/session/init` → 200; `GET /api/v1/.well-known/jwks.json` → 200, `kid=phoenixkey-ed25519-1`; `POST /auth/token/exchange` tồn tại (403 với token giả). ⚠ `/.well-known/jwks.json` ở **gốc miền → 404** |
+| 2026-08-08 | Backend | `Tests run: 393, Failures: 0, Errors: 0, Skipped: 0` (CI run `31252652916`); `DidOpWatermarkUpsertPostgresTest` chạy trên Postgres thật 10,37s / 6 test / Skipped 0 |
+| 2026-08-08 | Tài liệu | 67 endpoint có mã / 64 có tài liệu → nay 67/67 (PR Database #132); thêm 4 sequence diagram + đặc tả 5 màn hình (PR Specs #24) |
+
+---
+
+## 5. Đo hiện trạng năng lực đầu-cuối (2026-08-08)
+
+Mục 1–3 tổ chức theo module. Mục này tổ chức theo **việc người dùng làm được**, vì một module xanh không có nghĩa người dùng bấm được.
+
+| Người dùng làm được gì | Hiện trạng | Chỗ đứt |
+|---|---|---|
+| Tạo ví **Standard** và chi tiền | **ĐƯỢC** | — (đường chi duy nhất đang chạy) |
+| Tạo ví **Phoenix**, nhận tiền | **ĐƯỢC** | ⚠ địa chỉ đang dẫn ứng với CBOR bản cũ 1-chữ-ký (xem blocker mục 2) |
+| **Chi tiền từ ví Phoenix** | **KHÔNG** | khoá thiết bị chưa tồn tại trong mã; không có hàm dựng+ký giao dịch 2-chữ-ký ở cả app lẫn backend |
+| Bấm **Wakeme / GetLAMP** | **KHÔNG** | 3 biến `ACTIVATION_*` rỗng ⇒ `501`; pot chưa có LAMP; giao diện web hiện trỏ luồng cũ đã ngừng dùng |
+| **ScheduleGen / InstantGen** | **KHÔNG** | 0 dòng mã; và đang bị cấm nối tới khi MAGIC pha-2 chỉ-đọc xong (`PhoenixKey-Wakeme-Tech.md:239`) |
+| Đăng nhập web PhoenixKey bằng QR | **ĐƯỢC** | — |
+| Ứng dụng **bên thứ ba** đăng nhập | **KHÔNG** | không có đường GHI `service[]` kiểu `SsoRedirect`; danh sách nạp-trước đang bị chú thích tắt; SDK chưa phát hành; chưa có màn hình đồng ý cấp quyền |
+| Tạo **OrgDID** | **ĐƯỢC** | — |
+| Đúc LAMP vào kho **qua OrgDID** | **KHÔNG** | endpoint ở 2 nhánh chưa merge |
+| **Vô hiệu hoá bộ seed** sau khi đúc | **KHÔNG** | validator quyền-GHI registry chưa merge (LAMP PR #20); phía off-chain đã viết xong và đang chờ nó |
+| **Nhận LAMP** từ ETD / Airdrop / SRCL | **KHÔNG**, cả ba | không có đường `POST claim` nào; SRCL còn 3 lỗ mở; phía PhoenixKey chưa có dòng nào (grep = 0) |
+| Xem **danh sách người bảo trợ** của mình | **KHÔNG** | không có `GET /guardians`; `/add`+`/remove` chỉ trả về SỐ LƯỢNG. Đây là màn hình bắt buộc trong luồng khôi phục |
+| **Từ chối** một yêu cầu ký | **KHÔNG** | không có `POST /sign/{id}/reject`; chỉ `approve`/`cancel`, dù enum trạng thái đã có sẵn `"rejected"` |
+
+### Ba chỗ đang TRÊN ứng dụng mà hỏng
+
+- Nút "Claim MAGIC" (`wallet_screen.dart:618`) gọi endpoint **luôn trả 410 Gone** (`WalletController.java:79-82`).
+- `GetLampPanel.tsx` tên là GetLAMP nhưng gọi luồng VND cũ đã ngừng dùng, không gọi `/activation/getlamp/build`.
+- Số dư MAGIC hiển thị **luôn 0**: `WalletV2ServiceImpl.java:182-183` gán cứng `0`.
