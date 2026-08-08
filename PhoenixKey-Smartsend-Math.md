@@ -41,8 +41,8 @@ Nguồn nạp vào hòm đến từ Ví Phượng-hoàng: chi qua `did_payment` 
 SmartSendSpend_ok(tx, d, now) ⟺
     Cancel_ok(tx, d, now)            -- về sender
   ∨ Finalize_ok(tx, d, now)         -- về receiver
-  ∨ Freeze_ok(tx, d)                -- treo (guardian)
-  ∨ ReclaimTimeout_ok(tx, d, now)   -- về sender (chống kẹt)
+  ∨ Freeze_ok(tx, d, now)           -- treo (guardian)
+  ∨ ReclaimTimeout_ok(tx, d, now)   -- về sender (chống kẹt, CHỈ khoản lớn — xem SS-11 dưới)
 
 Cancel_ok(tx,d,now)   ⟺ now < d.veto_deadline
                        ∧ satisfies(d.unlock_policy, tx)             -- SS-3, ≥ factors_required
@@ -58,6 +58,7 @@ ResolveFreeze_ok(tx,d,now) ⟺ d.frozen == true
                        ∧ Σ outputs(→sender, d.asset) == d.amount ∧ Σ outputs(→sender, lovelace) == d.min_ada
 ReclaimTimeout_ok(tx,d,now) ⟺ now ≥ d.reclaim_deadline
                        ∧ d.receiver_consent == false
+                       ∧ d.amount ≥ d.large_threshold               -- SS-11 vá (2026-07-12): chỉ khoản LỚN (đòi consent) mới có đường kẹt cần giải; khoản nhỏ luôn Finalize được ngay sau veto_deadline (SS-4) KHÔNG cần consent → thiếu điều-kiện này thì khoản nhỏ có 2 đường-thoát hợp-lệ chồng nhau sau reclaim_deadline (Finalize về receiver ∨ ReclaimTimeout về sender) = ai submit trước thắng, sender cướp được phần đáng-lẽ-về-receiver
                        ∧ Σ outputs(→sender, d.asset) == d.amount ∧ Σ outputs(→sender, lovelace) == d.min_ada  -- SS-11/SS-12
 ```
 Ràng-buộc chung mọi đường: `list.count(inputs ∈ Script(smartsend)) == 1` (SS-7′, mẫu `activation_vault.ak:106-110`) → escrow-UTxO chi đúng một lần. `fee_covered` là số audit tham-chiếu Feecover-vault ngoài — **KHÔNG bao giờ xuất-hiện trong biểu-thức output ở trên** (SS-12).
