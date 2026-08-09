@@ -6,7 +6,7 @@
 >
 > → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
 >
-> **Phạm-vi đặc-tả này CHỨNG:** (a) tính đúng của commitment + membership tiết-lộ chọn-lọc; (b) ràng-buộc holder ↔ subject chống mạo-danh; (c) chống replay qua `aud`/`nonce`; (d) ràng-buộc nội-dung tài-liệu qua `docHash` **[SPEC]**; (e) tính riêng-tư Mức 3 (đúng-một-bit, unlinkable) **[SPEC]**. **NGOÀI phạm-vi:** duy-nhất-một-người (sinh-trắc Enclave — §8), catalog VC + issuer (VeData — §8), mạch ZK chi-tiết (circuit constraints), backend PhoenixKey.
+> **Phạm-vi đặc-tả này CHỨNG:** (a) tính đúng của commitment + membership tiết-lộ chọn-lọc; (b) ràng-buộc holder ↔ subject chống mạo-danh; (c) chống replay qua `aud`/`nonce`; (d) ràng-buộc nội-dung tài-liệu qua `docHash` **[SPEC]**; (e) tính riêng-tư Mức 3 (đúng-một-bit, unlinkable) **[SPEC]**; (f) **khoá** duy-nhất-người v1 — vân-tay giấy-tờ `fp` và hai bất-biến đi kèm (Đ-7, I-KNOW-12..15). **NGOÀI phạm-vi:** **cơ-chế** sinh-trắc Enclave (§8) — doc này chỉ nêu nó là **lớp cưỡng-chế** của duy-nhất-người (I-KNOW-15) chứ không chứng nó; catalog VC + issuer (VeData — §8), mạch ZK chi-tiết (circuit constraints), backend PhoenixKey.
 >
 > **Tái dùng bất-biến từ nguồn:** aliasing các bất-biến `INV-K1..K6` (nguồn `PhoenixKey-Knowme-Feat-Math §11`) và `I-KYC-*` (nguồn `PhoenixKey-KYC-KYB-ZK-Feat-Math §B.8`) được GHI RÕ nguồn ở cột "Neo/Nguồn". Mã canonical của module này là **`I-KNOW-n`**.
 
@@ -34,8 +34,8 @@
 | `Envelope` | ciphertext | ECIES X25519→HKDF→AEAD của bytes tài-liệu | `crypto.ts` **[SPEC dùng cho tài-liệu]** |
 | `cid` | CID | `BLAKE3(ciphertext)` — con-trỏ LampNet | `lampnet.ts` |
 | `docHash` | b64url(32B) | `H(plaintext bytes)` — ràng-buộc nội-dung tài-liệu | **[SPEC]** Knowme-Feat-Math §3.3 |
-| `pepper` | ByteArray(32) | muối **bí-mật phía máy-chủ**, dùng chung mọi vân-tay, không bao giờ rời máy-chủ | `fingerprint.ts:blake2b256Keyed` |
-| `pv` | Nat | `pepperVersion` — số hiệu đợt pepper đang dùng, lưu cạnh vân-tay để xoay được | `fingerprint.ts:Registration` |
+| `k` | ByteArray(32) | khoá băm vân-tay. **Không một bên nào giữ trọn `k`** — nó tồn tại dưới dạng `t`-trong-`n` mảnh (Đ-7.1) | **[SPEC]** Đ-7.1 |
+| `kv` | Nat | `keyVersion` — số hiệu đợt khoá đang dùng, lưu cạnh vân-tay để xoay được | `fingerprint.ts:Registration` |
 | `fp(t, F)` | b64url(32B) | **vân-tay tài-liệu** của loại `t` trên tập trường định-danh `F` | `fingerprint.ts:documentFingerprintPeppered` |
 
 **Đơn-vị wire (bất-biến-dây, load-bearing):** một trường được băm là **mảng 3 phần-tử** `[salt, path, value]` với `value` **vô-hướng**. Đây là điểm neo cross-language: verifier độc-lập chỉ cần lặp `H(canon([salt, path, value]))`. KHÔNG được đổi arity/hình-dạng mảng. Neo: `commit.ts:digestOf`.
@@ -80,12 +80,44 @@ Predicate = { id, path, op ∈ {GE,LE,EQ,IN,RANGE}, arg, ctx? }
 
 **Đ-7 · Vân-tay tài-liệu tuỳ-thân (khoá duy-nhất-người v1)** (`fingerprint.ts:documentFingerprintPeppered`):
 ```
-fp(t, F) = b64url( H_pepper( canon([ t, normalize(F) ]) ) )      -- H_pepper = BLAKE2b-256 keyed
+fp(t, F) = b64url( H_k( canon([ t, normalize(F) ]) ) )           -- H_k = BLAKE2b-256 keyed
 ```
 - `t` = loại giấy-tờ (vd `"vn-cccd"`); `F` = tập trường **định-danh** đã chuẩn-hoá, chỉ gồm trường bất-biến theo thời-gian (số giấy-tờ, ngày-sinh, giới), **không** gồm ngày cấp / nơi cấp / ảnh.
 - **Tất-định, KHÔNG salt-mỗi-lần-đăng-ký** — đây là điều kiện cần: hai bản khai của cùng một giấy-tờ phải cho cùng `fp`, nếu không thì không phát-hiện được trùng.
-- **`pepper` bắt-buộc, phía máy-chủ.** Không có nó thì `fp` là hàm băm trần trên một miền nhỏ: số CCCD Việt-Nam 12 chữ-số **có cấu-trúc** (3 tỉnh · 1 giới+thế-kỷ · 2 năm-sinh · 6 ngẫu-nhiên), nên biết tỉnh + năm-sinh + giới thì miền còn `10⁶` — vét cạn được tức thì. Pepper đẩy tấn-công đó ra ngoài khả-năng của bất-kỳ ai không giữ máy-chủ.
-- `pv` lưu **rời** cạnh vân-tay ⟹ xoay pepper được: cấp `pv+1`, tính lại dần, không phải khai lại giấy-tờ.
+- `kv` lưu **rời** cạnh vân-tay ⟹ xoay khoá được: cấp `kv+1`, tính lại dần, không phải khai lại giấy-tờ.
+
+**Đ-7.1 · Khoá `k` KHÔNG phải bí-mật tập-trung — và bất-biến duy-nhất-người KHÔNG dựa vào nó** **[SPEC]**
+
+Hai việc khác nhau, trước đây bị gộp làm một và cùng đặt lên một `pepper` phía máy-chủ:
+
+| | Việc | Ai gánh | Lộ khoá thì sao |
+|---|---|---|---|
+| **(A)** | **Chặn cấp DID thứ hai cho cùng một người** | sinh-trắc Enclave + yếu-tố-2 thiết-bị (I-KNOW-15) | **không ảnh-hưởng** — kẻ có `k` vẫn không qua được sinh-trắc |
+| **(B)** | **Chặn dò ngược số giấy-tờ từ bảng `fp`** | khoá `k` của `H_k` | mất tính riêng-tư của (B), (A) vẫn nguyên |
+
+Vì sao (B) vẫn cần một khoá: số CCCD Việt-Nam 12 chữ-số **có cấu-trúc** (3 tỉnh · 1 giới+thế-kỷ ·
+2 năm-sinh · 6 ngẫu-nhiên), nên biết tỉnh + năm-sinh + giới thì miền còn `10⁶` — băm trần là vét
+cạn được tức thì. Làm chậm bằng hàm tốn-bộ-nhớ **không cứu được**: `10⁶` lần thử ở 1 giây/lần vẫn
+đổ được bằng vài trăm lõi trong một giờ. Miền quá nhỏ để phòng-thủ-bằng-chi-phí có nghĩa.
+
+Nhưng **(B) không được đổi lấy một điểm tin-cậy tập-trung**: một `pepper` nằm ở máy-chủ là một bí-mật
+mà mất thì mọi vân-tay hết đối-chiếu được, lộ thì lộ số giấy-tờ của toàn bộ người dùng. Đó cũng
+chính là lý do bản trước treo blocker "chưa có chỗ giữ pepper" — câu hỏi *giữ ở đâu* không có
+câu trả lời tốt, vì **không nên có một chỗ nào cả**.
+
+⟹ `k` tồn tại dưới dạng `t`-trong-`n` mảnh, không nơi nào ráp lại thành `k` trọn vẹn:
+- Chia mảnh bằng đúng cơ-chế Tier-0 đã chốt cho bí-mật ≤32 byte (Shamir trên `Z_q` + cam-kết
+  Feldman, an-toàn **vô-điều-kiện** dưới ngưỡng) — xem `PhoenixKey-SeedDistribution-Tech-Math.md`.
+- Tính `fp` bằng **OPRF ngưỡng**: máy khách làm mù `canon([t, normalize(F)])`, `t` nút đánh giá
+  từng phần bằng mảnh của mình, máy khách nội-suy Lagrange rồi gỡ mù. Hệ-quả: **không nút nào thấy
+  số giấy-tờ** (đầu vào đã mù) và **không nút nào giữ `k`**.
+- Xoay khoá = chia lại mảnh (proactive resharing) → `kv+1`. Không ai phải khai lại giấy-tờ.
+- Dưới ngưỡng `t`, kẻ tấn-công biết **đúng con số không** về `k` — không phải "khó tính", mà là
+  không đủ thông-tin, theo nghĩa lý-thuyết thông-tin.
+
+**Suy-biến khi chưa dựng xong OPRF ngưỡng:** cho phép chạy `k` một-mảnh (`t=n=1`) ở môi-trường thử,
+**đánh dấu `kv` vào dải dành riêng** để phân-biệt, và **cấm** dải đó ở mạng chính. Trạng-thái đó
+làm hỏng (B), **không** làm hỏng (A).
 
 **Ảnh + video giấy-tờ.** Người dùng nộp ảnh và video giấy-tờ; bộ trích-xuất (Spectra) đọc ra `F` rồi ghi vào Knowme. Ảnh/video là **PII nguyên bản**, nên chúng đi đúng đường tài-liệu đã có: `Envelope` ciphertext + CID (I-KNOW-9), **không** lên chuỗi (I-KYC-NO-PII-CHAIN). Thứ tham-gia `fp` là `F` đã trích, không phải bytes ảnh — hai lần chụp cùng một thẻ cho hai `docHash` khác nhau nhưng **cùng** `fp`, đó là điều làm cơ-chế duy-nhất chạy được.
 
@@ -121,7 +153,8 @@ fp(t, F) = b64url( H_pepper( canon([ t, normalize(F) ]) ) )      -- H_pepper = B
 
 | **I-KNOW-12** | **Một giấy-tờ ⇒ một PersonDID (duy-nhất-người v1):** với mọi `(t, F)`, tồn tại **nhiều nhất một** PersonDID đang giữ `fp(t,F)`. Đăng-ký thứ hai cùng vân-tay bị từ-chối, KHÔNG ghi đè. | `UniquenessRegistry.register` kiểm `fp` đã có chủ chưa trước khi ghi | `fingerprint.ts:UniquenessRegistry` |
 | **I-KNOW-13** | **Từ-chối trùng KHÔNG lộ chủ hiện-hữu:** kết-quả trả về khi trùng chỉ nói **có** chủ khác, không nói **ai**. | `isHeldByAnother()` trả Bool; kết-quả `conflict_other_owner` không mang DID | `fingerprint.ts` (đã bỏ trường `existingOwner`) |
-| **I-KNOW-14** | **Vân-tay là hàm có khoá, không phải băm trần:** mọi `fp` sinh qua `H_pepper` với `pepper` chỉ máy-chủ giữ (Đ-7); `pv` lưu rời để xoay được. | tham-số `pepper` **bắt-buộc** ở chữ-ký hàm — không có đường gọi nào bỏ qua | `fingerprint.ts:documentFingerprintPeppered` |
+| **I-KNOW-14** | **Vân-tay là hàm có khoá, không phải băm trần** — và **khoá không nằm ở một chỗ nào**: mọi `fp` sinh qua `H_k` với `k` chia `t`-trong-`n` (Đ-7.1); `kv` lưu rời để xoay được. Đây là bất-biến **riêng-tư** (chặn dò ngược số giấy-tờ), **KHÔNG** phải bất-biến duy-nhất-người. | tham-số khoá **bắt-buộc** ở chữ-ký hàm — không có đường gọi nào bỏ qua; đường sinh khoá đi qua OPRF ngưỡng | `fingerprint.ts:documentFingerprintPeppered` + **[SPEC]** Đ-7.1 |
+| **I-KNOW-15** | **Duy-nhất-người KHÔNG phụ-thuộc bí-mật máy-chủ:** cấp một PersonDID cho `fp` đã có chủ đòi vượt sinh-trắc Enclave **và** yếu-tố-2 thiết-bị của chính chủ đang giữ. Lộ `k`, lộ toàn bộ bảng `fp`, hay mất cả hai, đều **không** cấp thêm được DID nào. | `UniquenessRegistry.register` chỉ chạy sau khi cổng sinh-trắc trả khớp; `fp` một mình **không** là chứng-cứ đủ để ghi | **[SPEC]** Đ-7.1(A); cổng sinh-trắc §8 |
 
 ### 4.1 Tranh-chấp một giấy-tờ — hai mức, hệ-quả tách rời
 

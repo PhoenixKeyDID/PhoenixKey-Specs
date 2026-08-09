@@ -217,7 +217,7 @@ Neo UI: `app/verify/page.tsx` (32KB, 5 bước), `components/vc/{DeclareForm,ui}
 - **Mức 3 ZK:** phụ-thuộc `zk/`, `BBS`, `ProveDerived`, `ZkCredential` — toàn bộ là spec KYC-KYB-ZK, giao đội on-chain/Frontend/VeData.
 - **Query gateway:** phụ-thuộc VeData Query (một phần phụ-thuộc hợp-đồng liên-module).
 - **Giới-hạn cố-hữu (verify-time plaintext resale):** với ảnh mắt-người-xem-được, thu-hồi KHÔNG lấy lại bản đã xem — **không vá triệt-để được** (Knowme-Feat-Math §9.0). Giảm-thiểu: watermark truy-vết + ưu-tiên proof-thay-ảnh. UI PHẢI nói thẳng.
-- **Duy-nhất-người v1 nằm TRONG Knowme:** một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID, khoá là vân-tay tài-liệu có pepper phía máy-chủ (Knowme-Math Đ-7, I-KNOW-12..14); tranh-chấp xử theo hai mức `suspected`/`confirmed` với hệ-quả trên dòng LAMP Wakeme (Knowme-Math §4.1). Catalog VC + issuer vẫn thuộc VeData.
+- **Duy-nhất-người v1 nằm TRONG Knowme:** một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID, khoá là vân-tay tài-liệu `fp` (Knowme-Math Đ-7, I-KNOW-12..15). Lớp **cưỡng-chế** là sinh-trắc Enclave + yếu-tố-2 thiết-bị, KHÔNG phải một bí-mật máy-chủ: khoá băm `k` chia `t`-trong-`n`, không nơi nào giữ trọn (Đ-7.1). Tranh-chấp xử theo hai mức `suspected`/`confirmed` với hệ-quả trên dòng LAMP Wakeme (Knowme-Math §4.1). Catalog VC + issuer vẫn thuộc VeData.
 
 → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
 
