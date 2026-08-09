@@ -34,6 +34,9 @@
 | `Envelope` | ciphertext | ECIES X25519→HKDF→AEAD của bytes tài-liệu | `crypto.ts` **[SPEC dùng cho tài-liệu]** |
 | `cid` | CID | `BLAKE3(ciphertext)` — con-trỏ LampNet | `lampnet.ts` |
 | `docHash` | b64url(32B) | `H(plaintext bytes)` — ràng-buộc nội-dung tài-liệu | **[SPEC]** Knowme-Feat-Math §3.3 |
+| `pepper` | ByteArray(32) | muối **bí-mật phía máy-chủ**, dùng chung mọi vân-tay, không bao giờ rời máy-chủ | `fingerprint.ts:blake2b256Keyed` |
+| `pv` | Nat | `pepperVersion` — số hiệu đợt pepper đang dùng, lưu cạnh vân-tay để xoay được | `fingerprint.ts:Registration` |
+| `fp(t, F)` | b64url(32B) | **vân-tay tài-liệu** của loại `t` trên tập trường định-danh `F` | `fingerprint.ts:documentFingerprintPeppered` |
 
 **Đơn-vị wire (bất-biến-dây, load-bearing):** một trường được băm là **mảng 3 phần-tử** `[salt, path, value]` với `value` **vô-hướng**. Đây là điểm neo cross-language: verifier độc-lập chỉ cần lặp `H(canon([salt, path, value]))`. KHÔNG được đổi arity/hình-dạng mảng. Neo: `commit.ts:digestOf`.
 
@@ -75,6 +78,17 @@ Tài-liệu đi qua **cùng** `digestOf`, cùng arity mảng, cùng không-gian 
 Predicate = { id, path, op ∈ {GE,LE,EQ,IN,RANGE}, arg, ctx? }
 ```
 
+**Đ-7 · Vân-tay tài-liệu tuỳ-thân (khoá duy-nhất-người v1)** (`fingerprint.ts:documentFingerprintPeppered`):
+```
+fp(t, F) = b64url( H_pepper( canon([ t, normalize(F) ]) ) )      -- H_pepper = BLAKE2b-256 keyed
+```
+- `t` = loại giấy-tờ (vd `"vn-cccd"`); `F` = tập trường **định-danh** đã chuẩn-hoá, chỉ gồm trường bất-biến theo thời-gian (số giấy-tờ, ngày-sinh, giới), **không** gồm ngày cấp / nơi cấp / ảnh.
+- **Tất-định, KHÔNG salt-mỗi-lần-đăng-ký** — đây là điều kiện cần: hai bản khai của cùng một giấy-tờ phải cho cùng `fp`, nếu không thì không phát-hiện được trùng.
+- **`pepper` bắt-buộc, phía máy-chủ.** Không có nó thì `fp` là hàm băm trần trên một miền nhỏ: số CCCD Việt-Nam 12 chữ-số **có cấu-trúc** (3 tỉnh · 1 giới+thế-kỷ · 2 năm-sinh · 6 ngẫu-nhiên), nên biết tỉnh + năm-sinh + giới thì miền còn `10⁶` — vét cạn được tức thì. Pepper đẩy tấn-công đó ra ngoài khả-năng của bất-kỳ ai không giữ máy-chủ.
+- `pv` lưu **rời** cạnh vân-tay ⟹ xoay pepper được: cấp `pv+1`, tính lại dần, không phải khai lại giấy-tờ.
+
+**Ảnh + video giấy-tờ.** Người dùng nộp ảnh và video giấy-tờ; bộ trích-xuất (Spectra) đọc ra `F` rồi ghi vào Knowme. Ảnh/video là **PII nguyên bản**, nên chúng đi đúng đường tài-liệu đã có: `Envelope` ciphertext + CID (I-KNOW-9), **không** lên chuỗi (I-KYC-NO-PII-CHAIN). Thứ tham-gia `fp` là `F` đã trích, không phải bytes ảnh — hai lần chụp cùng một thẻ cho hai `docHash` khác nhau nhưng **cùng** `fp`, đó là điều làm cơ-chế duy-nhất chạy được.
+
 ---
 
 ## 3. Bất-biến LÕI (tiết-lộ chọn-lọc)
@@ -89,7 +103,7 @@ Predicate = { id, path, op ∈ {GE,LE,EQ,IN,RANGE}, arg, ctx? }
 
 ---
 
-## 4. Bảng bất-biến `I-KNOW-1 .. I-KNOW-11`
+## 4. Bảng bất-biến `I-KNOW-1 .. I-KNOW-14`
 
 | ID | Bất-biến (hình-thức) | Cơ-chế-ép | Neo / Nguồn |
 |---|---|---|---|
@@ -104,6 +118,27 @@ Predicate = { id, path, op ∈ {GE,LE,EQ,IN,RANGE}, arg, ctx? }
 | **I-KNOW-9** | **Không plaintext ra ngoài:** chỉ `Envelope` (ciphertext ECIES) + CID rời máy; server chỉ giữ ciphertext. | `eciesSeal` trước khi `LampNetStore.put` | `crypto.ts:eciesSeal`, `lampnet.ts:cidOf/put` — WIRING vào luồng DocumentClaim/sd[] là **[SPEC]** INV-K2 |
 | **I-KNOW-10** | **Least-disclosure tài-liệu:** người nhận chỉ có Envelope + opener của đúng tài-liệu đã chọn; phần còn lại là commitment ẩn trong `sd[]`. | re-seal per-recipient + Presentation | **[SPEC]** INV-K5 |
 | **I-KNOW-11** | **Lịch-sử bất-biến (versioning):** mọi cập-nhật tài-liệu = một `append_version` Strata mới; bản cũ giữ nguyên, proof field-level của một tài-liệu vẫn đúng dưới root mới; anchor đơn-điệu theo `seq` ⟹ không neo-lại phiên-bản cũ để "khôi-phục" giấy-tờ đã bị thay (chống rollback). | kế-thừa bất-biến Strata (KHÔNG redefine ở đây): hash-link, seq đơn-điệu, append-only, field-privacy, chống-rollback | **[SPEC]** Knowme-Feat-Math §5, §11 INV-K4 (alias Strata `_CONTRACT.md` INV-E1, E2, E3, E5, E6, E7) |
+
+| **I-KNOW-12** | **Một giấy-tờ ⇒ một PersonDID (duy-nhất-người v1):** với mọi `(t, F)`, tồn tại **nhiều nhất một** PersonDID đang giữ `fp(t,F)`. Đăng-ký thứ hai cùng vân-tay bị từ-chối, KHÔNG ghi đè. | `UniquenessRegistry.register` kiểm `fp` đã có chủ chưa trước khi ghi | `fingerprint.ts:UniquenessRegistry` |
+| **I-KNOW-13** | **Từ-chối trùng KHÔNG lộ chủ hiện-hữu:** kết-quả trả về khi trùng chỉ nói **có** chủ khác, không nói **ai**. | `isHeldByAnother()` trả Bool; kết-quả `conflict_other_owner` không mang DID | `fingerprint.ts` (đã bỏ trường `existingOwner`) |
+| **I-KNOW-14** | **Vân-tay là hàm có khoá, không phải băm trần:** mọi `fp` sinh qua `H_pepper` với `pepper` chỉ máy-chủ giữ (Đ-7); `pv` lưu rời để xoay được. | tham-số `pepper` **bắt-buộc** ở chữ-ký hàm — không có đường gọi nào bỏ qua | `fingerprint.ts:documentFingerprintPeppered` |
+
+### 4.1 Tranh-chấp một giấy-tờ — hai mức, hệ-quả tách rời
+
+Hai người có thể cùng khai một giấy-tờ mà **cả hai đều tin mình đúng** (mạo-nhận, nhập nhầm, giấy-tờ bị dùng lại). Quy-trình tách **nghi-ngờ** khỏi **xác-định**, vì hệ-quả khác nhau:
+
+| Mức | Kích-hoạt | Hệ-quả |
+|---|---|---|
+| `suspected` | có khai-báo tranh-chấp trên `fp` | **Tạm ngưng cấp LAMP trong Wakeme** cho các bên liên-quan. Giai-đoạn `Daily` vẫn tích, chỉ **không cấp mới**. |
+| `confirmed` | đã xác-định có tranh-chấp thật | LAMP Wakeme đã tích ở `Daily` **tạm ngưng phân-bổ về ví người dùng** ở giai-đoạn `Epochy`. |
+
+**Bất-biến của quy-trình — giữ lại, KHÔNG tịch-thu.** Tạm ngưng là **hoãn**, không phải mất: khi tranh-chấp đóng (`closeDispute`), phần đã tích được phân-bổ tiếp cho bên được xác-định là chủ. Lý do: một quy-trình có thể sai, và một cơ-chế sai mà không hoàn-nguyên được thì mọi lỗi của nó đều vĩnh-viễn.
+
+**PersonDID không bị vô-hiệu khi tranh-chấp.** DID là định-danh, không phải phán-quyết. Chỉ dòng giá-trị bị hoãn; ví, khoá, chữ ký, phiên đăng-nhập chạy bình-thường.
+
+Neo: `fingerprint.ts:openDispute / closeDispute / disputeOf / lampHoldLevel`.
+
+**Ngoài phạm-vi v1, để lại roadmap:** cùng-người-hai-giấy-tờ (đổi số CCCD, giấy-tờ nước khác), giấy-tờ ngoài Việt-Nam, chứng-minh duy-nhất-người không cần khai số giấy-tờ (hướng cam-kết ZK + nullifier theo ngữ-cảnh).
 
 **Bất-biến Mức 3 (ZK) — GHI RÕ NGUỒN** (alias từ `KYC-KYB-ZK §B.8`, không tái-định-nghĩa):
 - `I-KYC-PRIVATE` — proof lộ **đúng một bit** (`result`) về `predicate.path`; không lộ value/trường khác.
@@ -213,7 +248,7 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 
 | # | Giả-định | Rủi-ro nếu vỡ | Ghi-chú |
 |---|---|---|---|
-| T-1 | **Duy-nhất-một-người** do sinh-trắc Secure Enclave. Knowme nói về **tài-liệu**, KHÔNG chạy dedup/uniqueness trên PersonDID. *(Phân-biệt: `fingerprint.ts:UniquenessRegistry` trong code là "one-hash-per-**tài-liệu**" — chống đăng-ký TRÙNG một giấy-tờ, KHÔNG phải dedup con-người. Hai khái-niệm khác nhau.)* | Ngoài phạm-vi (chủ-trương dự-án). | NGOÀI phạm-vi (Knowme-Feat-Math §1.3, INV-K6) |
+| T-1 | **Duy-nhất-một-người (v1) neo vào giấy-tờ tuỳ-thân do nhà-nước cấp.** Mỗi PersonDID khai đúng một giấy-tờ tuỳ-thân; vân-tay tài-liệu (§4, có muối máy-chủ) là khoá duy-nhất. Một giấy-tờ đã gắn PersonDID thì PersonDID thứ hai **không** đăng-ký được cùng giấy-tờ đó ⇒ "one-hash-per-tài-liệu" **chính là** cơ-chế một-người-một-DID ở v1. Sinh-trắc Secure Enclave gác **thiết-bị**, không gác **người** — nó cho một-DID-mỗi-máy chứ không cho một-DID-mỗi-người. | Vỡ khi: cùng người có hai giấy-tờ hợp-lệ khác nhau (đổi số, giấy-tờ nước khác), hoặc giấy-tờ bị mạo-nhận. Xử-lý: quy-trình tranh-chấp §4.1, không phải bịt bằng mật-mã. | Trong phạm-vi Knowme từ v1 — Đ-7, I-KNOW-12..14 (thay INV-K6) |
 | T-2 | **Catalog VC + issuer + Trust Registry nội-dung** do **VeData** cung-cấp; PhoenixKey chỉ envelope + resolve + selective-disclosure. | Issuer giả trong TrustList → credential issued sai tin. TrustList neo Merkle root on-chain giảm-thiểu. | VeData; PhoenixKey dẫn-chiếu |
 | T-3 | **Canonical JSON đồng-nhất** giữa TS (`canonical.ts`) và Java backend (`ORDER_MAP_ENTRIES_BY_KEYS`). | Lệch sort → digest khác → membership vỡ cross-language. | Căn chỉnh qua docstring `canonical.ts` |
 | T-4 | **BLAKE2b/BLAKE3/Ed25519/ECIES** an-toàn mật-mã tiêu-chuẩn. | Va-chạm/giả chữ ký phá soundness. | Giả-định tiêu-chuẩn |
