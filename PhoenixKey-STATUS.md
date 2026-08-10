@@ -165,3 +165,6 @@ Mục 1–3 tổ chức theo module. Mục này tổ chức theo **việc ngư�
 - Nút "Claim MAGIC" (`wallet_screen.dart:618`) gọi endpoint **luôn trả 410 Gone** (`WalletController.java:79-82`).
 - `GetLampPanel.tsx` tên là GetLAMP nhưng gọi luồng VND cũ đã ngừng dùng, không gọi `/activation/getlamp/build`.
 - Số dư MAGIC hiển thị **luôn 0**: `WalletV2ServiceImpl.java:182-183` gán cứng `0`.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

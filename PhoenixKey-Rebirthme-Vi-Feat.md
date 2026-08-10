@@ -156,3 +156,6 @@ Ba luật sau là điều-kiện-bắt-buộc để lời hứa ở §2 ("mất 
 Nguồn thiết-kế nội-bộ (không công khai).
 Code: `PhoenixKey-Validator/validators/did_payment.ak`, `lib/phoenixkey/{taad_logic,auth_logic}.ak`.
 Tài-liệu cùng bộ: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md), [PhoenixKey-Rebirthme-Exec.md](./PhoenixKey-Rebirthme-Exec.md).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

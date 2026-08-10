@@ -376,3 +376,6 @@ Bao-phủ: POSITIVE (genesis khuôn, Reclaim thu d_unit + close, OwnEpoch condit
 - Mô hình BẢN A: Issue #67 (2026-07-30); gỡ GenDrip + usage-right + rename wakeme (2026-07-31).
 - Nguồn thiết-kế nội-bộ (không công khai).
 - Tài-liệu cùng bộ: [Vi-Feat](./PhoenixKey-Wakeme-Vi-Feat.md), [Math](./PhoenixKey-Wakeme-Math.md), [Exec](./PhoenixKey-Wakeme-Exec.md).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

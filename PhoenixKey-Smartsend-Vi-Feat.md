@@ -142,3 +142,6 @@ Nếu nghi khoản gửi là do bị chiếm khoá, guardian **treo** hòm ký-q
 Nguồn thiết-kế nội-bộ (không công khai).
 Hạ-tầng nền (ví/guardian/anti-drain): [PhoenixKey-Rebirthme-Vi-Feat.md](./PhoenixKey-Rebirthme-Vi-Feat.md), [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md), [PhoenixKey-Rebirthme-Exec.md](./PhoenixKey-Rebirthme-Exec.md).
 Tài-liệu cùng bộ: [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md), [PhoenixKey-Smartsend-Tech.md](./PhoenixKey-Smartsend-Tech.md), [PhoenixKey-Smartsend-Exec.md](./PhoenixKey-Smartsend-Exec.md).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

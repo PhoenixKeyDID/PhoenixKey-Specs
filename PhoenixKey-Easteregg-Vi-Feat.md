@@ -259,3 +259,6 @@ vào-ra và số dư*, chứ **vẫn lộ** ai nạp, ai nhận, và mỗi kho�
   `PhoenixKey-Easteregg-Gaps-Addendum-Feat.md` (G1–G5),
   `PhoenixKey-Easteregg-PrivacyModes-Addendum-Feat.md` (Mode Matrix M0–M3 + mode-transition),
   `PhoenixKey-Shielded-Custody-Feat-Math.md` (Tầng 1), `Easteregg/Easteregg-Unify-Architecture.md`.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

@@ -111,3 +111,6 @@ Aligns LampNetCloud + VeDataIO.
 - Nguồn thiết-kế nội-bộ (không công khai): Knowme-Feat-Math, KYC-KYB-ZK-Feat-Math, Midnight-Privacy-Feat-DRAFT; VeData-Reply-did-commit-resolve, VeData-Reply-shielded-address.
 - Code: `PhoenixKey-Frontend/src/lib/sdvc/*`, `src/app/verify/page.tsx`.
 - Tài-liệu cùng bộ: `PhoenixKey-Knowme-Vi-Feat.md`, `PhoenixKey-Knowme-Math.md`, `PhoenixKey-Knowme-Tech.md`.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

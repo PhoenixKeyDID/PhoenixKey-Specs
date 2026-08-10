@@ -69,3 +69,6 @@ Chi-tiết: [PhoenixKey-Smartsend-Vi-Feat.md](./PhoenixKey-Smartsend-Vi-Feat.md)
 Hạ-tầng nền (dẫn-chiếu): [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md), [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) (ví/guardian/anti-drain). Code: `PhoenixKey-Validator/validators/smartsend_escrow.ak`.
 
 → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#smartsend)
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

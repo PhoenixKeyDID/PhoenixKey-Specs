@@ -429,3 +429,6 @@ Feecover on-chain (bước 1) KHÔNG chặn bởi blocker-1; chặn bởi 0a (CA
 - Quỹ trùng tên: `MAGIC/FeeTreasury/onchain/validators/fee_treasury.ak` (ADA-FX, `:108-118` Withdraw operator-cosign).
 - Resolve API: nguồn thiết-kế nội-bộ (không công khai).
 - Đơn-vị/peg: `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` §4/§5.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

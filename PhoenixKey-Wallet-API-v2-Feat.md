@@ -301,3 +301,6 @@ Chạy trên preprod (Blockfrost preprod key). Ghi output thật vào PR.
 | §5 Bug `/identity/{did}/pubkey` 500 (recover) | 🔴 sửa | Long | — (offchain thuần) |
 
 **Interface do PhoenixKey chốt. Long ước lượng thời gian + build. Không đụng onchain/validator.**
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

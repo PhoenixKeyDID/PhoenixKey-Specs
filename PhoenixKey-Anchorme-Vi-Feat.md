@@ -149,3 +149,6 @@ Các mảnh còn lại của hệ (resolve-by-hash, point-in-time resolver, Devi
 - Nguồn thiết-kế nội-bộ (không công khai).
 - `PhoenixKey-Specs/PhoenixKey-Math.md` §2–§5, §10, §12–§24.
 - `PhoenixKey-Validator`: `validators/taad.ak`, `lib/phoenixkey/{taad_logic,state_nft_logic,auth_logic,types}.ak`.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

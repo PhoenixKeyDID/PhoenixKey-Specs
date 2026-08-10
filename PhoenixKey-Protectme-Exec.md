@@ -172,3 +172,6 @@ PROT-4 flaw-vs-negligence — bảng §4a). Bảy câu hỏi trọng-yếu cần
 - Tài-liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Math.md](./PhoenixKey-Protectme-Math.md), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md).
 
 *Bản Exec này chỉ tóm cho điều hành — mọi tham số thành normative sau khi maintainer duyệt.*
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

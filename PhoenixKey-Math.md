@@ -4083,3 +4083,6 @@ All links valid as of 2026-05-28. Click to open.
 *— PhoenixKey Cardano Validator Reference v1.0 (Aiken/PlutusV3)*
 *— PhoenixKey BA Spec v2.0 (business rules, user journeys)*
 *— PhoenixKey Validator PR: §11.0 non-Person recovery + §11.6 Tier 5 + I-RECOVERY-4 enforcement*
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

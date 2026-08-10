@@ -170,3 +170,6 @@ Chỉ người dùng có **danh-tính PhoenixKey** hợp-lệ. Đây là cổng 
 - Nguồn thiết-kế nội-bộ (không công khai) — mô hình 3-token, ConsumeMAGIC tái-dùng (đã qua rà-soát nội-bộ).
 - Đơn-vị/peg canonical: `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` §4 (MAGIC), §5 (CARP).
 - Đối chiếu tài-liệu cùng bộ: [PhoenixKey-Feecover-Math.md](./PhoenixKey-Feecover-Math.md), [PhoenixKey-Feecover-Tech.md](./PhoenixKey-Feecover-Tech.md), [PhoenixKey-Feecover-Exec.md](./PhoenixKey-Feecover-Exec.md).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

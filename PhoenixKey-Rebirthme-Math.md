@@ -591,3 +591,6 @@ Nguồn thiết-kế nội-bộ (không công khai).
 Math canonical (dẫn-chiếu, KHÔNG sửa): `PhoenixKey-Math.md` §6, §7, §9, §10, §11, §33;
 `PhoenixKey-Connector-CIP30-Feat-Math.md` (§4.L — cơ-chế CIP-30/CIP-45 đầy-đủ).
 Code: `PhoenixKey-Validator/validators/did_payment.ak`, `lib/phoenixkey/{auth_logic,taad_logic}.ak`; `rust_core/src/{lampnet,crypto,sign}.rs`.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

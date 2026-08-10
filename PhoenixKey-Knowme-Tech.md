@@ -228,3 +228,6 @@ Neo UI: `app/verify/page.tsx` (32KB, 5 bước), `components/vc/{DeclareForm,ui}
 - Code: `PhoenixKey-Frontend/src/lib/sdvc/*` + `src/app/verify/page.tsx` + `src/components/vc/*`.
 - Thiết-kế nội-bộ (không công khai): Knowme-Feat-Math (§2 kiến-trúc, §3 schema, §4-6 luồng, §7 VeData, §12 hợp-đồng); KYC-KYB-ZK-Feat-Math (§B Math, §C bàn-giao); VeData-Reply-did-commit-resolve (kênh resolve chung).
 - `PhoenixKey-Knowme-Math.md`, `PhoenixKey-Knowme-Vi-Feat.md`, `PhoenixKey-Knowme-Exec.md`.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

@@ -164,3 +164,6 @@ Vài phần của Wakeme phụ thuộc thiết-kế/hạ-tầng ở đội khác
 
 - Nguồn thiết-kế nội-bộ (không công khai). (đã qua rà-soát nội-bộ)
 - Tài-liệu cùng bộ: [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md), [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md), [PhoenixKey-Wakeme-Exec.md](./PhoenixKey-Wakeme-Exec.md).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._
