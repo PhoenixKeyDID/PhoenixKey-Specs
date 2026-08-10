@@ -271,18 +271,21 @@ absent ───────────► LIVE(name) ────────�
 ```
 Tombstone KHÔNG xoá slot (tránh delete-shift đắt + giữ sorted rẻ). Re-mint-after-burn hợp-lệ (khớp `state_nft_logic.ak:42-47`): burn ⇒ tombstone; genesis lại cùng did ⇒ `register_ok` thấy name không-live ⇒ flip lại LIVE, không đẻ slot trùng.
 
-**Sharding:** `shard_of(name, K) = name[0] mod K` (tất-định, blake2b uniform ⟹ tải cân-bằng). 2 genesis khác shard ⟹ song-song; cùng shard cùng block ⟹ chuỗi-hoá (1 thắng/block). K chốt ở deploy-param, **256 khuyến-nghị**.
+**Sharding:** `shard_of(name, K) = name[0] mod K` (tất-định, blake2b uniform ⟹ tải cân-bằng). 2 genesis khác shard ⟹ song-song; cùng shard cùng block ⟹ chuỗi-hoá (1 thắng/block). K chốt ở deploy-param, **256 khuyến-nghị** — ⚠️ **con số này đã bị bác bởi mã, xem §5.7ter.3: mã chốt K = 32 và K là HẰNG module, không còn là deploy-param.**
 
 **Throughput theo K (trần lý-thuyết, ĐỘC-LẬP accumulator — sorted-list hay SMT đều bị trần này vì mỗi shard tối-đa 1 spend/block, PA2-Design §5.2):** giả-định Cardano ~1 block/20s ⟹ ~4.320 block/ngày.
 ```
 K (shard)    Genesis song-song/block (trần)   Genesis/ngày (trần)   Ghi-chú
 1            1                                 ~4.320                🔴 nghẽn — 1 UTxO toàn hệ
 16           16                                ~69.000                1 nibble prefix
-256          256                               ~1,1 triệu             1 byte prefix (khuyến-nghị)
+32           32                                ~138.000               ✅ **K THẬT trong mã** (§5.7ter.3)
+256          256                               ~1,1 triệu             ❌ KHÔNG deploy được — bootstrap nguyên-tử ≈ 34 KB > trần tx 16 KB
 4.096        4.096                             ~17,7 triệu            1,5 byte
 65.536       65.536                            ~283 triệu             2 byte
 ```
-Trần contention-per-block là lý-thuyết; thực-tế thấp hơn do 2 genesis tranh cùng-shard cùng-block chỉ 1 vào block (R2 dưới). K=256 dư sức cho mục-tiêu onboarding "hàng nghìn+/ngày".
+Trần contention-per-block là lý-thuyết; thực-tế thấp hơn do 2 genesis tranh cùng-shard cùng-block chỉ 1 vào block (R2 dưới).
+
+> ⚠️ **Đọc bảng này cùng §5.7ter.3.** Bảng trên liệt kê trần lý-thuyết theo K, nhưng **K không chọn tự do được**: bootstrap phải nguyên-tử trong MỘT tx (hai tx bootstrap rời nhau cho phép dựng bộ shard thứ hai ⟹ vỡ uniqueness), mỗi shard tốn ~125 byte output, nên trần tx 16 KB chặn cứng ở khoảng K=64. **Mã chốt K = 32 ⟹ ~138.000 genesis/ngày** — vẫn dư cho mục-tiêu onboarding "hàng nghìn+/ngày", nhưng KHÔNG phải ~1,1 triệu như dòng K=256 gợi ý. Muốn K cao hơn thì phải đổi sang bootstrap phân-đợt có bộ đếm xích (PC-R2, §5.7ter.6) — chưa làm, và chỉ nên làm khi đo được nghẽn thật.
 
 **🔴 Evidence ExUnit đo thật (PA2-Design §7.2, load-bearing cho §CID-3) — marginal per-genesis, tách khỏi chi-phí build:**
 ```
@@ -296,8 +299,12 @@ Trần tx mainnet = 14 M mem / 10 B cpu. Mem tăng **siêu-tuyến-tính** theo 
 Anchor NFT: name = blake2b_256(did) — BẤT-BIẾN, did_payment/stake/subaddr tiếp-tục neo name này.
 ShardDatum { shard: Int, entries } — sorted-list PoC, hoặc { shard, root: ByteArray(32) } (Merkle).
 Redeemer thread: implicit (spend ⟺ có genesis/burn anchor thuộc shard — mẫu supply_state).
-shard_of(name, K) = name[0] mod K. K = 256 khuyến-nghị.
-Địa-chỉ ví: KHÔNG đổi. Ví KHÔNG reference thread.
+shard_of(name, K) = name[0] mod K. K = 32 (HẰNG module, không phải deploy-param — §5.7ter.3).
+Ví KHÔNG reference thread.
+🔴 Địa-chỉ ví: ĐỔI. Dòng "KHÔNG đổi" của bản PA2 KHÔNG mang sang PC được — gộp 2 script
+   là đổi bytecode, đổi bytecode là đổi script-hash, và did_payment/did_stake/did_subaddr/
+   limit_meter_vault/wakeme_vault đều bake anchor_nft_policy = hash đó ⟹ 5 địa-chỉ đổi
+   cùng một lượt. Chi tiết §5.7ter.5.
 ```
 
 **Rủi-ro tồn-dư cần ép khi wiring (PA2-Design §9):** R2 contention cùng-shard cùng-block: burst đăng-ký trùng prefix → tranh 1 UTxO → chỉ 1 tx vào block, còn lại tx-conflict phải rebuild+resubmit; giảm bằng tăng K (bảng trên) hoặc batch-rollup (gom nhiều genesis vào 1 tx spend 1 shard — nhưng làm datum/redeemer per-tx phình bội, chỉ hợp SMT không hợp sorted-list). R3 bootstrap phải one-shot đúng K/đúng shard-index (sai → shard mồ-côi hoặc trùng, vỡ uniqueness); R4 phải ép trần N/shard on-chain (từ-chối register khi `len ≥ N_max`, nếu không 1 genesis có thể ăn hết ExUnit-budget = DoS đăng-ký); R5 GenesisChild hiện an-toàn nhờ parent-sig (Đ-lý 4) nhưng để bất-biến "≤1 live/name" đúng TUYỆT-ĐỐI cũng nên spend shard tương-ứng (Person là ưu-tiên; Child là hoàn-thiện).
