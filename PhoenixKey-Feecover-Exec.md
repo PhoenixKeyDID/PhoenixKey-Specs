@@ -89,7 +89,7 @@ Tài-liệu cùng bộ: [PhoenixKey-Feecover-Vi-Feat.md](./PhoenixKey-Feecover-V
 
 | # | Quyết-định | Gợi-ý |
 |---|---|---|
-| **D1** | Mức phí từng dịch-vụ (`fee_magic` mỗi `service_id`) | Bảng Feat §4.3 là minh-hoạ; cần số thật, neo qua base_price nền |
+| **D1** | Mức phí từng dịch-vụ (`fee_magic` mỗi `service_id`) | **Khép một phần 2026-08-10**: `did.rotate` = 2 MAGIC (giá **cố-định**, FEECOVER-PRICE-1), `did.transfer` = 10 MAGIC, `UpdateGuardians` miễn phí — `PhoenixKey-Feecover-Math.md §7.2bis`. Các dịch-vụ còn lại (`did.anchor`, `vc.verify`, `custody.op`) vẫn là minh-hoạ, cần số thật |
 | **D2** | Cadence + biên re-anchor phí | Mượn khung base_price CARP (±10%/quý + siêu-đa-số) HAY khung riêng PhoenixKey — cân "ổn-định user" vs "provider không lỗ" |
 | **D3** | Dịch-vụ nào Feecover phủ | Khởi-đầu: `did.anchor`, `did.rotate`, `vc.verify`, `custody.op` |
 | **D4** | Ranh-giới tầng App vs Platform | Ai là App (provider), ai là Platform (gom nhiều App)? Ảnh-hưởng cấu-trúc accrual |
