@@ -82,7 +82,8 @@ Feecover chính là "quầy tính tiền" đặt trước cỗ máy trừ số d
 | Dịch-vụ | Bạn thấy | Hệ thống trả |
 |---|---|---|
 | Neo / cập-nhật danh-tính lên chain | 5 MAGIC | 5 CARP |
-| Đổi khoá thành-viên | 2 MAGIC | 2 CARP |
+| Đổi khoá thành-viên (xoay khoá) | 2 MAGIC | 2 CARP |
+| Chuyển quyền sở-hữu một tổ-chức/dịch-vụ | 10 MAGIC | 10 CARP |
 | Xác-thực chứng-nhận (chọn-lọc-tiết-lộ) | 1 MAGIC | 1 CARP |
 | Thao-tác giữ-hộ (custody) | 3 MAGIC | 3 CARP |
 

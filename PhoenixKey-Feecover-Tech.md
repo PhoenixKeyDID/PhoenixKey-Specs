@@ -107,7 +107,7 @@ First-principles (bám build-mode trục b/c): `consume.ak` là engine đã audi
 /// Beacon bảng phí dịch-vụ PhoenixKey. Cùng khuôn PriceParam:
 /// reference input CIP-31, NFT one-shot xác-thực, versioned, gov-gated.
 pub type ServiceFeeEntry {
-  service_id : ByteArray,   // "did.anchor", "did.rotate", "vc.verify", "custody.op"
+  service_id : ByteArray,   // "did.anchor", "did.rotate", "did.transfer", "vc.verify", "custody.op"
   op_type    : Int,         // ÁNH XẠ sang OpPrice.op_type của PriceParam (đồng-bộ §7.4)
   fee_magic  : Int,         // nanogic — phí danh-nghĩa; PHẢI == price(op_type) từ PriceParam
   enabled    : Bool,
