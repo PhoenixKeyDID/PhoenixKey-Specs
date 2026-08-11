@@ -2,7 +2,7 @@
 
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
-> Cập nhật: 2026-08-08. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy.
+> Cập nhật: 2026-08-10. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy.
 
 ---
 
@@ -83,7 +83,13 @@
 
 **Blocker:** B1 MAGIC-model, B2 CARP policy-id, B3 enforce nội-dung `did_commit` per-DID. **Hở nội-tại nặng nhất:** FG-4 — EpochSettle pseudo-code, 0 validator, dựa provider trung-thực (KHÔNG blocker đội khác — Feecover tự vá). Phụ-thuộc mềm: Resolve API point-in-time (backend).
 
-**Lộ-trình:** P0 (chốt D1-D6) → P1 (B1/B2/B3) → P2 (build + vá FG-4) → P3 (test) → P4 (per-DID) → P5 (production).
+**Giá 2 thao-tác DID — CHỐT 2026-08-10** (khép một phần D1/D3, `PhoenixKey-Feecover-Math.md §7.2bis`): `did.rotate` = 2 MAGIC **giá cố-định**, `did.transfer` = 10 MAGIC (nhân theo cầu bình-thường), `UpdateGuardians` **miễn phí**. Tỉ-lệ 1:5 giữ nguyên từ bảng ADA cũ (§36) để việc bỏ đường ADA không đồng-thời là một đợt đổi giá ngầm. Hai bất-biến mới: FEECOVER-PRICE-1 (rotate KHÔNG nhân theo cầu — `demand_mult` là một số dùng chung toàn hệ, nên tải của module khác sẽ định giá thao-tác an-ninh của DID, và một đợt lộ khoá hàng loạt tự đẩy giá lên đúng lúc cần rẻ nhất); FEECOVER-PRICE-2 (thiếu MAGIC KHÔNG được chặn Rotate — nếu chặn thì kẻ đã lộ khoá nạn-nhân chỉ cần làm cạn MAGIC của họ là khoá lộ không bao giờ bị xoay).
+
+**Blocker MỚI (chưa từng ghi):** B4 — ConsumeMAGIC **chưa có lớp giá cố-định**; công-thức áp `demand_mult` cho mọi `op_type`, không loại-trừ. Đây là **điều-kiện tiên-quyết** để nối `did.rotate` (đã gửi yêu-cầu sửa hợp-đồng sang MAGIC 2026-08-10). `did.transfer` KHÔNG phụ-thuộc B4, đi trước được. B5 — `op_type` 7/8 chưa được MAGIC cấp; bảng `op_prices` sắp tăng ngặt, trần 16 dòng, hiện dùng 6.
+
+**Điều-kiện wiring (W1-W4):** W1 nối đường MAGIC **cùng đợt** với gỡ đường ADA, không song-song (hai cơ-chế phí cùng gắn một redeemer ⟹ thu kép hoặc bên-nào-rẻ-hơn-thắng tuỳ builder off-chain). W2 committee `PriceParam` phải > 1-of-N trước mạng chính — ngưỡng 1 cho phép một khoá chi UTxO beacon ngay trước tx nạn-nhân ⟹ từ-chối xoay khoá nhắm đúng một người, lặp vô hạn.
+
+**Lộ-trình:** P0 (chốt D1-D6) → P1 (B1/B2/B3/**B4/B5**) → P2 (build + vá FG-4) → P3 (test) → P4 (per-DID) → P5 (production).
 
 ## Protectme
 

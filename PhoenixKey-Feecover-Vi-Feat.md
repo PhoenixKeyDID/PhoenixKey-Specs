@@ -77,12 +77,15 @@ Feecover chính là "quầy tính tiền" đặt trước cỗ máy trừ số d
 
 ### 4.3 Bảng phí ví dụ
 
-> Số dưới đây là **minh-hoạ**, chưa phải giá chính-thức — mức thật đang chờ chốt (D1).
+> **Hai dòng đã chốt** (2026-08-10): *đổi khoá thành-viên* = 2 MAGIC và *chuyển quyền sở-hữu* = 10 MAGIC. Các dòng còn lại vẫn là **minh-hoạ**, chưa phải giá chính-thức.
+>
+> Một điều đáng nói về mức 2 MAGIC cho việc đổi khoá: nó **cố-định**, không tăng theo lúc hệ thống đông. Đổi khoá là việc bạn làm khi nghi khoá cũ đã lộ — nếu để giá đó trôi theo cầu thì đúng lúc nhiều người cùng cần đổi khoá gấp, giá lại là lúc cao nhất. Và nếu bạn hết MAGIC, việc đổi khoá **vẫn phải chạy được**: bằng không, kẻ đã lấy được khoá của bạn chỉ cần làm cạn ví MAGIC của bạn là khoá đó không bao giờ đổi được nữa.
 
 | Dịch-vụ | Bạn thấy | Hệ thống trả |
 |---|---|---|
 | Neo / cập-nhật danh-tính lên chain | 5 MAGIC | 5 CARP |
-| Đổi khoá thành-viên | 2 MAGIC | 2 CARP |
+| Đổi khoá thành-viên (xoay khoá) | 2 MAGIC | 2 CARP |
+| Chuyển quyền sở-hữu một tổ-chức/dịch-vụ | 10 MAGIC | 10 CARP |
 | Xác-thực chứng-nhận (chọn-lọc-tiết-lộ) | 1 MAGIC | 1 CARP |
 | Thao-tác giữ-hộ (custody) | 3 MAGIC | 3 CARP |
 
