@@ -744,3 +744,6 @@ PhoenixKey cấp **danh-tính + chữ-ký Grant + resolve khoá**. KHÔNG lưu h
 - Nguồn thiết-kế nội-bộ (không công khai).
 - `PhoenixKey-Core/Enclave/rust_core`: `phoenix_address.rs:52`, `crypto.rs:339`; `PhoenixKey-Database`: `DidPhoenixGenerator.java`, `ResolverController.java`.
 - `spec-proposals/PhoenixKey-Terminology-i18n-Spec.md` (§12).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

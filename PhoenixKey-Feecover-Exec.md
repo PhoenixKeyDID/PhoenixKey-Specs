@@ -114,3 +114,6 @@ Tài-liệu cùng bộ: [PhoenixKey-Feecover-Vi-Feat.md](./PhoenixKey-Feecover-V
 - Nguồn thiết-kế nội-bộ (không công khai) — bản gốc Exec (đã qua rà-soát nội-bộ), §9 (D1–D6), gaming eval (FG-4/FG-4b/FG-5/FG-6/FG-8).
 - Đơn-vị/peg: `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` §4/§5.
 - Tài-liệu cùng bộ: [PhoenixKey-Feecover-Vi-Feat.md](./PhoenixKey-Feecover-Vi-Feat.md), [PhoenixKey-Feecover-Math.md](./PhoenixKey-Feecover-Math.md), [PhoenixKey-Feecover-Tech.md](./PhoenixKey-Feecover-Tech.md).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

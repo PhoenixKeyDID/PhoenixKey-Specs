@@ -300,3 +300,6 @@ Dự án đang ở giai đoạn testnet — chạy trên mạng thử Preview c�
 - Hiện trạng thật hôm nay: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md)
 - Chuẩn kỹ thuật `did:phoenix` đã đăng ký với W3C: [PhoenixKey-DIDMethod-W3C.md](./PhoenixKey-DIDMethod-W3C.md)
 - Bản đồ 36 tài liệu + thứ tự đọc theo vai trò của bạn: [README.md](./README.md)
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

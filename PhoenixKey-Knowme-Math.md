@@ -368,3 +368,6 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 - Spec (lớp tài-liệu + Mức 3): thiết-kế nội-bộ (không công khai) — Knowme-Feat-Math (§3, §6, §9, §11), KYC-KYB-ZK-Feat-Math (§B).
 - `PhoenixKey-Math.md §34` (Privacy/GDPR tombstone — dẫn-chiếu, KHÔNG sửa).
 - → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

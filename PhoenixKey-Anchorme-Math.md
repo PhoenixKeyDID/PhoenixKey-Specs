@@ -564,3 +564,6 @@ Chuyển BỊ CẤM (auditor xác nhận REJECT — có test âm):
 - `spec-proposals/PhoenixKey-SeedDistribution-FROST-and-PA2-SMT-Design.md` (2026-07-09) — PA2 SMT/Merkle-root chốt-hướng (§5.7bis) + FROST-Ed25519 custody (§5.10).
 - `spec-proposals/ServiceDID-SelfService-and-Delegation-DRAFT.md` (2026-06-17, PROPOSAL chờ duyệt) — Op_create_service + anchoring 2 giai-đoạn (§5.11); §3 bug Full_Authority/⊑ đã fold vào Math v4.7 §3.3 (xem CID-6, §9).
 - Nguồn thiết-kế nội-bộ (không công khai).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

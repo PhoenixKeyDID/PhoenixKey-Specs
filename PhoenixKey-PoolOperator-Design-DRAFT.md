@@ -182,3 +182,6 @@ khởi động block-producer với node.opcert
 
 ---
 _DRAFT — Phoenix agent soạn cho anh Aladin + Long + Tuân duyệt. Chưa commit/push._
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

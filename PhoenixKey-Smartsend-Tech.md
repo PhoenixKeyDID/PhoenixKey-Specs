@@ -175,3 +175,6 @@ Nguồn thiết-kế nội-bộ (không công khai).
 Hạ-tầng nền (dẫn-chiếu): [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md) (ví/guardian/anti-drain), `auth_logic.ak`/`taad_logic.ak`/`did_payment.ak`.
 Tài-liệu cùng bộ: [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md), [PhoenixKey-Smartsend-Vi-Feat.md](./PhoenixKey-Smartsend-Vi-Feat.md), [PhoenixKey-Smartsend-Exec.md](./PhoenixKey-Smartsend-Exec.md).
 Code: `PhoenixKey-Validator/validators/smartsend_escrow.ak`.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

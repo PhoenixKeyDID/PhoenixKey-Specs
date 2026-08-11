@@ -161,3 +161,6 @@ Những gì **đã chắc** ở lớp lõi: bạn giữ chìa, dữ-liệu ở m
 - Nguồn thiết-kế nội-bộ (không công khai): DocumentClaim/Strata/re-seal/anchor-qua-Stamp/Query — design; Mức 3 BBS+ ZK predicate — spec; lớp riêng-tư on-chain — DRAFT.
 - Code: `PhoenixKey-Frontend/src/lib/sdvc/{credential,disclose,commit,canonical,didDoc,didResolver,statusList,trust,trustList,crypto,lampnet,dossier,fingerprint,consent}.ts`; `src/app/verify/page.tsx`.
 - Tài-liệu cùng bộ: [PhoenixKey-Knowme-Math.md](./PhoenixKey-Knowme-Math.md), [PhoenixKey-Knowme-Tech.md](./PhoenixKey-Knowme-Tech.md), [PhoenixKey-Knowme-Exec.md](./PhoenixKey-Knowme-Exec.md).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

@@ -454,3 +454,6 @@ Các mục sau **chính sách/kinh tế**, chưa normative — auditor KHÔNG đ
 
 *Hết bản Math. Mọi [N]/[PROT-\*] là đề xuất, normative sau khi maintainer duyệt. Ba định lý §7
 đều CÓ ĐIỀU KIỆN trên input datum trung thực (§0, §5.2, §9) — auditor soi ranh giới F3/F6 trước.*
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

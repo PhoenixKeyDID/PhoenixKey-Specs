@@ -335,3 +335,6 @@ withdraw Groth16 → preprod E2E (double-withdraw REJECT, solvency giữ, K_min 
   `PhoenixKey-Shielded-Custody-Feat-Math.md §3–§5,§9` (Tầng 1 schema + test plan),
   `Easteregg/Easteregg-ZK-{Math,Tech,Exec-Spec}.md` (Tầng 2 ZK), `_easteregg-gaming-evaluation.md`
   (GO/NO-GO, VG-E1..E10).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

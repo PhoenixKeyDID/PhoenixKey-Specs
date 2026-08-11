@@ -419,3 +419,6 @@ Mỗi `ServiceFeeEntry` mang `op_type` trỏ dòng `OpPrice` trong `PriceParam`;
 - Engine tái-dùng: `MAGIC/ConsumeMAGIC/onchain/validators/consume.ak` + `lib/magiclamp/consume/{types,pricing,util}.ak` (C-CM-1..5); `types.ak:46-51`, `consume.ak:409` (`did_commit`).
 - Đơn-vị/peg canonical: `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` §4/§5/§8.
 - Đụng mã: `PhoenixKey-Specs/PhoenixKey-Math.md §36` (kiến-trúc phí Lovelace 30/70, KHÁC module).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

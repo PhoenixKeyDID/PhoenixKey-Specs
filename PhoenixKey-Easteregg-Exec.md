@@ -178,3 +178,6 @@ Preview **Tầng 1 + Tầng 3 chế-độ-1** trước (phasing P1), rồi mới
 - Gộp từ nguồn thiết-kế nội-bộ (không công khai).
   Feecover-boundary + External-Adapter + quyết định, 5 gap, 5 vector nguy nhất + GO/NO-GO
   + VG-E1..E10.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._
