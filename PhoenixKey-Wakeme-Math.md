@@ -339,3 +339,6 @@ tức tốc-độ-nạp (Feecover + idle-reclaim + forfeit) ≥ tốc-độ-rờ
 - Tài-liệu cùng bộ: [Vi-Feat](./PhoenixKey-Wakeme-Vi-Feat.md), [Tech](./PhoenixKey-Wakeme-Tech.md), [Exec](./PhoenixKey-Wakeme-Exec.md).
 
 → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

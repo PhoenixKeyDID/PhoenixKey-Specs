@@ -358,3 +358,6 @@ Appendix G để đối-chiếu tag).
   `PhoenixKey-Shielded-Custody-Feat-Math.md §3–§7` (Tầng 1 SHIELD-1..9 + conservation),
   `Easteregg/Easteregg-ZK-Math.md` (§A privacy, §C primitive, §D định-lý D.1–D.8, §G recovery,
   §K viewing-key, §L số đo Groth16), `_easteregg-gaming-evaluation.md` (crypto vs residual).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

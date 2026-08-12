@@ -117,3 +117,6 @@
 - Memory: `anchor-uniqueness-limit`, `no-sybil-concern`, `magic-not-native-token`, `activation-getlamp-model`, `guardian-recovery-model`.
 - Code (nguồn chân-lý): `PhoenixKey-Validator/lib/phoenixkey/wakeme_logic.ak` + `validators/wakeme_vault.ak` (BẢN A, 491 checks/0 err; rename định-danh activation→wakeme 2026-07-31, hash bất-biến `3f6e5bf6…f23`; on-chain redeploy đi theo PA-1).
 - Tài-liệu cùng bộ: [Vi-Feat](./PhoenixKey-Wakeme-Vi-Feat.md), [Math](./PhoenixKey-Wakeme-Math.md), [Tech](./PhoenixKey-Wakeme-Tech.md).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

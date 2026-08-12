@@ -3376,6 +3376,24 @@ Application → PhoenixKey:
 
 ## §36 Transaction Fee Architecture [N] *(v4.6)*
 
+> 🔴 **ĐÍNH CHÍNH 2026-08-10 — §36 KHÔNG còn là đường thu phí đang dùng cho thao-tác TAAD.**
+>
+> Đường thu phí bằng ADA mô-tả ở §36 (`FeeParams{fee_rotate, fee_transfer_service, fee_update_guardians}`, split 30/70, fee-receipt minting policy, `treasury_donation` field 20) **đã được gỡ khỏi validator `taad`**. Thay bằng **Feecover + ConsumeMAGIC**: tính bằng MAGIC, trả bằng CARP.
+>
+> Ba chỗ §36 dưới đây nay **SAI so với hướng đang đi**, giữ lại làm dẫn-xuất lịch-sử chứ không phải đặc-tả hiện-hành:
+>
+> | §36 ghi | Thực-tế sau khi chuyển |
+> |---|---|
+> | `fee_rotate = 1_000_000` (1 ADA) | `did.rotate` = **2 MAGIC**, giá **cố-định** (không nhân theo cầu) — `PhoenixKey-Feecover-Math.md §7.2bis`, FEECOVER-PRICE-1 |
+> | `fee_transfer_service = 5_000_000` (5 ADA) | `did.transfer` = **10 MAGIC** (giữ đúng tỉ-lệ 1:5 của §36) |
+> | `fee_update_guardians = 500_000` (0,5 ADA) | **MIỄN PHÍ** |
+>
+> Cũng lệch **tên trường**: §36 gọi `fee_transfer_service`, mã gọi `fee_transfer`. Không đồng-bộ nữa vì cả hai đều bị gỡ.
+>
+> Phần §36 còn giá-trị: cơ-chế tham-số-chỉnh-được-không-rebake-hash (§36.1), số-học split nguyên (§36.2), và Định-lý 36.1. Phần hết giá-trị: bảng giá cụ-thể và việc ép on-chain qua fee-receipt policy.
+>
+> ⚠️ Hai đường phí **không được cùng sống**. Nối đường MAGIC phải đi CÙNG ĐỢT với việc gỡ đường ADA — hai cơ-chế cùng gắn vào một redeemer thì thành thu kép, hoặc "bên nào rẻ hơn thắng" tuỳ builder off-chain chọn (điều-kiện W1, `PhoenixKey-Feecover-Math.md §7.2bis`).
+
 This section defines the **PhoenixKey fee** charged by every state-changing
 PhoenixKey operation, and the **split** of that fee between the **Cardano
 Treasury** (via the Conway-era native treasury-donation field) and the
@@ -4083,3 +4101,6 @@ All links valid as of 2026-05-28. Click to open.
 *— PhoenixKey Cardano Validator Reference v1.0 (Aiken/PlutusV3)*
 *— PhoenixKey BA Spec v2.0 (business rules, user journeys)*
 *— PhoenixKey Validator PR: §11.0 non-Person recovery + §11.6 Tier 5 + I-RECOVERY-4 enforcement*
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

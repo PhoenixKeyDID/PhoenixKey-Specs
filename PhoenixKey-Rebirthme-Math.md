@@ -80,10 +80,21 @@ Dùng `lo` (không `hi`) làm "now" — chống khai-man thời-gian tương-lai
 (sk_vault, pk_vault) ≜ derive_x25519_static_from_kek(VaultKEK)          -- lampnet.rs:120
 upload(sb, decoy) ⟹ blob_ct = ECIES_Encrypt(pk_vault, pad_to_bucket(serialize(sb) ‖ decoy))
                     cid = LampNet.put(blob_ct); RETURN cid
-recover() ⟹ Master_KEK ← BIP39_ToEntropy(24 từ); vidx ← TAADDatum.vault_index_anchor;
+recover() ⟹ Master_KEK ← Combine( share_device , quorum_LampNet )   -- KHÔNG BIP39_ToEntropy(24 từ)
+             vidx ← TAADDatum.vault_index_anchor;
              ∀ e ∈ VaultIndex: sb = deserialize(unpad(ECIES_Decrypt(sk_vault, GET(e.cid))))
 ```
 Fail-closed: sai KEK / tamper → GCM tag fail → lỗi, không trả plaintext sai (`lampnet.rs:497-520`).
+
+🔴 **`recover()` KHÔNG được nhận 24 từ làm đầu vào đủ.** Master_KEK **chưa từng tồn tại trọn vẹn ở
+một nơi** — nó là kết-quả ghép 2-of-2 phân tầng `device ∧ quorum LampNet` (`INV-DEVICE`, nguồn
+`PhoenixKey-SeedDistribution-Tech-Math.md:44-47`). Một đường `recover()` chỉ cần 24 từ là **đường
+vòng qua yếu-tố-2**: ai đọc được 24 từ ở đâu đó — ảnh chụp, bản in, sao lưu đám mây — dựng lại
+toàn kho mà không cần chạm thiết bị của chủ.
+
+Trên máy MỚI, chủ nhân đi đường **uỷ-quyền lại**, không đi đường dựng-lại-bí-mật: xác thực sinh-trắc
+gắn DID ⟹ mảnh `device` mới được cấp ⟹ ghép với quorum LampNet. Không khớp sinh-trắc thì không
+khôi phục được, kể cả có 24 từ.
 
 ### 2.5 Bộ khoá pool & vòng đời KES (từ Pool-Ops §B.1–B.4, phục-vụ I-POOL-*/I-KES-* §4.M)
 
@@ -159,7 +170,7 @@ Module KHÔNG đặc-tả tokenomics LAMP/MAGIC/CARP (thuộc MagicLamp) — ch�
 | **I-WALLET-5** | Datum-ví bị bỏ qua: UTxO ví không cần datum; datum độc/rác KHÔNG đổi luồng (authority chỉ đọc từ anchor ref-input). | test `wallet_datum_ignored_on_valid_path` `did_payment.ak:340-363` |
 | **I-WALLET-6** | Xuất seed vô-hiệu-trước-khi-hiện: Export mặc-định chạy RotateSeed + MigrateAsset TRƯỚC khi hiện seed → seed hiện ra đã revoked với DID. | UI-Spec §4 (`exportRevokesSeed=true` mặc-định) — UI; builder (`generateMasterKek`, rotate, `buildSignedTransfer`) |
 | **I-WALLET-7** | Chặn export nếu chưa có đường khôi-phục thay-thế (guardian < 2 ∧ chưa VC-Glint) — không tự đẩy user vào ngõ-cụt. | UI-Spec §4/§5 (I-RECOVERY-4 grace 30 ngày) |
-| **I-WALLET-8** | Khôi-phục = uỷ-quyền rotate, KHÔNG dựng lại Master_KEK; guardian KHÔNG giữ mảnh (đã bỏ Shamir). Đủ MỘT phương-thức (guardian / VC-Glint / Midnight). | UI-Spec §0.2, §2, §6 — guardian-threshold , VC/Midnight |
+| **I-WALLET-8** | Khôi-phục = uỷ-quyền rotate, KHÔNG dựng lại Master_KEK; guardian KHÔNG giữ mảnh (đã bỏ Shamir). Đủ MỘT phương-thức (guardian / VC-Glint / Midnight). **Mọi phương-thức đều phải đi qua sinh-trắc gắn DID** — chúng thay nhau ở lớp *uỷ-quyền*, không thay nhau ở lớp *nhận-dạng người*. | UI-Spec §0.2, §2, §6 — guardian-threshold , VC/Midnight; `INV-DEVICE` |
 
 ### 4.B Anti-drain (kế-thừa NGUYÊN từ Withdrawal-Limit §B.9 — `limit_meter.ak`)
 
@@ -182,7 +193,7 @@ Module KHÔNG đặc-tả tokenomics LAMP/MAGIC/CARP (thuộc MagicLamp) — ch�
 | Mã | Mô tả | Neo / ghi-chú |
 |---|---|---|
 | **I-CURVE-4** | 🔴 Anti-drain `limit_meter` là **LOAD-BEARING** cho mọi DID giữ giá-trị đáng-kể — KHÔNG phải feature trang-trí. Vì P-256 enclave không verify on-chain, value chỉ bảo-vệ ở mức **SEED** (Ed25519 controller). | (load-bearing, hở HIGH) |
-| **I-CURVE-5** | 🔴 ≥1 second-factor rút-lớn PHẢI **không-dẫn-xuất-từ** Master_KEK/seed. Nếu `secondary_pkh`/guardian cùng gốc seed → một lần lộ seed sập cả hai. Yêu-cầu: phần-cứng độc-lập hoặc kênh khác (EmailOracle / VeData-Glint). | (chưa enforce ở builder) |
+| **I-CURVE-5** | 🔴 **Mọi thao-tác đặc-quyền** — chi (không riêng rút-lớn), khôi-phục, xoay khoá, xuất seed, đổi guardian — đòi ≥1 yếu-tố-2 **không-dẫn-xuất-từ** Master_KEK/seed. Nếu `secondary_pkh`/guardian cùng gốc seed → một lần lộ seed sập cả hai. Yếu-tố-2 phải là **khoá thiết-bị bọc enclave**, đường cong verify được on-chain (Ed25519 / secp256k1 — **KHÔNG** P-256). | ⚠️ **CHƯA enforce ở builder** — xem T-WALLET-3 |
 
 ### 4.D Kho bí-mật (kế-thừa Secret-Vault §B.6 — I-VAULT-*)
 
@@ -195,7 +206,7 @@ Module KHÔNG đặc-tả tokenomics LAMP/MAGIC/CARP (thuộc MagicLamp) — ch�
 | **I-VAULT-5** | Phí gồm nhiễu: metering trên `size_wire` đã gồm decoy; UI hiện rõ. | — |
 | **I-VAULT-6** | CID phải persist (không tất-định) — SecretBlob → VaultIndex → `vault_index_anchor`; controller key → `recovery_anchor`. | (schema on-chain) |
 | **I-VAULT-7** | Cách-ly khoá kho: `VaultKEK` info riêng, isolated khỏi Master_KEK/TAAD_Key/HW_Key (Theorem 28.1 §33). | — |
-| **I-VAULT-8** | Mất máy vẫn khôi-phục: chỉ 24 từ + đọc chain công-khai là dựng lại toàn kho; không phụ-thuộc backend uptime. | — |
+| **I-VAULT-8** | **Mất máy vẫn khôi-phục — nhưng KHÔNG bằng 24 từ một mình.** Dựng lại kho đòi: (a) mảnh `device` mới, cấp sau khi khớp sinh-trắc gắn DID; **và** (b) quorum LampNet; cộng (c) đọc chain công-khai lấy `vault_index_anchor`. Không phụ-thuộc backend uptime của PhoenixKey. 24 từ **không** là đường tắt qua (a). | `INV-DEVICE` — `PhoenixKey-SeedDistribution-Tech-Math.md:44-47` |
 | **I-VAULT-9** | Không tự-ký mạng khác: `raw_key:<chain≠cardano>`/document/note chỉ cất; dùng thì user mở từng lần, zeroize sau. | — |
 | **I-VAULT-10** | Seed nhập ≠ khoá DID: `bip39_seed` nhập tạo Imported Account độc-lập, KHÔNG đụng Rotation Account/controller. | — |
 | **I-VAULT-11** | Fingerprint không-bí-mật: dedup dùng H(pubkey) không H(payload) — tránh oracle xác-nhận bí-mật đoán-trước. | — |
@@ -206,7 +217,7 @@ Module KHÔNG đặc-tả tokenomics LAMP/MAGIC/CARP (thuộc MagicLamp) — ch�
 |---|---|---|
 | **I-LIN-1** | Append-only: seed/khoá KHÔNG bao giờ xoá khỏi lineage; rotate = đánh dấu `rotated` + thêm entry. | (offchain index/UI + Strata LampNet) |
 | **I-LIN-2** | Plaintext seed KHÔNG lên Strata: chỉ `content_cid` (ciphertext) + `state_root` (commit trường không-bí-mật). | — |
-| **I-LIN-3** | Khoá giải-mã không rời máy: `sk_vault` phái-sinh tại-chỗ từ VaultKEK; 24 từ là gốc duy-nhất. | — |
+| **I-LIN-3** | Khoá giải-mã không rời máy: `sk_vault` phái-sinh tại-chỗ từ VaultKEK. **Gốc KHÔNG phải 24 từ** — VaultKEK chỉ hiện hữu sau khi ghép mảnh `device` với quorum LampNet, và tan ngay sau khi dùng. | `INV-DEVICE` |
 | **I-LIN-4** | Lineage lộ ra chỉ metadata mã-hoá: `ref_id` opaque, `content_cid` hash thuần, `state` commitment. | — |
 | **I-LIN-5** | Tamper-evident: MMR append-only + anchor đơn-điệu → không xoá/sửa lén. | — |
 | **I-LIN-6** | Fingerprint không-bí-mật: `seed_id = H(pubkey‖salt)` không H(seed) (kế-thừa I-VAULT-11). | — |
@@ -456,7 +467,7 @@ Khác `taad_cose_sign1_build` (Delegator-Core §1.5 Phase-2, PhoenixKey LÀ bên
 |---|---|---|
 | **I-POOL-COLD-SECRET** | Cold key plaintext chỉ trong RAM, biometric-gate, zeroize sau dùng. | (PoC) |
 | **I-POOL-WRAP** | Key ra máy CHỈ dạng ECIES ciphertext (không plaintext). | — |
-| **I-POOL-RECOVER** | Khôi-phục từ 24 từ + `pool_anchor`; fail-closed. | — |
+| **I-POOL-RECOVER** | Khôi-phục từ mảnh `device` (sau sinh-trắc) **∧** quorum LampNet, cộng `pool_anchor` đọc trên chain; fail-closed. 24 từ một mình **không** khôi-phục được. | `INV-DEVICE` |
 | **I-POOL-ID** | `pool_id = blake2b_224(cold_vk)` bất-biến; đổi cold = pool khác. | — |
 | **I-KES-COUNTER** | Op-cert counter MONOTONIC, không tụt/trùng/reset (kể cả qua recovery). | — |
 | **I-KES-PERIOD** | Op-cert `kes_period_start = kes_period(now_slot)`; KES hết hạn sau MAX_KES_EVOL. | — |
@@ -534,7 +545,15 @@ Open ──OpenLarge──► [PendingLargeWithdrawal] ──(FinalizeLarge sau 
 
 **T-WALLET-2 (Đóng-băng chống chiếm phiên khôi-phục).** Khi `status ≠ Active`, `is_active` = False ⇒ `anchor_controller_ok` = False ⇒ mọi chi FAIL. Trong Recovering, kẻ chiếm controller cũ KHÔNG rút được; hệ-quả xếp chồng với anti-drain (I-LIMIT-FREEZE-OVER-ACTIVE). ∎ (test `:166-208`).
 
-**T-WALLET-3 (Trần thiệt-hại khi lộ seed — CÓ ĐIỀU-KIỆN).** NẾU anti-drain bật, thiệt-hại tối-đa khi lộ controller/seed = `limit` mỗi `refill_window` (I-LIMIT-CAP), phần lớn cần delay (chủ huỷ được) hoặc second-factor khác-gốc-seed (I-CURVE-5). **Điều-kiện của định-lý:** anti-drain (`limit_meter.ak`, I-CURVE-4) PHẢI bật cho DID giữ giá-trị đáng-kể — không bật thì trần này không áp-dụng và thiệt-hại tối-đa = toàn-bộ kho nếu seed lộ. ∎ (có điều-kiện; §9).
+**T-WALLET-3 (Trần thiệt-hại khi lộ seed — CÓ ĐIỀU-KIỆN).** Dưới `INV-DEVICE` (2-of-2 `controller(seed) ∧ device_key`), lộ **một mình** seed **không** chi được đồng nào: thiếu chữ ký thiết bị thì validator từ chối. Trần dưới đây áp cho ca **lộ cả hai yếu-tố**, hoặc cho DID chưa bật 2-of-2.
+
+NẾU anti-drain bật, thiệt-hại tối-đa = `limit` mỗi `refill_window` (I-LIMIT-CAP), phần lớn còn cần delay (chủ huỷ được) hoặc yếu-tố-2 khác-gốc-seed (I-CURVE-5).
+
+⚠️ **Hai điều-kiện, thiếu một là định-lý KHÔNG áp-dụng** — nói thẳng vì cả hai hiện đều chưa đủ:
+1. anti-drain (`limit_meter.ak`, I-CURVE-4) PHẢI bật cho DID giữ giá-trị đáng-kể;
+2. I-CURVE-5 **chưa được cưỡng chế ở builder** — chừng nào builder còn dựng được giao dịch chi chỉ với chữ ký seed, trần này là lời hứa của tài liệu chứ không phải của mã.
+
+Không thoả (1) hoặc (2) ⟹ thiệt-hại tối-đa = **toàn-bộ kho** khi seed lộ. ∎ (có điều-kiện; §9).
 
 **T-SS-1..3 (Smartsend).** No-loss / Veto-safety / Anti-theft — nay ở `PhoenixKey-Smartsend-Math.md §7` (với 3 tiền-đề §6 của file đó).
 
@@ -544,7 +563,7 @@ Open ──OpenLarge──► [PendingLargeWithdrawal] ──(FinalizeLarge sau 
 
 - **Secure Enclave / StrongBox** sinh nonce ECDSA P-256 chất-lượng (không đọc/chứng-minh được — Secure-Signing §B.2.1). Bù bằng low-s + giám-sát `r` + tách miền.
 - **Ledger Cardano** thực-thi đúng luật eUTXO (double-spend từ-chối → I-LIMIT-SERIAL).
-- **LampNet node** giữ ciphertext trung-thực + erasure đủ mảnh để dựng lại (durability I-VAULT-8 phụ-thuộc Mirage `EncryptedDistributed`).
+- **LampNet node** giữ ciphertext trung-thực + erasure đủ mảnh để dựng lại. ⚠️ Đây là **trục A — độ bền dữ-liệu**, KHÔNG phải custody: Mirage tầng 1–2 (LDPC, LT-fountain) rải **bản mã**, node nào cũng không đọc được nội dung và cũng không giữ mảnh khoá nào. Custody nằm ở **trục B** — chia **khoá thật** bằng Mirage tầng −1/0 (XSS Cauchy-MDS, TPE Shamir+Feldman, an-toàn vô-điều-kiện, dùng cho bí-mật ≤32 byte). Hai trục **không** thay nhau được. Nguồn: `PhoenixKey-SeedDistribution-Tech-Math.md:31-38` ("Trục A không phải custody").
 - **Guardian** không thông-đồng vượt ngưỡng trong cửa-sổ timelock (bù bằng vai veto + Cancel).
 (Giả-định Spectra/Glint cho factor bối-cảnh ZK nay ở `PhoenixKey-Smartsend-Math.md §8`.)
 
@@ -591,3 +610,6 @@ Nguồn thiết-kế nội-bộ (không công khai).
 Math canonical (dẫn-chiếu, KHÔNG sửa): `PhoenixKey-Math.md` §6, §7, §9, §10, §11, §33;
 `PhoenixKey-Connector-CIP30-Feat-Math.md` (§4.L — cơ-chế CIP-30/CIP-45 đầy-đủ).
 Code: `PhoenixKey-Validator/validators/did_payment.ak`, `lib/phoenixkey/{auth_logic,taad_logic}.ak`; `rust_core/src/{lampnet,crypto,sign}.rs`.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

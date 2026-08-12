@@ -57,7 +57,7 @@
 - **seq strict +1** mọi transition (chống replay); tx `seq ≤ on-chain` trượt. Neo mọi nhánh `taad_logic.ak`.
 - **did + entity_type BẤT-BIẾN** qua mọi spend (`immutable_fields_preserved:310-320`) → xoay chìa/transfer không đổi danh-tính.
 - **Revoked = dead-end:** `when (redeemer, status)` không khớp `(_,Revoked)` → `_ -> False` (`:222`).
-- **🔴 auth_logic single-carrier** (`:59-70`) chống 2-anchor-TRONG-tx, KHÔNG chống 2-anchor-live-toàn-cục (gốc lỗ CID-1 §10).
+- **auth_logic single-carrier** (`:59-70`) chống 2-anchor-TRONG-tx; toàn-cục (chống 2-anchor-live-cùng-tên trên MỌI tx) ép bởi PC + PoP-bind ở tầng mint — ✅ đã land + đã nối, đóng CID-1 (2026-08-12, chi tiết `PhoenixKey-Anchorme-Math.md` §8-9).
 
 ### 1.3 Đường sinh DID + băm (Core — rust_core)
 
@@ -177,7 +177,7 @@ Ký-hiệu: `d`/`d′` = datum vào/ra; `π` = own_policy; `N=blake2b_256(did)`.
 #### `GenesisPerson` — `validate_mint(GenesisPerson)` (`:138-152`)
 - **Điều-kiện:** (1) đúng 1 mint `+1` dưới `π`, carrier output DUY NHẤT tại `Script(π)`; (2) `name == blake2b_256(child.did)`; (3) `entity_type == Person`; (4) `parent_did == None`; (5) `controller_pkh ∈ extra_signatories` (self-sign); (6) fresh (seq=0,Active,revoked=None).
 - **Ký:** owner-witness (Enclave, khóa tự-khai).
-- **🔴 Gap:** KHÔNG kiểm did-string ↔ người thật; KHÔNG verify `hw`. Lỗ CID-1.
+- **Gap lịch-sử (ĐÃ ĐÓNG 2026-08-12):** trước khi có PoP-bind, mục này KHÔNG kiểm did-string ↔ người mint. Nay `pop_bind_ok` (`pop_bind.ak`) ép `child.did` phải tính lại đúng từ tiền-ảnh chứa `controller_pkh` — xem `PhoenixKey-Anchorme-Math.md` §5.7ter.4. `hw` (P-256) vẫn KHÔNG verify on-chain (I-CID-11, T-2) — đây là giả-định tách riêng, không phải CID-1.
 - **Shape:**
   ```
   mint: +1 NFT(π, N(did))   redeemer=GenesisPerson
@@ -187,7 +187,7 @@ Ký-hiệu: `d`/`d′` = datum vào/ra; `π` = own_policy; `N=blake2b_256(did)`.
 
 #### `GenesisChild { owner_did }` — (`:154-177`)
 - **Điều-kiện:** như trên + (G-owner) `find_owner_reference` trả owner NFT ở `Script(π)`, `owner.did == owner_did`, `status Active`; (G-1) `owner.controller_pkh ∈ signers`; (G-2) `can_own(owner.entity, child.entity)`; (G-3) `child.parent_did == Some(owner_did)`; (G-4) `child.entity ≠ Person`.
-- **Ký:** owner-controller (parent-sig). **AN-TOÀN với lỗ CID-1.**
+- **Ký:** owner-controller (parent-sig). Parent-sig chặn `GenesisChild` bất-hợp-lệ nhưng KHÔNG tự nó là thứ đóng CID-1 (đường tấn-công đi qua `GenesisPerson`, không cần parent) — an-toàn thật tới từ PoP-bind, xem §3.0 trên.
 - **Shape:**
   ```
   ref-input: [owner ANCHOR NFT(π, N(owner_did))]   # đọc owner authority (CIP-31)
@@ -230,7 +230,7 @@ find_anchor_datum(refs, π, N(did)) = Some(anchor)   # ĐÚNG 1 carrier, else No
 ∧ is_active(anchor.status)
 ∧ list.has(extra_signatories, anchor.controller_pkh)
 ```
-Dùng bởi `did_payment.ak`/`did_stake.ak` (module Rebirthme). KHÔNG ép entity_type (`:16-18`) → mọi loại DID chi được — đây là bề mặt CID-1, đóng bằng PA2/PA5-a (→ [STATUS](./PhoenixKey-STATUS.md#anchorme)).
+Dùng bởi `did_payment.ak`/`did_stake.ak` (module Rebirthme). KHÔNG ép entity_type (`:16-18`) — CỐ Ý, vì PoP-bind đã cam-kết `entity_type` vào tiền-ảnh `did` ở tầng mint; đọc lại nó ở đây là dư (§CID-2). Bề mặt CID-1 đóng bằng PC + PoP-bind, đã land + đã nối (→ [STATUS](./PhoenixKey-STATUS.md#anchorme)).
 
 ### 3.7 Bảng ai-ký
 
@@ -436,7 +436,7 @@ Consumer nhận 503 ⇒ **REJECT, không proceed** (fail-closed) — Stamp/MAGIC
 | Tầng | Việc | Đội |
 |---|---|---|
 | **On-chain (Aiken)** | validator `taad` Design-2: 3 mint-gate + 7 spend, A-1/A-2/A-3, can_own, Transfer 2-of-2, Deactivate. | **đội on-chain** |
-| **On-chain** | **PA5-a** entity-gate (`anchor_controller_ok` + allowed-entities); **PA2** UniquenessThread (spend-based, sorted-list K=256 / Merkle dân-số); **DeviceDID** `device_did.ak` + `device_did_mint`. | **đội on-chain** |
+| **On-chain** | ✅ **XONG 2026-08-12:** PC (kế-thừa PA2, gộp `taad`+`UniquenessThread`) + PoP-bind — đóng CID-1. **Còn treo:** **DeviceDID** `device_did.ak` + `device_did_mint`. (PA5-a entity-gate: viết xong, chốt KHÔNG nối — dư thừa, xem `PhoenixKey-Anchorme-Math.md` §8-9.) | **đội on-chain** |
 | **Backend (Java)** | register, resolver W3C; resolve-by-hash index, point-in-time V16 (5 bảng append-only + 8 endpoint + pubsub), ServiceDID self-service, DeviceDID endpoints + hw_cert verify. `curl` verify sau deploy. | **đội backend** |
 | **Core / Enclave** | keygen vân tay (HW_Key P-256 + TAAD_Key Ed25519); ký genesis/rotate/transfer/deactivate; `N(did)` băm; type-byte đồng-bộ. | **Core** |
 | **Math** | Full_Authority `⊑` fix (v4.7); type-code canonical §2.1. | maintainer |
@@ -457,7 +457,7 @@ Consumer nhận 503 ⇒ **REJECT, không proceed** (fail-closed) — Stamp/MAGIC
 
 **Phụ-thuộc-chặn (thứ-tự bắt buộc):**
 5. **resolve-by-hash + point-in-time** — đội backend (bảng index ngược + did_state_history V16). Chặn Strata/VeData/MAGIC did_commit.
-6. **PA5-a + PA2** — đội on-chain. **Chặn mở GetLAMP-PersonDID + custody-PersonDID production** (lỗ CID-1, xem `PhoenixKey-Anchorme-Math.md` §9). Org/Service KHÔNG chặn.
+6. ~~PA5-a + PA2 — chặn mở GetLAMP-PersonDID + custody-PersonDID production~~ ✅ **GỠ 2026-08-12** — PC + PoP-bind đã land + đã nối, đóng lỗ CID-1 cho MỌI loại DID (không riêng Person). Chi-tiết `PhoenixKey-Anchorme-Math.md` §8-9.
 7. **DeviceDID** — đội on-chain (`Op_create_device`) + đội backend (hw_cert verify). Chặn LampNet node admission / Knowme device / Rada.
 8. **Registries + Permission/Consent + ServiceDID self-service** — chờ duyệt.
 
@@ -466,7 +466,7 @@ Consumer nhận 503 ⇒ **REJECT, không proceed** (fail-closed) — Stamp/MAGIC
 taad validator ──┬──► register/resolve ──► GenesisChild (Org/Service)
                  │
                  ▼
-   PA2/PA5 ─────► mở PersonDID-custody production   [BLOCKER CID-1]
+   PC/PoP-bind ──► mở PersonDID-custody production   [CID-1 — ĐÃ GỠ 2026-08-12]
    backend V16 ─► resolve-by-hash + point-in-time    [BLOCKER Strata/VeData/MAGIC]
    on-chain+backend ► DeviceDID                       [BLOCKER LampNet/Knowme/Rada]
 ```
@@ -486,7 +486,7 @@ Bộ test module danh-tính (`taad_logic`, `state_nft_logic`, `attack_tests`) ph
 Bổ-sung bắt-buộc trước khi mở production:
 - Round-trip CBOR aiken↔rust_core: encode `TAADDatum` 10-field đúng thứ-tự + Option encoding (`Some=Constr0`, `None=Constr1`); decode redeemer idx.
 - Testnet e2e Preview: GenesisPerson → Rotate → GenesisChild → Transfer(Service) → Deactivate. `curl` từng resolver-endpoint sau deploy.
-- **Red-team CID-1 phải re-run và xác-nhận CLOSED** (`redteam_mint.collide_person_over_org_name`) — auditor xác-nhận trước khi mở production PersonDID.
+- **Red-team CID-1 — ĐÃ xác-nhận CLOSED (2026-08-12):** first-mint anchor forgery đóng bởi PC + PoP-bind, phủ qua handler mint thật (`validators/taad.ak:280-372`). Bằng-chứng đo được + rủi-ro-còn-lại: `PhoenixKey-Anchorme-Math.md` §8-9.
 - Test-vector `did_hash` (5 vector, `…-Feat §1.3`) cho Strata mock-registry.
 
 → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#anchorme)
@@ -495,8 +495,8 @@ Bổ-sung bắt-buộc trước khi mở production:
 
 ## 9. Ranh-giới + luật thiết-kế bắt-buộc
 
-- **CID-1 [cổng GO/NO-GO production PersonDID]:** khâu đúc con dấu Người phải được đóng bằng **PA2 UniquenessThread** trước khi mở GetLAMP/custody PersonDID production. Org/Service AN-TOÀN (parent-sig), không bị chặn. Đây là lỗ **mã-hoá anchor**, KHÔNG phải sinh-trắc/sybil — xem `PhoenixKey-Anchorme-Math.md` §8-9.
-- **PA2:** UniquenessThread spend-based. Sorted-list K=256 scale ~triệu (N/shard ≤ 400); dân-số → Merkle-root-in-datum. **Địa-chỉ ví PHẢI GIỮ NGUYÊN** (không đổi compile-param did_payment/stake/subaddr) — đây là ràng buộc thiết kế bắt buộc, không phải tuỳ chọn.
+- **CID-1 [cổng GO/NO-GO production PersonDID] — ĐÃ ĐÓNG 2026-08-12:** khâu đúc con dấu đóng bởi **PC + PoP-bind**, cho MỌI loại DID (không riêng Person — parent-sig KHÔNG tự nó đủ an-toàn cho Org/Service, xem đính-chính ở `PhoenixKey-Anchorme-Math.md` §7 Đ-lý 4). Đây là lỗ **mã-hoá anchor**, KHÔNG phải sinh-trắc/sybil — chi-tiết + rủi-ro-còn-lại `PhoenixKey-Anchorme-Math.md` §8-9.
+- **PA2/PC (đã land + đã nối):** kiến-trúc THẬT là **PC** — gộp `taad`+`UniquenessThread` thành 1 validator (`anchor_policy ≡ thread_policy ≡ own_policy`), thay cho thiết-kế PA2-hai-validator ban-đầu (đã loại vì vô-nghiệm fixed-point hash). K=32 (không phải 256 — trần bootstrap-tx 16 KB). Sorted-list scale ~triệu (N/shard ≤ 400); dân-số → Merkle-root-in-datum (§5.7bis Math). **Địa-chỉ ví ĐÃ ĐỔI** khi PC land (5 validator bake `anchor_nft_policy` mới — khác PA2 gốc vốn giữ nguyên địa-chỉ) — chi-tiết `PhoenixKey-Anchorme-Math.md` §5.7ter.5.
 - **resolve-by-hash + point-in-time:** cần index ngược + `did_state_history` V16 (đội backend) trước khi Strata/VeData/MAGIC did_commit dùng được.
 - **DeviceDID:** `Op_create_device` (đội on-chain) + hw_cert verify (đội backend, validator chỉ neo hash) — cả hai phải xong đồng thời để tránh cert giả lọt.
 - **Type-code:** canonical LÀ bảng-byte `DidPhoenixGenerator.java:56-65` ≡ `types.ak:21-32` (Device=2…Service=7,Context=8). Văn Math §2.2 PHẢI bám bảng-byte này. Rà bản Rust/mobile bám đúng trước khi mint author-DID phi-nhân.
@@ -744,3 +744,6 @@ PhoenixKey cấp **danh-tính + chữ-ký Grant + resolve khoá**. KHÔNG lưu h
 - Nguồn thiết-kế nội-bộ (không công khai).
 - `PhoenixKey-Core/Enclave/rust_core`: `phoenix_address.rs:52`, `crypto.rs:339`; `PhoenixKey-Database`: `DidPhoenixGenerator.java`, `ResolverController.java`.
 - `spec-proposals/PhoenixKey-Terminology-i18n-Spec.md` (§12).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

@@ -6,7 +6,7 @@
 >
 > → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
 >
-> **Phạm-vi đặc-tả này CHỨNG:** (a) tính đúng của commitment + membership tiết-lộ chọn-lọc; (b) ràng-buộc holder ↔ subject chống mạo-danh; (c) chống replay qua `aud`/`nonce`; (d) ràng-buộc nội-dung tài-liệu qua `docHash` **[SPEC]**; (e) tính riêng-tư Mức 3 (đúng-một-bit, unlinkable) **[SPEC]**. **NGOÀI phạm-vi:** duy-nhất-một-người (sinh-trắc Enclave — §8), catalog VC + issuer (VeData — §8), mạch ZK chi-tiết (circuit constraints), backend PhoenixKey.
+> **Phạm-vi đặc-tả này CHỨNG:** (a) tính đúng của commitment + membership tiết-lộ chọn-lọc; (b) ràng-buộc holder ↔ subject chống mạo-danh; (c) chống replay qua `aud`/`nonce`; (d) ràng-buộc nội-dung tài-liệu qua `docHash` **[SPEC]**; (e) tính riêng-tư Mức 3 (đúng-một-bit, unlinkable) **[SPEC]**; (f) **khoá** duy-nhất-người v1 — dấu giấy-tờ `fp` và các bất-biến đi kèm (Đ-7, I-KNOW-12..16). **NGOÀI phạm-vi:** **cơ-chế** sinh-trắc Enclave (§8) — doc này chỉ nêu **giới-hạn** của nó (I-KNOW-16: gác lượt đăng-ký, không gác người) chứ không chứng nó; catalog VC + issuer (VeData — §8), mạch ZK chi-tiết (circuit constraints), backend PhoenixKey.
 >
 > **Tái dùng bất-biến từ nguồn:** aliasing các bất-biến `INV-K1..K6` (nguồn `PhoenixKey-Knowme-Feat-Math §11`) và `I-KYC-*` (nguồn `PhoenixKey-KYC-KYB-ZK-Feat-Math §B.8`) được GHI RÕ nguồn ở cột "Neo/Nguồn". Mã canonical của module này là **`I-KNOW-n`**.
 
@@ -34,9 +34,9 @@
 | `Envelope` | ciphertext | ECIES X25519→HKDF→AEAD của bytes tài-liệu | `crypto.ts` **[SPEC dùng cho tài-liệu]** |
 | `cid` | CID | `BLAKE3(ciphertext)` — con-trỏ LampNet | `lampnet.ts` |
 | `docHash` | b64url(32B) | `H(plaintext bytes)` — ràng-buộc nội-dung tài-liệu | **[SPEC]** Knowme-Feat-Math §3.3 |
-| `pepper` | ByteArray(32) | muối **bí-mật phía máy-chủ**, dùng chung mọi vân-tay, không bao giờ rời máy-chủ | `fingerprint.ts:blake2b256Keyed` |
-| `pv` | Nat | `pepperVersion` — số hiệu đợt pepper đang dùng, lưu cạnh vân-tay để xoay được | `fingerprint.ts:Registration` |
-| `fp(t, F)` | b64url(32B) | **vân-tay tài-liệu** của loại `t` trên tập trường định-danh `F` | `fingerprint.ts:documentFingerprintPeppered` |
+| `k` | ByteArray(32) | khoá của `H_k`. Gánh **riêng-tư** (chặn dò ngược số giấy-tờ), KHÔNG gánh duy-nhất-người. Đích: chia `t`-trong-`n` (Đ-7.1) | **[SPEC]** Đ-7.1 |
+| `kv` | Nat | `keyVersion` — số hiệu đợt khoá đang dùng, lưu cạnh `fp` để xoay được | `fingerprint.ts:Registration` |
+| `fp(t, F)` | b64url(32B) | **dấu giấy-tờ** của loại `t` trên tập trường định-danh `F`. **Không phải vân tay sinh-trắc** — xem chú-thích Đ-7 | `fingerprint.ts:documentFingerprintPeppered` |
 
 **Đơn-vị wire (bất-biến-dây, load-bearing):** một trường được băm là **mảng 3 phần-tử** `[salt, path, value]` với `value` **vô-hướng**. Đây là điểm neo cross-language: verifier độc-lập chỉ cần lặp `H(canon([salt, path, value]))`. KHÔNG được đổi arity/hình-dạng mảng. Neo: `commit.ts:digestOf`.
 
@@ -78,14 +78,67 @@ Tài-liệu đi qua **cùng** `digestOf`, cùng arity mảng, cùng không-gian 
 Predicate = { id, path, op ∈ {GE,LE,EQ,IN,RANGE}, arg, ctx? }
 ```
 
-**Đ-7 · Vân-tay tài-liệu tuỳ-thân (khoá duy-nhất-người v1)** (`fingerprint.ts:documentFingerprintPeppered`):
+**Đ-7 · Dấu giấy-tờ tuỳ-thân (khoá duy-nhất-người v1)** (`fingerprint.ts:documentFingerprintPeppered`):
 ```
-fp(t, F) = b64url( H_pepper( canon([ t, normalize(F) ]) ) )      -- H_pepper = BLAKE2b-256 keyed
+fp(t, F) = b64url( H_k( canon([ t, normalize(F) ]) ) )           -- H_k = BLAKE2b-256 keyed
 ```
 - `t` = loại giấy-tờ (vd `"vn-cccd"`); `F` = tập trường **định-danh** đã chuẩn-hoá, chỉ gồm trường bất-biến theo thời-gian (số giấy-tờ, ngày-sinh, giới), **không** gồm ngày cấp / nơi cấp / ảnh.
 - **Tất-định, KHÔNG salt-mỗi-lần-đăng-ký** — đây là điều kiện cần: hai bản khai của cùng một giấy-tờ phải cho cùng `fp`, nếu không thì không phát-hiện được trùng.
-- **`pepper` bắt-buộc, phía máy-chủ.** Không có nó thì `fp` là hàm băm trần trên một miền nhỏ: số CCCD Việt-Nam 12 chữ-số **có cấu-trúc** (3 tỉnh · 1 giới+thế-kỷ · 2 năm-sinh · 6 ngẫu-nhiên), nên biết tỉnh + năm-sinh + giới thì miền còn `10⁶` — vét cạn được tức thì. Pepper đẩy tấn-công đó ra ngoài khả-năng của bất-kỳ ai không giữ máy-chủ.
-- `pv` lưu **rời** cạnh vân-tay ⟹ xoay pepper được: cấp `pv+1`, tính lại dần, không phải khai lại giấy-tờ.
+- `kv` lưu **rời** cạnh `fp` ⟹ xoay khoá được: cấp `kv+1`, tính lại dần, không phải khai lại giấy-tờ.
+
+> ⚠️ **`fp` KHÔNG phải vân tay sinh-trắc.** Tên hàm trong mã (`fingerprint.ts`) dùng chữ
+> "fingerprint" theo nghĩa **dấu băm của một chuỗi byte**, không phải theo nghĩa đường vân ngón tay.
+> Mẫu sinh-trắc thật **không bao giờ rời Secure Enclave**, không đi qua mạng, và **không nằm trong
+> bảng nào** — kể cả bảng này. Đọc nhầm hai thứ đó thành một sẽ dẫn tới đánh giá sai toàn bộ mục
+> dưới đây. Trong đặc-tả này, thứ được lưu và đối-chiếu luôn là **dấu giấy-tờ** `fp`.
+
+**Đ-7.1 · Duy-nhất-người dựa vào phép SO-SÁNH, không dựa vào bí-mật** **[SPEC]**
+
+Hai việc khác nhau, bản trước gộp làm một rồi cùng đặt lên một `pepper` phía máy-chủ:
+
+| | Việc | Ai gánh | Lộ `k` hoặc lộ cả bảng `fp` thì sao |
+|---|---|---|---|
+| **(A)** | **Chặn cấp DID thứ hai cho cùng một giấy-tờ** | chính phép so-sánh ở `UniquenessRegistry` | **không ảnh-hưởng gì** |
+| **(B)** | **Chặn dò ngược số giấy-tờ từ bảng `fp`** | khoá `k` của `H_k` | mất riêng-tư (B); (A) còn nguyên |
+
+**(A) không cần bí-mật, vì so-sánh không cần bí-mật.** Registry chỉ hỏi một câu: `fp` này đã có
+chủ chưa? Câu đó trả lời được kể cả khi bảng công-khai hoàn-toàn. Kẻ biết `k` và cầm cả bảng vẫn
+không đăng-ký thêm được DID nào cho một giấy-tờ đã có chủ — không phải vì hắn thiếu bí-mật, mà vì
+**registry từ chối, và lời từ chối đó không phụ-thuộc vào việc gì bị lộ**. Đây là lý do bất-biến
+duy-nhất-người đứng vững mà không cần ai giữ gì cả.
+
+Sinh-trắc Enclave đứng ở chỗ khác trong luồng: nó chứng **có người thật đang thao-tác trên máy này**
+và buộc mỗi lượt đăng-ký phải qua một con người — nên nó chặn đăng-ký hàng-loạt bằng máy. Nó
+**không** cho duy-nhất-người ở mức người: mẫu sinh-trắc nằm trong Enclave từng máy và không đối-chiếu
+chéo giữa các máy được (T-1). Đừng ghi công cho nó việc mà nó không làm.
+
+**(B) là chuyện riêng-tư, và thiệt-hại của nó có trần.** Số CCCD Việt-Nam 12 chữ-số **có cấu-trúc**
+(3 tỉnh · 1 giới+thế-kỷ · 2 năm-sinh · 6 ngẫu-nhiên), nên biết tỉnh + năm-sinh + giới thì miền còn
+`10⁶` — băm trần là vét cạn được tức thì, và làm chậm bằng hàm tốn-bộ-nhớ không cứu được vì miền
+quá nhỏ. Nên vẫn giữ `k`.
+
+Nhưng nói cho đúng cỡ: nếu `k` **và** bảng `fp` cùng lộ, thứ kẻ tấn-công thu được là **liên-kết
+DID ↔ số giấy-tờ** của những người trong bảng. Đó là mất riêng-tư — **không** phải mất quyền chi,
+không phải mất DID, không phải cấp thêm được DID. Tài-sản nằm sau cổng chi của Rebirthme, không nằm
+sau `k`.
+
+**Hướng đi cho `k`, và mức chấp-nhận được ở từng giai-đoạn:**
+- **Đích:** `k` chia `t`-trong-`n` bằng đúng cơ-chế Tier-0 đã chốt cho bí-mật ≤32 byte (Shamir trên
+  `Z_q` + cam-kết Feldman, an-toàn vô-điều-kiện dưới ngưỡng — `PhoenixKey-SeedDistribution-Tech-Math.md`),
+  tính `fp` bằng **OPRF ngưỡng**: máy khách làm mù `canon([t, normalize(F)])`, `t` nút đánh giá từng
+  phần, máy khách nội-suy Lagrange rồi gỡ mù ⟹ không nút nào thấy số giấy-tờ, không nút nào giữ `k`.
+- **Chấp-nhận được trước khi có OPRF ngưỡng:** `k` một-mảnh do backend giữ, **với điều-kiện** ghi
+  thẳng vào tài-liệu vận-hành rằng lộ nó = lộ liên-kết DID ↔ số giấy-tờ, và `kv` cho phép xoay khi
+  cần. Đây **không** phải blocker của duy-nhất-người — vì (A) không dựa vào nó.
+- Xoay khoá = chia lại mảnh (proactive resharing) → `kv+1`. Không ai phải khai lại giấy-tờ.
+
+**Duy-nhất-người là ĐỒNG NHẤT, độ mạnh custody thì PHÂN TẦNG — đừng trộn hai trục.** Một người
+một DID áp như nhau cho mọi người: người giữ vài nghìn đồng và người giữ kho tài-sản đều đi qua
+đúng một phép so-sánh `fp`, vì bất-biến này nói về **danh-tính**, không nói về **giá-trị**. Số lớp
+xác-thực thì ngược lại — chủ DID giá-trị cao bật thêm anti-drain, yếu-tố-2 thiết-bị, ngưỡng
+guardian cao hơn (Rebirthme I-CURVE-4/5). Nghĩa là: **không được lấy "người quan trọng sẽ tự bật
+nhiều lớp" làm lý-do nới lỏng (A)** — (A) bảo-vệ tính đúng của sổ danh-tính cho mọi người, và nó
+không có nút bật/tắt theo người.
 
 **Ảnh + video giấy-tờ.** Người dùng nộp ảnh và video giấy-tờ; bộ trích-xuất (Spectra) đọc ra `F` rồi ghi vào Knowme. Ảnh/video là **PII nguyên bản**, nên chúng đi đúng đường tài-liệu đã có: `Envelope` ciphertext + CID (I-KNOW-9), **không** lên chuỗi (I-KYC-NO-PII-CHAIN). Thứ tham-gia `fp` là `F` đã trích, không phải bytes ảnh — hai lần chụp cùng một thẻ cho hai `docHash` khác nhau nhưng **cùng** `fp`, đó là điều làm cơ-chế duy-nhất chạy được.
 
@@ -103,7 +156,7 @@ fp(t, F) = b64url( H_pepper( canon([ t, normalize(F) ]) ) )      -- H_pepper = B
 
 ---
 
-## 4. Bảng bất-biến `I-KNOW-1 .. I-KNOW-14`
+## 4. Bảng bất-biến `I-KNOW-1 .. I-KNOW-16`
 
 | ID | Bất-biến (hình-thức) | Cơ-chế-ép | Neo / Nguồn |
 |---|---|---|---|
@@ -119,9 +172,11 @@ fp(t, F) = b64url( H_pepper( canon([ t, normalize(F) ]) ) )      -- H_pepper = B
 | **I-KNOW-10** | **Least-disclosure tài-liệu:** người nhận chỉ có Envelope + opener của đúng tài-liệu đã chọn; phần còn lại là commitment ẩn trong `sd[]`. | re-seal per-recipient + Presentation | **[SPEC]** INV-K5 |
 | **I-KNOW-11** | **Lịch-sử bất-biến (versioning):** mọi cập-nhật tài-liệu = một `append_version` Strata mới; bản cũ giữ nguyên, proof field-level của một tài-liệu vẫn đúng dưới root mới; anchor đơn-điệu theo `seq` ⟹ không neo-lại phiên-bản cũ để "khôi-phục" giấy-tờ đã bị thay (chống rollback). | kế-thừa bất-biến Strata (KHÔNG redefine ở đây): hash-link, seq đơn-điệu, append-only, field-privacy, chống-rollback | **[SPEC]** Knowme-Feat-Math §5, §11 INV-K4 (alias Strata `_CONTRACT.md` INV-E1, E2, E3, E5, E6, E7) |
 
-| **I-KNOW-12** | **Một giấy-tờ ⇒ một PersonDID (duy-nhất-người v1):** với mọi `(t, F)`, tồn tại **nhiều nhất một** PersonDID đang giữ `fp(t,F)`. Đăng-ký thứ hai cùng vân-tay bị từ-chối, KHÔNG ghi đè. | `UniquenessRegistry.register` kiểm `fp` đã có chủ chưa trước khi ghi | `fingerprint.ts:UniquenessRegistry` |
+| **I-KNOW-12** | **Một giấy-tờ ⇒ một PersonDID (duy-nhất-người v1):** với mọi `(t, F)`, tồn tại **nhiều nhất một** PersonDID đang giữ `fp(t,F)`. Đăng-ký thứ hai cùng `fp` bị từ-chối, KHÔNG ghi đè. | `UniquenessRegistry.register` kiểm `fp` đã có chủ chưa trước khi ghi | `fingerprint.ts:UniquenessRegistry` |
 | **I-KNOW-13** | **Từ-chối trùng KHÔNG lộ chủ hiện-hữu:** kết-quả trả về khi trùng chỉ nói **có** chủ khác, không nói **ai**. | `isHeldByAnother()` trả Bool; kết-quả `conflict_other_owner` không mang DID | `fingerprint.ts` (đã bỏ trường `existingOwner`) |
-| **I-KNOW-14** | **Vân-tay là hàm có khoá, không phải băm trần:** mọi `fp` sinh qua `H_pepper` với `pepper` chỉ máy-chủ giữ (Đ-7); `pv` lưu rời để xoay được. | tham-số `pepper` **bắt-buộc** ở chữ-ký hàm — không có đường gọi nào bỏ qua | `fingerprint.ts:documentFingerprintPeppered` |
+| **I-KNOW-14** | **`fp` là hàm CÓ KHOÁ, không phải băm trần:** mọi `fp` sinh qua `H_k`; `kv` lưu rời để xoay được. Đây là bất-biến **riêng-tư** — nó chặn dò ngược số giấy-tờ từ bảng — **KHÔNG** phải bất-biến duy-nhất-người. Vi-phạm nó làm lộ liên-kết DID ↔ số giấy-tờ, **không** làm cấp thêm được DID. | tham-số khoá **bắt-buộc** ở chữ-ký hàm — không có đường gọi nào bỏ qua | `fingerprint.ts:documentFingerprintPeppered` + **[SPEC]** Đ-7.1(B) |
+| **I-KNOW-15** | **Duy-nhất-người KHÔNG phụ-thuộc vào bất-kỳ bí-mật nào:** phép so-sánh `fp` ở registry cho cùng kết-quả dù bảng công-khai hay không. Lộ `k`, lộ toàn bộ bảng `fp`, hay mất cả hai, đều **không** cấp thêm được DID nào cho một giấy-tờ đã có chủ. | `UniquenessRegistry.register` từ-chối theo `isHeldByAnother(fp)`; điều-kiện từ-chối không đọc `k`, không đọc gì bí-mật | **[SPEC]** Đ-7.1(A); `fingerprint.ts:UniquenessRegistry` |
+| **I-KNOW-16** | **Sinh-trắc gác LƯỢT ĐĂNG-KÝ, không gác NGƯỜI:** cổng Enclave buộc mỗi lượt ghi `fp` phải qua một người thật trên máy đó ⟹ chặn đăng-ký hàng-loạt bằng máy. Nó **không** chứng người đó chưa đăng-ký ở máy khác — mẫu sinh-trắc nằm trong Enclave từng máy, **không rời máy**, **không có bảng nào** đối-chiếu chéo. | cổng sinh-trắc chạy trước `register`; không có kho mẫu sinh-trắc phía máy-chủ để đối-chiếu | §8; T-1 |
 
 ### 4.1 Tranh-chấp một giấy-tờ — hai mức, hệ-quả tách rời
 
@@ -248,7 +303,7 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 
 | # | Giả-định | Rủi-ro nếu vỡ | Ghi-chú |
 |---|---|---|---|
-| T-1 | **Duy-nhất-một-người (v1) neo vào giấy-tờ tuỳ-thân do nhà-nước cấp.** Mỗi PersonDID khai đúng một giấy-tờ tuỳ-thân; vân-tay tài-liệu (§4, có muối máy-chủ) là khoá duy-nhất. Một giấy-tờ đã gắn PersonDID thì PersonDID thứ hai **không** đăng-ký được cùng giấy-tờ đó ⇒ "one-hash-per-tài-liệu" **chính là** cơ-chế một-người-một-DID ở v1. Sinh-trắc Secure Enclave gác **thiết-bị**, không gác **người** — nó cho một-DID-mỗi-máy chứ không cho một-DID-mỗi-người. | Vỡ khi: cùng người có hai giấy-tờ hợp-lệ khác nhau (đổi số, giấy-tờ nước khác), hoặc giấy-tờ bị mạo-nhận. Xử-lý: quy-trình tranh-chấp §4.1, không phải bịt bằng mật-mã. | Trong phạm-vi Knowme từ v1 — Đ-7, I-KNOW-12..14 (thay INV-K6) |
+| T-1 | **Duy-nhất-một-người (v1) neo vào giấy-tờ tuỳ-thân do nhà-nước cấp.** Mỗi PersonDID khai đúng một giấy-tờ tuỳ-thân; dấu giấy-tờ `fp` (§4) là khoá duy-nhất. Một giấy-tờ đã gắn PersonDID thì PersonDID thứ hai **không** đăng-ký được cùng giấy-tờ đó ⇒ "one-hash-per-tài-liệu" **chính là** cơ-chế một-người-một-DID ở v1. Sinh-trắc Secure Enclave gác **lượt đăng-ký trên một máy**, không gác **người** (I-KNOW-16) — nên nó là lớp chống-hàng-loạt, không phải nguồn của bất-biến này. | Vỡ khi: cùng người có hai giấy-tờ hợp-lệ khác nhau (đổi số, giấy-tờ nước khác), hoặc giấy-tờ bị mạo-nhận. Xử-lý: quy-trình tranh-chấp §4.1, không phải bịt bằng mật-mã. | Trong phạm-vi Knowme từ v1 — Đ-7, I-KNOW-12..16 (thay INV-K6) |
 | T-2 | **Catalog VC + issuer + Trust Registry nội-dung** do **VeData** cung-cấp; PhoenixKey chỉ envelope + resolve + selective-disclosure. | Issuer giả trong TrustList → credential issued sai tin. TrustList neo Merkle root on-chain giảm-thiểu. | VeData; PhoenixKey dẫn-chiếu |
 | T-3 | **Canonical JSON đồng-nhất** giữa TS (`canonical.ts`) và Java backend (`ORDER_MAP_ENTRIES_BY_KEYS`). | Lệch sort → digest khác → membership vỡ cross-language. | Căn chỉnh qua docstring `canonical.ts` |
 | T-4 | **BLAKE2b/BLAKE3/Ed25519/ECIES** an-toàn mật-mã tiêu-chuẩn. | Va-chạm/giả chữ ký phá soundness. | Giả-định tiêu-chuẩn |
@@ -313,3 +368,6 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 - Spec (lớp tài-liệu + Mức 3): thiết-kế nội-bộ (không công khai) — Knowme-Feat-Math (§3, §6, §9, §11), KYC-KYB-ZK-Feat-Math (§B).
 - `PhoenixKey-Math.md §34` (Privacy/GDPR tombstone — dẫn-chiếu, KHÔNG sửa).
 - → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

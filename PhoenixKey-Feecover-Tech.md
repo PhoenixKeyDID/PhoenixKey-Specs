@@ -107,7 +107,7 @@ First-principles (bám build-mode trục b/c): `consume.ak` là engine đã audi
 /// Beacon bảng phí dịch-vụ PhoenixKey. Cùng khuôn PriceParam:
 /// reference input CIP-31, NFT one-shot xác-thực, versioned, gov-gated.
 pub type ServiceFeeEntry {
-  service_id : ByteArray,   // "did.anchor", "did.rotate", "vc.verify", "custody.op"
+  service_id : ByteArray,   // "did.anchor", "did.rotate", "did.transfer", "vc.verify", "custody.op"
   op_type    : Int,         // ÁNH XẠ sang OpPrice.op_type của PriceParam (đồng-bộ §7.4)
   fee_magic  : Int,         // nanogic — phí danh-nghĩa; PHẢI == price(op_type) từ PriceParam
   enabled    : Bool,
@@ -429,3 +429,6 @@ Feecover on-chain (bước 1) KHÔNG chặn bởi blocker-1; chặn bởi 0a (CA
 - Quỹ trùng tên: `MAGIC/FeeTreasury/onchain/validators/fee_treasury.ak` (ADA-FX, `:108-118` Withdraw operator-cosign).
 - Resolve API: nguồn thiết-kế nội-bộ (không công khai).
 - Đơn-vị/peg: `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` §4/§5.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

@@ -17,7 +17,9 @@
 
 **Bản chất.** Đây là **hạ-tầng danh-tính Layer-0** cho mục-tiêu "Open SDK cho mọi Cardano team": danh-tính tự-chủ, chống-làm-giả (byte-for-byte on-chain), xoay-chìa-không-mất-người, mô-hình-hóa được cả cá-nhân lẫn doanh-nghiệp lẫn máy.
 
-> 🔴 **CỔNG GO/NO-GO (luật cố-định, không đổi theo thời-gian):** Validator an-toàn về cấu-trúc, NHƯNG **KHÔNG mở tạo/custody danh-tính Người trên production tới khi PA2 UniquenessThread land.** Lý-do: GenesisPerson đúc được anchor-Person-giả cùng name với nạn-nhân + controller attacker (khóa phần-cứng P-256 không verify on-chain) → chiếm quyền, rút custody. **Danh-tính Tổ-chức/Dịch-vụ KHÔNG dính** (có chữ-ký-cha xác thực). Đây là lỗ **mã-hoá anchor**, KHÔNG phải sinh-trắc — sinh-trắc Secure Enclave đã đủ chống trùng người. Chi-tiết: [PhoenixKey-Anchorme-Math.md](./PhoenixKey-Anchorme-Math.md) §8-9.
+> ✅ **CẬP-NHẬT 2026-08-12 — cổng GO/NO-GO dưới đây đã ĐÓNG cho lỗ mô-tả:** anchor-forgery (GenesisPerson đúc anchor-giả cùng name với nạn-nhân) nay bị chặn on-chain bởi PC + PoP-bind (đã land + đã nối trên `main` kho Validator) — did-string tự-chứng-thực, không còn đúc được trùng tên người khác. Chi-tiết đo được: [PhoenixKey-Anchorme-Math.md](./PhoenixKey-Anchorme-Math.md) §8 (T-3) / §9 (CID-1). Đoạn dưới giữ nguyên làm hồ-sơ quyết-định gốc.
+>
+> 🔴 **CỔNG GO/NO-GO (bản gốc, 2026-07-09):** Validator an-toàn về cấu-trúc, NHƯNG **KHÔNG mở tạo/custody danh-tính Người trên production tới khi PA2 UniquenessThread land.** Lý-do: GenesisPerson đúc được anchor-Person-giả cùng name với nạn-nhân + controller attacker (khóa phần-cứng P-256 không verify on-chain) → chiếm quyền, rút custody. Đây là lỗ **mã-hoá anchor**, KHÔNG phải sinh-trắc — sinh-trắc Secure Enclave đã đủ chống trùng người. Chi-tiết: [PhoenixKey-Anchorme-Math.md](./PhoenixKey-Anchorme-Math.md) §8-9.
 
 → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#anchorme)
 
@@ -42,7 +44,7 @@ Trục: (a) định-hướng dài-hạn · (b) first-principles · (c) tối-ưu
 
 | ID | Rủi-ro | Mức | Giảm-thiểu |
 |---|---|---|---|
-| **R1** | **Lỗ mã-hoá-anchor Person-over-Person.** GenesisPerson đúc anchor-Person-giả cùng name + controller attacker → chiếm ví/custody PersonDID. ĐÃ verify PASS (red-team). | 🔴 CAO (rút-được tiền) | **KHÔNG mở PersonDID production tới khi PA2 land.** PA5-a (thu-hẹp cross-entity) làm ngay. Org/Service AN-TOÀN (parent-sig). **KHÔNG phải lỗ sinh-trắc** — sinh-trắc Enclave đủ chống trùng người. |
+| **R1** | **Lỗ mã-hoá-anchor first-mint forgery — ĐÃ ĐÓNG 2026-08-12.** GenesisPerson từng đúc được anchor-giả cùng name nạn-nhân + controller attacker → chiếm ví/custody. Đóng bởi PC + PoP-bind (did-string tự-chứng-thực, đã land + đã nối trên `main` kho Validator) — chi-tiết: `PhoenixKey-Anchorme-Math.md` §8 (T-3) / §9 (CID-1). | 🟢 THẤP (hạ từ 🔴 CAO) | Không còn blocker mở-PersonDID-production riêng cho lỗ này. **KHÔNG phải lỗ sinh-trắc** — sinh-trắc Enclave đủ chống trùng người. |
 | **R2** | **PA2 sorted-list không scale dân-số** (N/shard ≤ ~400, K=20 triệu shard cho 8 tỷ người = bất-khả-thi). | 🟡 TRUNG (tham-số) | Enterprise/early Person: sorted-list K=256 (~triệu). Dân-số: Merkle-root-in-datum (datum O(1), witness off-chain). Cần maintainer chốt trục chi-phí. |
 | **R3** | **resolve-by-hash + point-in-time chưa dựng** → Strata trả 424, chặn ProofChat/OriLife/VeData/MAGIC did_commit. | 🟡 TRUNG | Giao đội backend: index ngược `did_hash→did` + `did_state_history` V16 (append-only, fail-closed 503). Spec ready. |
 | **R4** | **Type-code: văn Math lệch, impl KHÔNG lệch.** ĐÃ verify byte-exact: generator Java ≡ validator Aiken (Device=2…Service=7,Context=8). Chênh chỉ ở **văn Math §2.2** (thứ-tự Context=2). Rủi-ro: bản Rust/mobile bám nhầm văn Math. | 🟡 TRUNG | Person/Org/Avatar (0,1,9) TRÙNG → chưa lộ. **Chốt bảng-byte code làm canonical, sửa văn Math** (rẻ hơn rebake code); rà Rust/mobile trước khi mint author-DID phi-nhân (ProofChat v2). |
@@ -54,7 +56,7 @@ Trục: (a) định-hướng dài-hạn · (b) first-principles · (c) tối-ưu
 
 ## 4. Ranh-giới blocker (luật phụ-thuộc, không đổi theo thời-gian)
 
-- **B1 — PA2 (đội on-chain + audit):** chặn mở PersonDID-custody production (lỗ R1). Org/Service KHÔNG chặn.
+- **B1 — PA2/PC (đội on-chain + audit):** ✅ **GỠ 2026-08-12** — PC (kế-thừa PA2) + PoP-bind đã land + đã nối, đóng lỗ R1 cho MỌI loại DID. Không còn chặn mở PersonDID-custody production vì lý-do này (các blocker khác của Anchorme — DeviceDID, resolve-by-hash — không liên-quan R1, xem STATUS).
 - **B2 — resolve-by-hash + point-in-time (đội backend):** chặn Strata/VeData/MAGIC did_commit/Rada.
 - **B3 — DeviceDID (đội on-chain + đội backend):** chặn LampNet node / Knowme device / Rada device-binding.
 - **B4 (Math) — Full_Authority `⊑` fix + type-code canonical:** chặn delegation PersonDID + author-DID phi-nhân.
@@ -70,8 +72,8 @@ Trục: (a) định-hướng dài-hạn · (b) first-principles · (c) tối-ưu
 | Mốc | Nội-dung | Phụ-thuộc |
 |---|---|---|
 | **M1** | Validator `taad` Design-2 + genesis/rotate/transfer/deactivate + resolver W3C | — |
-| **M2** | Maintainer chốt PA2 trục chi-phí; PA5-a vào code; type-code canonical (bảng-byte code) | maintainer + đội on-chain |
-| **M3** | PA2 wiring `taad.mint` (thread + register/burn) → **mở PersonDID production** | **B1** |
+| **M2** | ✅ **XONG 2026-08-12.** Trục chi-phí PC chốt (K=32); PA5-a viết xong, sau đó chốt KHÔNG nối (dư thừa — Math §8/§9); type-code canonical còn treo (Math v4.7, không liên-quan R1) | maintainer + đội on-chain |
+| **M3** | ✅ **XONG 2026-08-12.** PC wiring `taad.mint` (thread + register/burn, kế-thừa PA2) → PersonDID production không còn bị chặn bởi R1 | ~~**B1**~~ gỡ |
 | **M4** | resolve-by-hash + point-in-time V16 (đội backend) → Strata/VeData/MAGIC hết 424 | **B2** |
 | **M5** | DeviceDID on-chain + endpoints → LampNet/Knowme/Rada | **B3** |
 | **M6** | ServiceDID self-service + Authorization/Mint-Authority Registry + Permission-Consent | duyệt |
@@ -85,7 +87,7 @@ Trục: (a) định-hướng dài-hạn · (b) first-principles · (c) tối-ưu
 | # | Câu hỏi | Đề-xuất mặc-định | Vì sao cần maintainer |
 |---|---|---|---|
 | **Q-A** | **PA2 trục chi-phí:** sorted-list-sharded (K=256, ~triệu, làm được ngay) hay Merkle-root (dân-số, cần indexer giữ cây)? | Sorted-list cho enterprise/early Person; Merkle khi vượt triệu. | Đổi kiến-trúc genesis; quyết crypto-cứng vs uniqueness-mềm resolver-first-wins. |
-| **Q-B** | **Mở PersonDID production khi nào?** Trước PA2 (rủi-ro R1 mở) hay chỉ sau? | CHỈ sau PA2 (hoặc uniqueness-mềm + PA5 nếu chấp-nhận 🟡 tồn-dư). | Cổng GO/NO-GO an-toàn tài-sản. |
+| **Q-B** | ✅ **TRẢ LỜI 2026-08-12** — Mở PersonDID production khi nào? | PC+PoP-bind đã land+nối (R1 đóng); câu hỏi còn lại chuyển sang blocker KHÁC của Anchorme (DeviceDID, resolve-by-hash — xem STATUS), không còn là câu hỏi mở về R1. | Cổng GO/NO-GO an-toàn tài-sản — đã qua được phần R1. |
 | **Q-C** | **Type-code canonical:** generator Java + validator Aiken đã KHỚP byte-exact (Device=2…Service=7,Context=8); chỉ **văn Math §2.2** lệch thứ-tự. Lấy bên nào? | **Bảng-byte code canonical → sửa văn Math §2.2** (KHÔNG rebake code + KHÔNG regen vector). | Chặn author-DID phi-nhân; nếu chọn Math sẽ phải rebake 2 impl đang đúng — đắt và rủi-ro hơn. Cần maintainer rà bản Rust/mobile có bám nhầm văn Math không. |
 | **Q-D** | **ServiceDID anchor:** metadata-6789 (live ngay) hay TAAD anchor NFT entity=Service (canonical)? | 2 giai-đoạn: GĐ1 metadata-6789, GĐ2 TAAD anchor khi tx-builder merge; `client_id ≜ service_did` bất-biến. | Directive lifecycle; ảnh-hưởng accountability + self-service. |
 | **Q-E** | **Full_Authority `⊑` fix + đưa vào Math v4.7?** | Vào core v4.7 (bug authority-model, không tách lớp). | Chặn mọi delegation PersonDID; cần rà theorem dùng set-⊆. |
@@ -94,7 +96,7 @@ Trục: (a) định-hướng dài-hạn · (b) first-principles · (c) tối-ưu
 
 ## 7. Ghi trung-thực (không over-claim)
 
-- **🔴 Lỗ R1 (CID-1) là lỗ MÃ-HOÁ ANCHOR, KHÔNG phải sinh-trắc/sybil.** Sinh-trắc Secure Enclave đủ chống trùng người. Lỗ nằm ở: GenesisPerson đúc anchor did-string bất-kỳ + controller attacker vì HW_Key P-256 không verify on-chain → drain custody PersonDID. Org/Service AN-TOÀN (parent-sig G-1). Validator on-chain ĐÚNG về cấu-trúc; lỗ ở **giả-định-tầng-uniqueness chưa-thoả**. PA2 đóng structural; PA5-a thu-hẹp bề-mặt.
+- **🟢 Lỗ R1 (CID-1) là lỗ MÃ-HOÁ ANCHOR, KHÔNG phải sinh-trắc/sybil — ĐÃ ĐÓNG 2026-08-12.** Sinh-trắc Secure Enclave đủ chống trùng người. Lỗ gốc: GenesisPerson đúc anchor did-string bất-kỳ + controller attacker vì HW_Key P-256 không verify on-chain → drain custody (mọi loại DID, không riêng Person — đính-chính 2026-07-17). Validator on-chain ĐÚNG về cấu-trúc; lỗ nằm ở **giả-định-tầng-uniqueness chưa-thoả**, nay đã thoả: PC + PoP-bind đóng structural (did-string tự-chứng-thực), PA5-a (entity-gate) chốt KHÔNG cần nối vì dư thừa — chi tiết `PhoenixKey-Anchorme-Math.md` §8/§9.
 - **PA2 KHÔNG breaking địa-chỉ ví:** did_payment/stake/subaddr giữ nguyên bytes (không đổi compile-param); chỉ genesis-tx thêm spend thread. Đây là ưu-điểm quyết-định so với phương-án PA4 (đã loại vì breaking).
 - **Ranh-giới MECE:** Core-Anchorme = TAAD/anchor/genesis/rotate/transfer/deactivate/resolver/DeviceDID/PA2/PA5/registry/consent. Recovery-guardian-flow (Init/Cancel/Finalize + guardian + backup + anti-drain + seed) thuộc **Rebirthme** — chỉ dẫn-chiếu.
 - **Ranh-giới sửa code:** validator (đội on-chain) + backend (đội backend) thuộc PhoenixKey backend — nhóm tài-liệu KHÔNG sửa; phát-hiện lỗi → báo maintainer / tạo Issue. Tài-liệu này chỉ đặc-tả.
@@ -109,3 +111,6 @@ Trục: (a) định-hướng dài-hạn · (b) first-principles · (c) tối-ưu
 - `PhoenixKey-Validator`: `validators/taad.ak`, `lib/phoenixkey/{taad_logic,state_nft_logic,auth_logic,types}.ak`.
 - Nguồn thiết-kế nội-bộ (không công khai).
 - `PhoenixKey-Specs/PhoenixKey-Math.md` §2, §4–§5, §10, §22.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

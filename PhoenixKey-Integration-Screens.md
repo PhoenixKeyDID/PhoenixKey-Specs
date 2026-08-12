@@ -430,3 +430,6 @@ Vào màn "Người bảo trợ" → app hiện danh sách đã lưu cục bộ 
 
 - Mục 4: liệu app có cách nào biết mobile đã MỞ payload (`GET /sign/request/{id}`) nhưng chưa quyết định, để hiện trạng thái trung gian "đang xem trên điện thoại" thay vì chỉ "đang chờ" xuyên suốt 120s? `SignRequestPayload.status` có giá trị `"pending"` nhưng không rõ server có cập nhật riêng một trạng thái "đã mở, chưa quyết" hay không — tài liệu này giữ nguyên 2 trạng thái UI (chờ/xong) cho an toàn.
 - Mục 3.1: trường hợp `wallets` rỗng hoàn toàn (cả Phoenix lẫn Standard đều chưa có) — về lý thuyết hiếm vì Phoenix custody derive tự động lúc tạo DID, nhưng có thể xảy ra nếu backend thiếu biến môi trường `PHOENIXKEY_CARDANO_DID_PAYMENT_CBOR_HEX`/`PHOENIXKEY_CARDANO_TAAD_ANCHOR_POLICY` (theo `API.md` §1, ghi chú `POST /identity/register`) — trường hợp này không có mã lỗi riêng, chỉ là mảng rỗng, khó phân biệt với "user thật sự chưa có ví" trên UI.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

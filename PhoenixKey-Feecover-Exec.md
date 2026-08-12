@@ -89,7 +89,7 @@ Tài-liệu cùng bộ: [PhoenixKey-Feecover-Vi-Feat.md](./PhoenixKey-Feecover-V
 
 | # | Quyết-định | Gợi-ý |
 |---|---|---|
-| **D1** | Mức phí từng dịch-vụ (`fee_magic` mỗi `service_id`) | Bảng Feat §4.3 là minh-hoạ; cần số thật, neo qua base_price nền |
+| **D1** | Mức phí từng dịch-vụ (`fee_magic` mỗi `service_id`) | **Khép một phần 2026-08-10**: `did.rotate` = 2 MAGIC (giá **cố-định**, FEECOVER-PRICE-1), `did.transfer` = 10 MAGIC, `UpdateGuardians` miễn phí — `PhoenixKey-Feecover-Math.md §7.2bis`. Các dịch-vụ còn lại (`did.anchor`, `vc.verify`, `custody.op`) vẫn là minh-hoạ, cần số thật |
 | **D2** | Cadence + biên re-anchor phí | Mượn khung base_price CARP (±10%/quý + siêu-đa-số) HAY khung riêng PhoenixKey — cân "ổn-định user" vs "provider không lỗ" |
 | **D3** | Dịch-vụ nào Feecover phủ | Khởi-đầu: `did.anchor`, `did.rotate`, `vc.verify`, `custody.op` |
 | **D4** | Ranh-giới tầng App vs Platform | Ai là App (provider), ai là Platform (gom nhiều App)? Ảnh-hưởng cấu-trúc accrual |
@@ -114,3 +114,6 @@ Tài-liệu cùng bộ: [PhoenixKey-Feecover-Vi-Feat.md](./PhoenixKey-Feecover-V
 - Nguồn thiết-kế nội-bộ (không công khai) — bản gốc Exec (đã qua rà-soát nội-bộ), §9 (D1–D6), gaming eval (FG-4/FG-4b/FG-5/FG-6/FG-8).
 - Đơn-vị/peg: `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` §4/§5.
 - Tài-liệu cùng bộ: [PhoenixKey-Feecover-Vi-Feat.md](./PhoenixKey-Feecover-Vi-Feat.md), [PhoenixKey-Feecover-Math.md](./PhoenixKey-Feecover-Math.md), [PhoenixKey-Feecover-Tech.md](./PhoenixKey-Feecover-Tech.md).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

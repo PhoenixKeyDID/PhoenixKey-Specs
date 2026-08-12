@@ -307,6 +307,62 @@ FeecoverEpochSettle:
 | `stabilizer_ref` | địa-chỉ L3 + chữ-ký interface | **[CẦN CHỐT D5]** |
 | Phoenix Treasury addr | địa-chỉ hiến-định nhận CARP | hiến-định, chờ neo on-chain |
 
+### 7.2bis Giá chốt cho `did.rotate` và `did.transfer` (khép [CẦN CHỐT D1]/[D3] cho hai dịch-vụ này)
+
+Sau khi đường thu phí bằng ADA được gỡ khỏi `taad`, Feecover + ConsumeMAGIC là **đường định-giá duy nhất** cho thao-tác DID. Hai thao-tác có phí là `Rotate` và `Transfer`; `UpdateGuardians` và toàn-bộ nhánh recovery (`InitRecovery`/`CancelRecovery`/`FinalizeRecovery`/`Deactivate`) **miễn phí**.
+
+| `service_id` | `op_type` | `base_price` | = MAGIC | Nhân theo cầu? |
+|---|---|---|---|---|
+| `did.rotate` | 7 *(xin cấp)* | `2_000_000_000` | 2 | **KHÔNG** — xem FEECOVER-PRICE-1 |
+| `did.transfer` | 8 *(xin cấp)* | `10_000_000_000` | 10 | có, băng `[0.5×, 2.0×]` |
+| `did.update_guardians` | — | — | 0 | miễn phí, không vào bảng |
+
+**Vì sao 2 và 10.** Mức 2 MAGIC cho Rotate giữ nguyên con số đã có ở bảng minh-hoạ Feat §4.3 ("đổi khoá thành-viên"). Mức 10 cho Transfer lấy tỉ-lệ 1:5 từ bảng giá ADA cũ (`PhoenixKey-Math.md §36`: `fee_rotate = 1 ADA`, `fee_transfer_service = 5 ADA`) — đổi mệnh-giá, giữ tỉ-lệ, để việc bỏ đường ADA không đồng-thời là một đợt đổi giá ngầm.
+
+**Vì sao Rotate phải RẺ.** Rotate là **vệ-sinh an-ninh**: xoay khoá sau khi nghi lộ. Định giá cao một hành-vi đúng là trừng-phạt hành-vi đúng, và hậu-quả không rơi vào người trả nổi phí mà rơi vào người không trả nổi — tức đúng nhóm dễ tổn-thương nhất.
+
+> ⚠️ **Đính chính một lý-lẽ SAI mà bản nháp đầu của mục này từng dùng.** Nháp đó viết "Transfer đắt vì nó đổi quyền sở-hữu, Rotate rẻ vì nó chỉ là vệ-sinh khoá". Lý-lẽ đó **không đứng vững**: `Transfer` **bị từ-chối trên PersonDID** (`attack_tests.ak:343`), trong khi `Rotate` thay được TOÀN BỘ bộ ba `controller_pkh` + `hw_key_pubkey` + `device_pkh` sang khoá của người khác (`taad_logic.ak:95-111`) mà không có ràng-buộc nào buộc khoá mới phải liên-quan tới chủ cũ. Nghĩa là ở đúng lớp danh-tính quan-trọng nhất, **Rotate CHÍNH LÀ kênh chuyển-nhượng quyền sở-hữu duy-nhất**, và nó rẻ hơn Transfer 5 lần.
+>
+> Kết-luận đúng: **giá không phải là công-cụ chặn mua-bán PersonDID** và không được giả-vờ là. Chênh 2 so với 10 MAGIC là nhiễu so với giá-trị một danh-tính có VP; ai muốn bán DID thì 10 MAGIC cũng không cản. Việc chặn chuyển-nhượng PersonDID là một kiểm-soát **phi-giá** và nằm ngoài phạm-vi tài-liệu này — ghi ở đây để lần sau không ai dùng lại lý-lẽ đã bị bác. Rotate rẻ vì lý-do ở đoạn trên (vệ-sinh an-ninh), KHÔNG phải vì "nó vô-hại".
+
+#### FEECOVER-PRICE-1 — `did.rotate` KHÔNG được nhân theo cầu
+
+```
+required(did.rotate) == base_price(op_type=7) × op_count / Q          -- demand_mult ≡ 1.0
+required(s)          == base_price(σ(s)) × demand_mult × op_count / Q  -- mọi s khác
+```
+
+`demand_mult` của ConsumeMAGIC là **MỘT số duy-nhất dùng chung cho MỌI `op_type`**, tính từ `ops_served_epoch` gộp toàn hệ (`ConsumeMAGIC/pricing.ak:141-160`, `CONTRACT.md:57`). Hệ-quả nếu Rotate chịu nhân:
+
+1. **Tải của module không liên-quan định giá thao-tác an-ninh của DID.** Bơm `op_type` rẻ khối-lượng lớn (ảnh, CID) đẩy `demand_mult` chạm trần `2.0×` ⟹ Rotate thành 4 MAGIC cho **tất cả** mọi người.
+2. **Vòng phản-hồi dương đúng lúc khủng-hoảng.** Một đợt lộ khoá hàng loạt khiến nhiều người cùng đi Rotate ⟹ `ops_served_epoch` tăng ⟹ `demand_mult` tăng ⟹ **việc cần làm gấp nhất trở nên đắt nhất đúng lúc cần rẻ nhất**.
+
+Giá cố-định cũng khép luôn một bề-mặt thứ hai: tx giá-cố-định **không cần đọc beacon `PriceParam` đang sống**, nên nó không bị vô-hiệu khi ai đó chi UTxO beacon (xem FEECOVER-PRICE-2).
+
+**Trạng-thái:** ConsumeMAGIC hiện **chưa có** lớp giá cố-định — công-thức áp `demand_mult` cho mọi `op_type` không loại-trừ. Đây là **yêu-cầu sửa hợp-đồng gửi MAGIC**, và là **điều-kiện tiên-quyết** để nối `did.rotate`; `did.transfer` không phụ-thuộc điều-kiện này.
+
+#### FEECOVER-PRICE-2 — thiếu MAGIC KHÔNG được chặn Rotate
+
+```
+∀ DID d :  quyền xoay khoá của d  ⊥  số dư MAGIC của d
+```
+
+Hai đường hỏng nếu bất-biến này không được giữ:
+
+- **Bỏ đói.** Kẻ đã lộ được khoá của nạn-nhân chỉ cần làm cạn MAGIC của nạn-nhân là khoá đã lộ **không bao giờ bị xoay**. Phí biến thành một cái khoá cửa mà kẻ tấn-công cầm chìa.
+- **Người có ADA nhưng chưa từng có MAGIC.** Sau khi bỏ đường ADA, ví đầy ADA vẫn không Rotate được: phải onboard vào kinh-tế MAGIC trước (tối thiểu 2 tx tách rời — `ConsumeMAGIC/CONTRACT.md:173-186` cấm gộp `MintEngage` với `Consume`), đúng lúc cần tốc-độ nhất.
+
+Đường đóng: **Rotate phải được Feecover ứng trước (`feecoverAdvance`) với số dư MAGIC người dùng bằng 0**, ghi nợ và quyết-toán sau. Đây đúng là việc Feecover sinh ra để làm (trừu-tượng-hoá phí) và không cần cơ-chế mới — chỉ cần Rotate nằm trong tập được ứng, không nằm ngoài.
+
+#### Điều-kiện triển-khai (không được bỏ qua khi wiring)
+
+| # | Điều-kiện | Vì sao |
+|---|---|---|
+| W1 | Nối đường MAGIC **CÙNG ĐỢT** với việc gỡ đường ADA, không song-song | Hai cơ-chế phí cùng sống trên cùng redeemer ⟹ thu kép hoặc "bên nào rẻ hơn thắng" tuỳ builder off-chain chọn |
+| W2 | `PriceParam` committee phải > 1-of-N trước khi `did.rotate` lên mạng chính | Ngưỡng 1 ⟹ một khoá đơn-lẻ chi UTxO beacon ngay trước tx nạn-nhân ⟹ reference input biến mất ⟹ tx hỏng ⟹ **từ-chối xoay khoá nhắm đúng một người**, lặp vô hạn. `ConsumeMAGIC/price_param.ak:57`; chính tài-liệu MAGIC tự ghi hardening này chưa xong |
+| W3 | `op_type` 7/8 phải do MAGIC cấp, không tự đặt | MAGIC là bên đăng-ký duy-nhất; `op_prices` sắp **tăng ngặt**, tối đa **16 dòng** — mã đã cấp không chèn giữa được |
+| W4 | Ghi rõ ở tài-liệu vận-hành: bảng còn **8/16 slot** sau khi cấp 7 và 8 | Trần dùng chung 3+ đội, chưa có ai gác cổng phân-bổ |
+
 ### 7.3 Đồng-bộ 2 bảng giá (`PriceParam.base_price` ↔ `ServiceFeeSchedule.fee_magic`)
 
 Mỗi `ServiceFeeEntry` mang `op_type` trỏ dòng `OpPrice` trong `PriceParam`; validator đọc `required = price(op_type)` (như `consume.ak`) và ép `fee_magic == required`. Cadence gov: một tx governance đổi cả hai HAY ràng-khớp on-chain — **[CẦN CHỐT D6]**.
@@ -363,3 +419,6 @@ Mỗi `ServiceFeeEntry` mang `op_type` trỏ dòng `OpPrice` trong `PriceParam`;
 - Engine tái-dùng: `MAGIC/ConsumeMAGIC/onchain/validators/consume.ak` + `lib/magiclamp/consume/{types,pricing,util}.ak` (C-CM-1..5); `types.ak:46-51`, `consume.ak:409` (`did_commit`).
 - Đơn-vị/peg canonical: `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` §4/§5/§8.
 - Đụng mã: `PhoenixKey-Specs/PhoenixKey-Math.md §36` (kiến-trúc phí Lovelace 30/70, KHÁC module).
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

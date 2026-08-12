@@ -217,7 +217,7 @@ Neo UI: `app/verify/page.tsx` (32KB, 5 bước), `components/vc/{DeclareForm,ui}
 - **Mức 3 ZK:** phụ-thuộc `zk/`, `BBS`, `ProveDerived`, `ZkCredential` — toàn bộ là spec KYC-KYB-ZK, giao đội on-chain/Frontend/VeData.
 - **Query gateway:** phụ-thuộc VeData Query (một phần phụ-thuộc hợp-đồng liên-module).
 - **Giới-hạn cố-hữu (verify-time plaintext resale):** với ảnh mắt-người-xem-được, thu-hồi KHÔNG lấy lại bản đã xem — **không vá triệt-để được** (Knowme-Feat-Math §9.0). Giảm-thiểu: watermark truy-vết + ưu-tiên proof-thay-ảnh. UI PHẢI nói thẳng.
-- **Duy-nhất-người v1 nằm TRONG Knowme:** một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID, khoá là vân-tay tài-liệu có pepper phía máy-chủ (Knowme-Math Đ-7, I-KNOW-12..14); tranh-chấp xử theo hai mức `suspected`/`confirmed` với hệ-quả trên dòng LAMP Wakeme (Knowme-Math §4.1). Catalog VC + issuer vẫn thuộc VeData.
+- **Duy-nhất-người v1 nằm TRONG Knowme:** một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID, khoá là **dấu giấy-tờ** `fp` (Knowme-Math Đ-7, I-KNOW-12..16). Cơ-chế cưỡng-chế là **phép so-sánh ở `UniquenessRegistry`**, không phải một bí-mật: nó cho cùng kết-quả dù bảng `fp` công-khai hay không (I-KNOW-15). Khoá `k` gánh việc khác — chặn dò ngược số giấy-tờ từ bảng (I-KNOW-14); lộ `k` mất riêng-tư, không mất duy-nhất-người. Sinh-trắc Enclave gác **lượt đăng-ký trên một máy** (chống hàng-loạt), không gác người — mẫu sinh-trắc không rời Enclave và không có bảng đối-chiếu chéo (I-KNOW-16). Tranh-chấp xử theo hai mức `suspected`/`confirmed` với hệ-quả trên dòng LAMP Wakeme (Knowme-Math §4.1). Catalog VC + issuer vẫn thuộc VeData.
 
 → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
 
@@ -228,3 +228,6 @@ Neo UI: `app/verify/page.tsx` (32KB, 5 bước), `components/vc/{DeclareForm,ui}
 - Code: `PhoenixKey-Frontend/src/lib/sdvc/*` + `src/app/verify/page.tsx` + `src/components/vc/*`.
 - Thiết-kế nội-bộ (không công khai): Knowme-Feat-Math (§2 kiến-trúc, §3 schema, §4-6 luồng, §7 VeData, §12 hợp-đồng); KYC-KYB-ZK-Feat-Math (§B Math, §C bàn-giao); VeData-Reply-did-commit-resolve (kênh resolve chung).
 - `PhoenixKey-Knowme-Math.md`, `PhoenixKey-Knowme-Vi-Feat.md`, `PhoenixKey-Knowme-Exec.md`.
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

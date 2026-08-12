@@ -486,3 +486,6 @@ chính sách (maintainer + đội backend + DAO). Neo kiểm-chứng theo hạng
 
 *Bản kỹ thuật này bám branch `feat/protectme-payout`. Không normative tới khi maintainer
 duyệt + hợp thức vào PhoenixKey-Specs.*
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

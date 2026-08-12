@@ -109,4 +109,4 @@ Test: `test_gather_all_shards_yields_only_ciphertext` · `test_all_machines_no_f
 **FROST group key** (= Trục B `SeedDistribution-Tech-Math`): controller = group key, device là participant bắt buộc; đóng lỗ tại gốc nhưng BỎ khôi-phục-bằng-24-từ. Anh đã chọn hướng giữ seed → để mở nếu sau muốn triệt để tối đa.
 
 ---
-_Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO GS-PHOENIXKEY-01: App. No. 64/031,291._
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._
