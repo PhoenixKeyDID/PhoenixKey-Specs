@@ -3,6 +3,8 @@
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
 > Cập nhật: 2026-08-12. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy.
+>
+> **Một luật đọc file này.** Mọi dòng "KHÔNG" ở mục 5 đều đo trên `main`. Một tính năng có thể đã viết xong mà vẫn hiện "KHÔNG" ở đây, vì nó còn nằm trong PR chưa gộp — dòng nào như thế đều ghi rõ số PR. Đừng đọc "chưa có mã" thành "chưa ai làm", và cũng đừng đọc ngược lại.
 
 ---
 
@@ -156,6 +158,9 @@ Hiện-trạng triển-khai các phần của đặc-tả toán v4.6 (đã tách
 | 2026-08-08 | Đăng nhập web | Gọi thật máy chủ đang chạy: `POST /auth/session/init` → 200; `GET /api/v1/.well-known/jwks.json` → 200, `kid=phoenixkey-ed25519-1`; `POST /auth/token/exchange` tồn tại (403 với token giả). ⚠ `/.well-known/jwks.json` ở **gốc miền → 404** |
 | 2026-08-08 | Backend | `Tests run: 393, Failures: 0, Errors: 0, Skipped: 0` (CI run `31252652916`); `DidOpWatermarkUpsertPostgresTest` chạy trên Postgres thật 10,37s / 6 test / Skipped 0 |
 | 2026-08-08 | Tài liệu | 67 endpoint có mã / 64 có tài liệu → nay 67/67 (PR Database #132); thêm 4 sequence diagram + đặc tả 5 màn hình (PR Specs #24) |
+| 2026-08-12 | Toàn hệ | Chạy lại trên `main` khớp `origin/main`: Validator `aiken check` **630/630 PASS** + `aiken build` exit 0 · `rust_core` `cargo test` **141/141** · Core `flutter test` **56/56** · Frontend `vitest` **140/140** · Wallet `vitest` **130/130** · SDK `jest` **20/20**. Backend: **không dựng được cục bộ** (máy không có JDK) ⇒ số của backend là số CI, không phải số đo tại chỗ |
+| 2026-08-12 | Nhiều danh tính một máy | Trước: nhãn khoá phần cứng là hằng + xoá-trước-khi-sinh ⇒ người thứ hai tạo danh tính **xoá vĩnh viễn** khoá của người thứ nhất. Sau: khe khoá theo danh tính, `legacy` ánh xạ nhãn cũ. Core PR **#56**, CI xanh, **chưa gộp** |
+| 2026-08-12 | Dạng chuỗi DID | `pop_bind.canonical_did` dựng `did:phoenix:<thập phân ms>:<hex64>`; backend ép `^did:phoenix:[a-z2-7]{13}:[0-9a-f]{64}$` ⇒ **hai dạng không tương thích**. Luồng thật chưa đi qua `pop_bind` nên chưa ai vấp. Validator issue **#78** |
 
 ---
 
@@ -167,7 +172,10 @@ Mục 1–3 tổ chức theo module. Mục này tổ chức theo **việc ngư�
 |---|---|---|
 | Tạo ví **Standard** và chi tiền | **ĐƯỢC** | — (đường chi duy nhất đang chạy) |
 | Tạo ví **Phoenix**, nhận tiền | **ĐƯỢC** | ⚠ địa chỉ đang dẫn ứng với CBOR bản cũ 1-chữ-ký (xem blocker mục 2) |
-| **Chi tiền từ ví Phoenix** | **KHÔNG** | khoá thiết bị chưa tồn tại trong mã; không có hàm dựng+ký giao dịch 2-chữ-ký ở cả app lẫn backend |
+| **Chi tiền từ ví Phoenix** | **KHÔNG** | mã sinh khoá thiết bị **đã có** ở Core PR #51 (`rust_core/src/device_key.rs`, Ed25519 ngẫu nhiên trên máy) nhưng **chưa gộp** ⇒ `grep device_pkh` trên `main` vẫn = 0. Vẫn thiếu hàm dựng+ký giao dịch 2-chữ-ký ở cả app lẫn backend |
+| **Khôi phục trên máy thứ hai ra đúng DID cũ** | **KHÔNG** | `did` gấp 32 byte ngẫu nhiên **và** một mốc thời gian trên chuỗi vào tiền-ảnh ⇒ **không suy lại được từ seed**, phải TRA. Cửa tra theo khoá điều khiển chưa có (Database #162); màn khôi phục đang bắt gõ tay chuỗi `did`. Sau redeploy PA-1 còn chặn thêm ở cổng 2-of-2 vì không có đường ghi `device_pkh` mới cho did cũ (Validator #77) |
+| **Người thứ hai tạo DID riêng trên máy người trước** | **KHÔNG** (đã vá, chờ gộp) | Backend + validator vốn đã cho phép (không ràng buộc duy nhất theo thiết bị). Chặn nằm toàn bộ ở app; Core PR **#56** vá, CI xanh, chưa gộp |
+| **Mỗi người đúng một DID** | **KHÔNG** | registry giấy tờ có và đúng phần của nó (`document_fingerprints`, `fp` là khoá chính), nhưng endpoint đòi đã đăng nhập ⇒ chỉ chạy **sau** khi DID đã tồn tại, và `POST /identity/register` không gọi nó. Trùng chỉ trả chuỗi trạng thái, DID thứ hai vẫn sinh và vẫn dùng được. Là **phát hiện**, không phải **ngăn chặn** (Database #165) |
 | Bấm **Wakeme / GetLAMP** | **KHÔNG** | 3 biến `ACTIVATION_*` rỗng ⇒ `501`; pot chưa có LAMP; giao diện web hiện trỏ luồng cũ đã ngừng dùng |
 | **ScheduleGen / InstantGen** | **KHÔNG** | 0 dòng mã; và đang bị cấm nối tới khi MAGIC pha-2 chỉ-đọc xong (`PhoenixKey-Wakeme-Tech.md:239`) |
 | Đăng nhập web PhoenixKey bằng QR | **ĐƯỢC** | — |
