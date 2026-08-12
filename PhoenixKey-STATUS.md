@@ -2,7 +2,7 @@
 
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
-> Cập nhật: 2026-08-10. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy.
+> Cập nhật: 2026-08-12. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy.
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Module | Nền đã chạy được | Blocker chính | Production |
 |---|---|---|---|
-| **Anchorme** | validator `taad` Design-2 (genesis Người/con, rotate, transfer 2-of-2, deactivate, CanOwn); resolver W3C; register metadata-6789 | PA2 (CID-1 anchor-forgery Person), DeviceDID, resolve-by-hash | NO-GO PersonDID-custody tới khi PA2/PA5-a land |
+| **Anchorme** | validator `taad` Design-2 + **PC** (uniqueness anchor, đã nối) + **PoP-bind** (did tự chứng, đã nối) — CID-1 ĐÃ ĐÓNG cả same- và cross-entity; resolver W3C; register metadata-6789 | DeviceDID; resolve-by-hash | GO custody cho lỗ CID-1 (đóng 2026-08-12); NO-GO tổng-thể vẫn treo ở DeviceDID + resolve-by-hash |
 | **Rebirthme** | ví theo-DID `did_payment`, đóng-băng theo trạng-thái, guardian recovery ngưỡng+timelock, P-256 low-s, `lampnet.rs`; **`limit_meter_vault` + `did_stake` nay build được** (hash `f3be6d6d…` / `eb535cc1…`) | `did_subaddr` chưa có; **khoá thiết bị (yếu-tố-2 chi tiêu) chưa tồn tại trong mã app** | NO-GO ví-giá-trị-lớn tới khi khoá thiết bị land |
 | **Wakeme** | validator `wakeme_vault` build được (hash `8655974a…`); backend `buildGetLamp`/`submitGetLamp` là hiện thực thật | B1 engine Gen đọc-số-dư, B2 Registry consume-gate, B3 PA2 cho GetLAMP-PersonDID; **3 biến môi trường `ACTIVATION_*` rỗng ⇒ mọi lời gọi trả `501`** | NO-GO tới khi Registry + PA2 land |
 | **Feecover** | ConsumeMAGIC lõi (kế thừa) | Layer Feecover 0 dòng; B1 MAGIC-model, B2 CARP policy-id, B3 did_commit per-DID; FG-4 EpochSettle tự-vá | NO-GO tới khi B1+B2+B3 + FG-4 |
@@ -28,8 +28,8 @@
 | **B1 — MAGIC engine đọc-số-dư** | Wakeme, Feecover, Protectme | MAGIC team | Model chốt = account-in-vault (không native); còn spell-out engine reference-input, không spend/đốt LAMP |
 | **B2 — CARP policy-id/asset-name/decimals** | Feecover, Protectme, Rebirthme, Wakeme | CARP team | preprod + mainnet; test đang dùng hằng giả |
 | **B3 — Registry consume-gate + `did_commit` per-DID** | Wakeme, Feecover | MAGIC team + backend | `has_counterparty_consume` còn placeholder; `did_commit` field có, nội-dung sentinel rỗng |
-| **PA2 — UniquenessThread (anchor uniqueness on-chain)** | Anchorme (PersonDID-custody), Wakeme (GetLAMP-Person) | on-chain | Đóng hẳn CID-1 (giả-mạo anchor did-string — KHÔNG phải sybil-sinh-trắc). Chốt trục chi-phí: sorted-list K=256 vs Merkle dân-số |
-| **PA5-a — entity-gate** | Anchorme (thu hẹp bề mặt PersonDID) | on-chain (Tuân) | PoC 4 test, chờ vào code |
+| ~~PA2 — UniquenessThread hai-validator~~ **LOẠI VĨNH VIỄN**, thay bằng **PC** — ✅ **đã land + đã nối** 2026-08-10 | — | — | PA2-hai-validator vô-nghiệm fixed-point hash (mỗi script bake hash của script kia). PC gộp một multi-purpose validator, `anchor_policy ≡ thread_policy ≡ own_policy`. K=32 (không phải 256 — bootstrap nguyên-tử K=256 ≈ 34 KB, vượt trần tx 16 KB). Đặc-tả §5.7ter |
+| ~~PA5-a — entity-gate: viết xong nhưng chưa nối~~ **CHỐT KHÔNG NỐI** — ✅ **gỡ 2026-08-12** | — | — | PoP-bind (đã land + nối) cam-kết `entity_type` vào tiền-ảnh `did` ngay lúc mint (`pop_bind.ak:109`); một cổng đọc lại `entity_type` lúc chi chỉ kiểm lại thứ tên-anchor apply-param đã ép sẵn — không đóng thêm bề-mặt nào, đổi lại 4-5 script-hash không cần thiết (`PhoenixKey-Validator` PR #73). Hàm `anchor_controller_ok_entities` giữ deprecated làm test đối-kháng |
 | ~~`limit_meter.ak` — anti-drain~~ **GỠ 2026-08-08** | — | — | `lib/phoenixkey/limit_meter.ak` + validator `limit_meter_vault` (hash `f3be6d6d…`) build được trên `main`; nằm trong 577/577 test PASS |
 | 🔴 **Khoá thiết bị — yếu-tố-2 khi chi từ ví Phoenix** | Rebirthme (ví Phoenix), Anchorme (datum genesis) | app + on-chain | Aiken đã ép 2-of-2 (`auth_logic.ak:37-58`), nhưng phía app **chưa tồn tại**: grep `device_pkh`/`deviceKey` trong `rust_core/src` và `lib/` = 0. Thiếu cả sinh khoá, lưu trữ, API ký, và đưa `device_pkh` vào datum. Phải Ed25519/secp256k1 — P-256 không verify được on-chain |
 | 🔴 **CBOR `did_payment` đang dùng là bản CŨ 1-chữ-ký** | Rebirthme, Anchorme | on-chain + app + backend | CBOR trong `rust_core/assets/` và vector test backend khớp byte-for-byte bản build 25-06, **trước** khi thêm 2-of-2 ⇒ mọi địa chỉ Phoenix đã dẫn ứng với validator chỉ cần 1 chữ ký seed. Phải re-pin cùng lượt: asset CBOR + 3 vector `AikenPhoenixCustodyDeriverTest` + env `DID_PAYMENT_CBOR_HEX` |
@@ -47,7 +47,20 @@
 
 **Đã build:** validator `taad` Design-2 (genesis Người/con, rotate, transfer 2-of-2, deactivate, CanOwn); resolver W3C backend; PersonDID register (metadata-6789).
 
-**Blocker mở:** B1 CID-1 (giả-mạo anchor Person-over-Person; HW P-256 không verify on-chain → chặn PersonDID-custody; Org/Service an toàn nhờ parent-sig) — giải: PA2 (đóng hẳn) + PA5-a (thu hẹp). B2 resolve-by-hash + point-in-time V16 (backend). B3 DeviceDID `Op_create_device` (on-chain) + hw_cert endpoint (backend). B4 Full_Authority `⊑` + type-code canonical (Math v4.7).
+**CID-1 — đo lại 2026-08-12, ĐÃ ĐÓNG (hạ mức từ 🟡 xuống 🟢).** Bản 2026-08-10 ghi *"same-entity đã đóng, cross-entity còn hở tới khi nối PA5-a"*. **Kết-luận đó đã bị bác bởi `PhoenixKey-Validator` PR #73 (MERGED 2026-08-12T00:13:44Z):** cross-entity KHÔNG cần một cổng riêng để đóng, vì PoP-bind (đã land từ trước) cam-kết CẢ `entity_type` LẪN `controller_pkh` vào cùng tiền-ảnh `did` ngay lúc mint (`pop_bind.ak:109`) — tên anchor `N(did)` do đó đã cam-kết cả hai trường trước khi tồn-tại để mà chi, không riêng `controller_pkh`.
+
+Trạng-thái đo được trên `main` của kho Validator:
+
+| Việc | Trạng-thái | Bằng chứng |
+|---|---|---|
+| **PC** (at-most-one anchor mỗi tên) | ✅ đã land **và đã nối** | `validators/taad.ak` handler `mint` — `own_policy` do ledger cấp, rồi AND `genesis_uniqueness_ok` (phủ cả Person lẫn Child) |
+| **PoP-bind** (the-rightful-one — did tính lại được từ `controller_pkh` **và** `entity_type`) | ✅ đã land **và đã nối** | `lib/phoenixkey/pop_bind.ak:109` (`enc_type` vào tiền-ảnh), gọi từ `state_nft_logic.ak:166` (Person) / `:192` (Child) |
+| Cổng địa-chỉ ref-input (`find_anchor_datum` ép đúng `Script(taad)`) | ✅ đã land **và đã nối** | `lib/phoenixkey/auth_logic.ak`, PR #74 MERGED 2026-08-12T00:38:19Z |
+| **PA5-a** (entity-gate ở tầng spend) | ⛔ **chốt KHÔNG nối — dư thừa, không phải thiếu-sót** | PR #73 MERGED 2026-08-12T00:13:44Z: `entity_type` đã cam-kết ở tầng mint, đọc lại lúc chi chỉ kiểm-lại thứ apply-param đã ép sẵn. `auth_logic.anchor_controller_ok_entities` giữ deprecated làm test đối-kháng, 0 call-site thật |
+
+⟹ **Same-entity VÀ cross-entity collision ĐÃ ĐÓNG cùng một cơ-chế** (PoP-bind), không phải hai cơ-chế riêng. Không còn việc "nối" nào treo cho CID-1. Chi-tiết đầy-đủ + rủi-ro-còn-lại (thiếu bộ test giả-mạo chuyên-trách, không phải một đường tấn-công): `PhoenixKey-Anchorme-Math.md` §8 (T-3) / §9 (CID-1).
+
+**Blocker mở (không còn CID-1):** B2 resolve-by-hash + point-in-time V16 (backend). B3 DeviceDID `Op_create_device` (on-chain) + hw_cert endpoint (backend). B4 Full_Authority `⊑` + type-code canonical (Math v4.7).
 
 **Bug live đã biết:** GET `/identity/{did}/pubkey` trả 500 với user đã qua recovery (consumer: backend bên thứ 3 OriLife/AladinWork) — cần Long vá.
 

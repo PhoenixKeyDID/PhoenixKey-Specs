@@ -85,7 +85,7 @@ Không phải danh tính nào cũng là người. Có **Người** (gốc tin c�
 | **Kiểm chữ ký cũ** | Chỉ biết trạng thái hiện tại | **Point-in-time** — biết chìa nào hợp lệ tại lúc ký |
 | **Phân loại thực thể** | Một loại phẳng | **10 loại** + cây sở hữu chứng minh được |
 | **Bàn giao dịch vụ** | Tin nhau ngoài chuỗi | **Transfer 2-of-2** — ledger đảm bảo cả hai đồng thuận |
-| **Chống làm giả danh tính** | Dựa máy chủ trung tâm | Con dấu khóa cứng vào chuỗi. Với danh tính Người, tính-độc-nhất của con dấu đang được đóng thêm bằng một cơ chế mới đang xây (tên dự án nội bộ: **PA2 UniquenessThread** — ép on-chain, không mint được hai con dấu cùng tên) và một cơ chế thu hẹp rủi ro cho đường ví đi-theo-DID (tên dự án nội bộ: **PA5-a entity-gate**). Tổ chức/Dịch vụ vốn an toàn nhờ chữ ký cha, không cần hai cơ chế này (xem `PhoenixKey-Anchorme-Math.md`) |
+| **Chống làm giả danh tính** | Dựa máy chủ trung tâm | Con dấu khóa cứng vào chuỗi. Tính-độc-nhất của con dấu được ép on-chain (không mint được hai con dấu cùng tên) và mã danh tính tự chứng thực (không đúc được con dấu mang mã của người khác) — cho mọi loại danh tính, không riêng Người hay Tổ chức/Dịch vụ (xem `PhoenixKey-Anchorme-Math.md`) |
 
 ---
 
@@ -134,9 +134,9 @@ Không phải danh tính nào cũng là người. Có **Người** (gốc tin c�
 
 Nền tảng của Anchorme là: **anchor + state-NFT, xoay chìa, khóa phần cứng, 10 loại DID + cây sở hữu, Transfer/Deactivate** — đây là mô hình cố định, không đổi theo thời gian.
 
-Riêng danh tính **Người** có một ràng buộc thiết kế bắt buộc: khâu đúc con dấu (mint) tự nó không kiểm được on-chain rằng "did-string thuộc về đúng người sở hữu". Nếu không có thêm lớp tính-độc-nhất, kẻ tấn công có thể đúc một con dấu cùng tên với danh tính nạn nhân, dùng chìa của mình, rồi chiếm quyền / rút tài sản do danh tính đó giữ. Lý do kỹ thuật: khóa phần cứng P-256 chỉ được "mang theo" trong dữ liệu (carry) như một trường thông tin, chứ hợp đồng trên chuỗi không tự giải mã và đối chiếu chữ ký P-256 đó (không "verify bằng đường cong" — tức không kiểm tra bằng công thức toán của đường cong P-256) để xác nhận đúng chủ khóa mới đang đúc. Danh tính **Tổ chức/Dịch vụ không dính luật này** — con dấu của chúng luôn đòi chữ ký của cha (owner) khi đúc.
+Khâu đúc con dấu (mint) không tự kiểm được on-chain rằng "did-string thuộc về đúng người sở hữu" chỉ bằng khóa phần cứng — khóa P-256 chỉ được "mang theo" trong dữ liệu (carry) như một trường thông tin, hợp đồng trên chuỗi không tự đối chiếu chữ ký P-256 đó (không "verify bằng đường cong"). Nếu chỉ dừng ở đó, kẻ tấn công có thể đúc một con dấu cùng tên với danh tính nạn nhân — **bất-kỳ loại danh tính nào**, không riêng Người: chữ ký của cha (owner) chỉ chặn được đường đúc-con (Tổ chức/Dịch vụ do Người/Tổ chức khác tạo ra), không chặn được đường tự-đúc (self-genesis) mà kẻ tấn công dùng.
 
-**Luật thiết kế:** tính-độc-nhất của con dấu Người phải được ép on-chain bằng một cơ chế cấu-trúc riêng (**PA2 UniquenessThread**), không phải chỉ dựa vào khóa phần cứng. Song song, đường ví "đi-theo-DID" thu hẹp bề mặt tấn công bằng **PA5-a entity-gate** (giới hạn loại thực thể được chấp nhận làm anchor tham chiếu). Đặc tả đầy đủ hai cơ chế này ở [PhoenixKey-Anchorme-Math.md](./PhoenixKey-Anchorme-Math.md) §8-9 và [PhoenixKey-Anchorme-Tech.md](./PhoenixKey-Anchorme-Tech.md).
+**Luật thiết kế (đã hiện-thực hoá):** tính-độc-nhất của con dấu được ép on-chain bằng một validator cấu-trúc riêng (tên kỹ-thuật: **PC**, gộp anchor + sổ tính-độc-nhất làm một), và mã danh tính (`did`) được ràng thẳng vào chìa của người đúc nó ngay khi tạo ra (tên kỹ-thuật: **PoP-bind**) — hai cơ chế này cùng nhau đóng lỗ cho MỌI loại danh tính, không cần thêm bước kiểm loại thực thể riêng. Đặc tả đầy đủ ở [PhoenixKey-Anchorme-Math.md](./PhoenixKey-Anchorme-Math.md) §8-9 và [PhoenixKey-Anchorme-Tech.md](./PhoenixKey-Anchorme-Tech.md).
 
 Các mảnh còn lại của hệ (resolve-by-hash, point-in-time resolver, DeviceDID, Authorization/Mint-Authority Registry, Permission & Consent) là đặc tả mở rộng thuộc ranh giới đội backend/on-chain — chi tiết ở [PhoenixKey-Anchorme-Tech.md](./PhoenixKey-Anchorme-Tech.md) §5-7.
 
