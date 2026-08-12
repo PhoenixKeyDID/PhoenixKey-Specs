@@ -486,7 +486,7 @@ Bộ test module danh-tính (`taad_logic`, `state_nft_logic`, `attack_tests`) ph
 Bổ-sung bắt-buộc trước khi mở production:
 - Round-trip CBOR aiken↔rust_core: encode `TAADDatum` 10-field đúng thứ-tự + Option encoding (`Some=Constr0`, `None=Constr1`); decode redeemer idx.
 - Testnet e2e Preview: GenesisPerson → Rotate → GenesisChild → Transfer(Service) → Deactivate. `curl` từng resolver-endpoint sau deploy.
-- **Red-team CID-1 — ĐÃ xác-nhận CLOSED (2026-08-12):** first-mint anchor forgery đóng bởi PC + PoP-bind, phủ qua handler mint thật (`validators/taad.ak:280-372`). Bằng-chứng đo được + rủi-ro-còn-lại: `PhoenixKey-Anchorme-Math.md` §8-9.
+- **Red-team CID-1 — ĐÃ xác-nhận CLOSED (2026-08-12):** first-mint anchor forgery đóng bởi PC + PoP-bind, phủ qua handler mint thật (5 khối `test thread_*` trong `validators/taad.ak`). Bằng-chứng đo được + rủi-ro-còn-lại: `PhoenixKey-Anchorme-Math.md` §8-9.
 - Test-vector `did_hash` (5 vector, `…-Feat §1.3`) cho Strata mock-registry.
 
 → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#anchorme)

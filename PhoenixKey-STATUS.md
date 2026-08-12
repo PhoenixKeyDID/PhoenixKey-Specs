@@ -53,7 +53,7 @@ Trạng-thái đo được trên `main` của kho Validator:
 
 | Việc | Trạng-thái | Bằng chứng |
 |---|---|---|
-| **PC** (at-most-one anchor mỗi tên) | ✅ đã land **và đã nối** | `validators/taad.ak:73` (`own_policy` do ledger cấp lúc mint), `:89-92` (cổng uniqueness phủ cả Person lẫn Child) |
+| **PC** (at-most-one anchor mỗi tên) | ✅ đã land **và đã nối** | `validators/taad.ak` handler `mint` — `own_policy` do ledger cấp, rồi AND `genesis_uniqueness_ok` (phủ cả Person lẫn Child) |
 | **PoP-bind** (the-rightful-one — did tính lại được từ `controller_pkh` **và** `entity_type`) | ✅ đã land **và đã nối** | `lib/phoenixkey/pop_bind.ak:109` (`enc_type` vào tiền-ảnh), gọi từ `state_nft_logic.ak:166` (Person) / `:192` (Child) |
 | Cổng địa-chỉ ref-input (`find_anchor_datum` ép đúng `Script(taad)`) | ✅ đã land **và đã nối** | `lib/phoenixkey/auth_logic.ak`, PR #74 MERGED 2026-08-12T00:38:19Z |
 | **PA5-a** (entity-gate ở tầng spend) | ⛔ **chốt KHÔNG nối — dư thừa, không phải thiếu-sót** | PR #73 MERGED 2026-08-12T00:13:44Z: `entity_type` đã cam-kết ở tầng mint, đọc lại lúc chi chỉ kiểm-lại thứ apply-param đã ép sẵn. `auth_logic.anchor_controller_ok_entities` giữ deprecated làm test đối-kháng, 0 call-site thật |
