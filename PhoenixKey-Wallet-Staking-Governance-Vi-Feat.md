@@ -61,7 +61,7 @@ SRCL (**Staking Reward Contribution Launch**) là cơ chế ra mắt của hệ 
 
 ## 5. Trạng thái thật hôm nay
 
-Đã có nền thật trong code (`PhoenixKey-Core/Enclave/rust_core/src/staking.rs`): xây giao dịch stake delegation đa-pool, rút thưởng, đăng ký/huỷ đăng ký stake key, delegate vote cho DRep (Conway era). Chưa có: đọc/hiển thị GA đang mở, tự bỏ phiếu GA, tự nộp GA, toàn bộ tab Pool, và phần ký SRCL. → Trạng thái & tiến độ chi tiết: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md).
+Đã có nền thật trong code (`PhoenixKey-Core/Enclave/rust_core/src/staking.rs`): xây giao dịch stake delegation đa-pool, rút thưởng, đăng ký/huỷ đăng ký stake key, delegate vote cho DRep (Conway era). Chưa có: đọc/hiển thị GA đang mở, tự bỏ phiếu GA, tự nộp GA, toàn bộ tab Pool, và phần ký SRCL. → Trạng thái & tiến độ chi tiết: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
 
 ---
 
