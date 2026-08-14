@@ -36,6 +36,8 @@ PhoenixKey chia thành 8 module. Mỗi module có bộ 4 tài liệu (xem mục 
 | **Knowme** | Kho giấy tờ của bạn, bạn giữ chìa. | Chứng chỉ có thể kiểm chứng (VC) + tiết lộ chọn lọc (selective disclosure). |
 | **Easteregg** | Lớp trải nghiệm / quyền riêng tư mở rộng. | Chế độ riêng tư và tính năng bổ trợ. |
 
+> **Quy ước dẫn nguồn.** Một số chỗ dẫn tới tài liệu thiết kế còn ở dạng đề xuất, chưa xuất bản trong kho này; chúng được đánh dấu `[nội-bộ]` (hoặc `[internal]` ở tài liệu tiếng Anh) ngay trước tên tệp. Đánh dấu đó nghĩa là **không có tệp tương ứng trong kho công khai** — nội dung cần thiết đã được tóm vào chính tài liệu đang đọc.
+
 Ngoài 8 module: **`PhoenixKey-Math.md`** là đặc tả toán học tổng (v4.6, ~165 KB) — nguồn chuẩn (normative) cho phân cấp khoá, TAAD anchor, danh mục loại DID, và các bất biến toàn hệ.
 
 ---

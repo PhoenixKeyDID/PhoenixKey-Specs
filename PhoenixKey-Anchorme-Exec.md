@@ -98,7 +98,7 @@ Trục: (a) định-hướng dài-hạn · (b) first-principles · (c) tối-ưu
 
 - **🟢 Lỗ R1 (CID-1) là lỗ MÃ-HOÁ ANCHOR, KHÔNG phải sinh-trắc/sybil — ĐÃ ĐÓNG 2026-08-12.** Sinh-trắc Secure Enclave đủ chống trùng người. Lỗ gốc: GenesisPerson đúc anchor did-string bất-kỳ + controller attacker vì HW_Key P-256 không verify on-chain → drain custody (mọi loại DID, không riêng Person — đính-chính 2026-07-17). Validator on-chain ĐÚNG về cấu-trúc; lỗ nằm ở **giả-định-tầng-uniqueness chưa-thoả**, nay đã thoả: PC + PoP-bind đóng structural (did-string tự-chứng-thực), PA5-a (entity-gate) chốt KHÔNG cần nối vì dư thừa — chi tiết `PhoenixKey-Anchorme-Math.md` §8/§9.
 - **PA2 KHÔNG breaking địa-chỉ ví:** did_payment/stake/subaddr giữ nguyên bytes (không đổi compile-param); chỉ genesis-tx thêm spend thread. Đây là ưu-điểm quyết-định so với phương-án PA4 (đã loại vì breaking).
-- **Ranh-giới MECE:** Core-Anchorme = TAAD/anchor/genesis/rotate/transfer/deactivate/resolver/DeviceDID/PA2/PA5/registry/consent. Recovery-guardian-flow (Init/Cancel/Finalize + guardian + backup + anti-drain + seed) thuộc **Rebirthme** — chỉ dẫn-chiếu.
+- **Ranh-giới (không chồng lấn, không bỏ sót):** Core-Anchorme = TAAD/anchor/genesis/rotate/transfer/deactivate/resolver/DeviceDID/PA2/PA5/registry/consent. Recovery-guardian-flow (Init/Cancel/Finalize + guardian + backup + anti-drain + seed) thuộc **Rebirthme** — chỉ dẫn-chiếu.
 - **Ranh-giới sửa code:** validator (đội on-chain) + backend (đội backend) thuộc PhoenixKey backend — nhóm tài-liệu KHÔNG sửa; phát-hiện lỗi → báo maintainer / tạo Issue. Tài-liệu này chỉ đặc-tả.
 
 → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#anchorme)
