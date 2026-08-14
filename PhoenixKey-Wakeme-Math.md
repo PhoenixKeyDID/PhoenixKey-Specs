@@ -266,7 +266,7 @@ Vậy giảm-`o` ⟺ Redeem ⟺ owner ký ⟹ user toàn-quyền phần đã-s�
 
 ## 9. Nguồn nạp pot (Feecover surplus) — kế-toán + điều-kiện bền-vững
 
-> Anh Aladin chốt 2026-07-31: **nguồn CHỦ-YẾU làm pot tăng = thặng-dư LAMP từ Feecover.** Mục này đặc-tả **kế-toán dòng** + **điều-kiện cân-đối**; cơ-chế mua-lại/redeem cụ-thể (chọn giá, khớp lệnh) thuộc **Feecover/LAMP** (Wakeme là bên NHẬN nguồn) — KHÔNG đặc-tả ở đây.
+> Chốt 2026-07-31: **nguồn CHỦ-YẾU làm pot tăng = thặng-dư LAMP từ Feecover.** Mục này đặc-tả **kế-toán dòng** + **điều-kiện cân-đối**; cơ-chế mua-lại/redeem cụ-thể (chọn giá, khớp lệnh) thuộc **Feecover/LAMP** (Wakeme là bên NHẬN nguồn) — KHÔNG đặc-tả ở đây.
 
 **Kế-toán pot `P` (oildrop).** Ký `Σ` trên tập vault + khoảng thời-gian:
 ```
