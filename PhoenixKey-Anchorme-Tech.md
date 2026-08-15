@@ -4,10 +4,10 @@
 > **Mục đích:** kiến-trúc + datum/redeemer CBOR + luồng tx + API backend + ranh-giới + thứ-tự deploy — đủ để code, không cần đọc lại Feat-Math.
 > **Nguồn đối-chiếu (đã verify CODE THẬT):**
 > - `PhoenixKey-Validator/validators/taad.ak` (63 dòng, Design-2 mint+spend)
-> - `lib/phoenixkey/state_nft_logic.ak` (683 dòng — mint-gate + can_own)
-> - `lib/phoenixkey/taad_logic.ak` (802 dòng — spend state-machine)
-> - `lib/phoenixkey/auth_logic.ak` (87 dòng — anchor_controller_ok)
-> - `lib/phoenixkey/types.ak` (144 dòng — TAADDatum/redeemer/EntityType)
+> - `lib/phoenixkey/state_nft_logic.ak` — mint-gate + can_own
+> - `lib/phoenixkey/taad_logic.ak` — spend state-machine
+> - `lib/phoenixkey/auth_logic.ak` — anchor_controller_ok
+> - `lib/phoenixkey/types.ak` — TAADDatum/redeemer/EntityType
 > - Nguồn thiết-kế nội-bộ (không công khai).
 >
 > → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#anchorme)
@@ -52,12 +52,12 @@
 
 ### 1.2 Bất-biến kiến-trúc (load-bearing)
 
-- **1 danh-tính = 1 UTxO** tại `Script(π)`, mang **NFT singleton** `(π = own_hash, name = blake2b_256(did))`, min-ADA, inline `TAADDatum`. Neo `taad_logic.ak:55-58`, `state_nft_logic.ak:228-253`.
-- **own_policy ≡ script-hash** (Design-2 đa-mục-đích): NFT policy CHÍNH là hash validator → validator PHẢI có `mint` handler; genesis HARD-BIND NFT vào `Script(own_policy)`. Neo `taad.ak:42`, `state_nft_logic.ak:233-248`. Đây là điểm đóng lỗ Design-1 (NFT ra ví lạ).
+- **1 danh-tính = 1 UTxO** tại `Script(π)`, mang **NFT singleton** `(π = own_hash, name = blake2b_256(did))`, min-ADA, inline `TAADDatum`. Neo `taad_logic.validate_spend` (khối mở đầu), `state_nft_logic.find_single_minted_did`.
+- **own_policy ≡ script-hash** (Design-2 đa-mục-đích): NFT policy CHÍNH là hash validator → validator PHẢI có `mint` handler; genesis HARD-BIND NFT vào `Script(own_policy)`. Neo `validators/taad.ak` handler `mint`, `state_nft_logic.find_unique_output_with_nft`. Đây là điểm đóng lỗ Design-1 (NFT ra ví lạ).
 - **seq strict +1** mọi transition (chống replay); tx `seq ≤ on-chain` trượt. Neo mọi nhánh `taad_logic.ak`.
 - **did + entity_type BẤT-BIẾN** qua mọi spend (`immutable_fields_preserved:310-320`) → xoay chìa/transfer không đổi danh-tính.
-- **Revoked = dead-end:** `when (redeemer, status)` không khớp `(_,Revoked)` → `_ -> False` (`:222`).
-- **auth_logic single-carrier** (`:59-70`) chống 2-anchor-TRONG-tx; toàn-cục (chống 2-anchor-live-cùng-tên trên MỌI tx) ép bởi PC + PoP-bind ở tầng mint — ✅ đã land + đã nối, đóng CID-1 (2026-08-12, chi tiết `PhoenixKey-Anchorme-Math.md` §8-9).
+- **Revoked = dead-end:** `when (redeemer, status)` không khớp `(_,Revoked)` → nhánh cuối `_ -> False`.
+- **auth_logic single-carrier** (`auth_logic.find_anchor_datum`) chống 2-anchor-TRONG-tx; toàn-cục (chống 2-anchor-live-cùng-tên trên MỌI tx) ép bởi PC + PoP-bind ở tầng mint — ✅ đã land + đã nối, đóng CID-1 (2026-08-12, chi tiết `PhoenixKey-Anchorme-Math.md` §8-9).
 
 ### 1.3 Đường sinh DID + băm (Core — rust_core)
 
@@ -66,7 +66,7 @@
 | DID canonical | `did:phoenix:base32(slot):hex(H(encode(type) ‖ creator ‖ encode(slot) ‖ rand_256))` | Math §2.1; `DidPhoenixGenerator.java:55-95` |
 | Regex | `^did:phoenix:[a-z2-7]{13}:[0-9a-f]{64}$` | `DID-Registry-Resolver-Feat §1.2` |
 | `N(did)` / `did_hash` | `blake2b_256(UTF-8(did))` — 32B, KHÔNG salt, KHÔNG BLAKE3 | `phoenix_address.rs:52`; `…-Feat §1.1` |
-| type-byte trong hash | `encode(type)` = BYTE enum. Java+Aiken **KHỚP byte-exact** (Person=0…Device=2,Machine=3,Asset=4,Bot=5,Agent=6,Service=7,Context=8,Avatar=9); chỉ **văn Math §2.2 lệch thứ-tự** (Context=2). §10 CID-4. | `DidPhoenixGenerator.java:56-65` ≡ `types.ak:21-32`; văn Math §2.2 |
+| type-byte trong hash | `encode(type)` = BYTE enum. Java+Aiken **KHỚP byte-exact** (Person=0…Device=2,Machine=3,Asset=4,Bot=5,Agent=6,Service=7,Context=8,Avatar=9); chỉ **văn Math §2.2 lệch thứ-tự** (Context=2). §10 CID-4. | `DidPhoenixGenerator.java:56-65` ≡ `types.EntityType`; văn Math §2.2 |
 
 **Chuỗi sinh-khoá ví + seed (Enclave → CIP-1852).** Vân tay **mở** cổng P-256 của
 Secure Enclave để giải-phóng `Master_KEK` (số ngẫu-nhiên 256-bit); nó **KHÔNG** dẫn-xuất
@@ -94,12 +94,12 @@ seed. Từ `Master_KEK`, chuỗi dẫn-xuất **tất-định** (cùng `Master_K
 
 ### 2.1 `TAADDatum` — 10 field (thứ-tự CBOR CỐ ĐỊNH)
 
-Neo `types.ak:34-63`. `Constr 0 [...]`:
+Neo `types.TAADDatum`. `Constr 0 [...]`:
 
 | # | Field | Aiken type | CBOR | Ý-nghĩa | Genesis |
 |---|---|---|---|---|---|
 | 0 | `did` | `ByteArray` | bytes | `did:phoenix:...` UTF-8 | (DID mới) |
-| 1 | `entity_type` | `EntityType` | Constr idx | 0=Person…9=Avatar (thứ-tự `types.ak:21-32`) | theo loại |
+| 1 | `entity_type` | `EntityType` | Constr idx | 0=Person…9=Avatar (thứ-tự `types.EntityType`) | theo loại |
 | 2 | `controller_pkh` | `VerificationKeyHash` | bytes(28) | băm TAAD_Key hiện-tại | băm ký-genesis |
 | 3 | `hw_key_pubkey` | `ByteArray` | bytes | HW_Key P-256 SEC1 (33B nén / 65B thô) — carry-only | pubkey Enclave |
 | 4 | `sequence` | `Int` | int | bộ đếm đơn-điệu | `0` |
@@ -109,7 +109,7 @@ Neo `types.ak:34-63`. `Constr 0 [...]`:
 | 8 | `revoked_slot` | `Option<Int>` | Constr 0/1 | slot Deactivate; `None`=sống | `None` |
 | 9 | `recovery_anchor` | `Option<ByteArray>` | Constr 0/1 | LampNet CID backup (carry-only) | `None` |
 
-> **Load-bearing genesis (pass `is_fresh`, `state_nft_logic.ak:294-300`):** `sequence=0 ∧ status=Active ∧ revoked_slot=None`. Field 9 `recovery_anchor` là con-trỏ off-chain, KHÔNG bị state-machine ràng (mirror rust_core `encode_taad_datum_create` field 9).
+> **Load-bearing genesis (pass `is_fresh`, `state_nft_logic.is_fresh`):** `sequence=0 ∧ status=Active ∧ revoked_slot=None`. Field 9 `recovery_anchor` là con-trỏ off-chain, KHÔNG bị state-machine ràng (mirror rust_core `encode_taad_datum_create` field 9).
 
 **Diễn-CBOR (GenesisPerson, ví-dụ rút gọn):**
 ```
@@ -130,7 +130,7 @@ ff
 
 ### 2.2 `StateNftRedeemer` (mint) — 3 nhánh
 
-Neo `state_nft_logic.ak:69-77`:
+Neo `state_nft_logic.StateNftRedeemer`:
 
 | idx | Redeemer | CBOR | Ai dùng |
 |---|---|---|---|
@@ -138,9 +138,9 @@ Neo `state_nft_logic.ak:69-77`:
 | 1 | `GenesisChild { owner_did }` | `d87a9f <owner_did> ff` | owner (đẻ con non-Person) |
 | 2 | `GenesisBurn` | `d87b80` | đóng anchor (mọi movement âm) |
 
-### 2.3 `TAADRedeemer` (spend) — 7 nhánh
+### 2.3 `TAADRedeemer` (spend) — 11 nhánh
 
-Neo `types.ak:65-129`:
+Neo `types.TAADRedeemer`:
 
 | idx | Redeemer | Field | Ai ký |
 |---|---|---|---|
@@ -151,12 +151,16 @@ Neo `types.ak:65-129`:
 | 4 | `Deactivate` | — | controller |
 | 5 | `UpdateGuardians` | `{new_guardians}` | controller |
 | 6 | `Transfer` | `{new_controller_pkh, new_hw_pubkey, new_guardians}` | controller cũ **+** mới (2-of-2) |
+| 7 | `RequestLoosenMeter` | `{target_meter_policy: Option<PolicyId>}` | controller (ghi yêu-cầu, chưa hiệu-lực) |
+| 8 | `ApplyLoosenMeter` | — | controller (chỉ khi `lb ≥ pending_meter_ms`) |
+| 9 | `CancelLoosenMeter` | — | controller **hoặc** guardian-threshold |
+| 10 | `ThreadUpdate` | `{op: ThreadRedeemer}` | theo `pa2_uniqueness_logic` (datum là `ShardDatum`, không phải `TAADDatum`) |
 
 > Recovery (idx 1-3) = luồng module **Rebirthme**; ở đây chỉ liệt-kê để rust_core encode đủ enum. Thứ-tự biến-thể LÀ idx CBOR.
 
 ### 2.4 Tham-số apply-param (`ValidatorParams`)
 
-Neo `types.ak:131-135`. Design-2 KHÔNG bake NFT-policy (policy ≡ script-hash tự-sinh):
+Neo `types.ValidatorParams`. Design-2 KHÔNG bake NFT-policy (policy ≡ script-hash tự-sinh):
 
 | Param | Type | Nguồn | Ghi-chú |
 |---|---|---|---|
@@ -174,7 +178,7 @@ Ký-hiệu: `d`/`d′` = datum vào/ra; `π` = own_policy; `N=blake2b_256(did)`.
 
 ### 3.0 Mint-gate (genesis)
 
-#### `GenesisPerson` — `validate_mint(GenesisPerson)` (`:138-152`)
+#### `GenesisPerson` — `state_nft_logic.validate_mint` nhánh `GenesisPerson`
 - **Điều-kiện:** (1) đúng 1 mint `+1` dưới `π`, carrier output DUY NHẤT tại `Script(π)`; (2) `name == blake2b_256(child.did)`; (3) `entity_type == Person`; (4) `parent_did == None`; (5) `controller_pkh ∈ extra_signatories` (self-sign); (6) fresh (seq=0,Active,revoked=None).
 - **Ký:** owner-witness (Enclave, khóa tự-khai).
 - **Gap lịch-sử (ĐÃ ĐÓNG 2026-08-12):** trước khi có PoP-bind, mục này KHÔNG kiểm did-string ↔ người mint. Nay `pop_bind_ok` (`pop_bind.ak`) ép `child.did` phải tính lại đúng từ tiền-ảnh chứa `controller_pkh` — xem `PhoenixKey-Anchorme-Math.md` §5.7ter.4. `hw` (P-256) vẫn KHÔNG verify on-chain (I-CID-11, T-2) — đây là giả-định tách riêng, không phải CID-1.
@@ -185,7 +189,7 @@ Ký-hiệu: `d`/`d′` = datum vào/ra; `π` = own_policy; `N=blake2b_256(did)`.
   signer: controller_pkh (Enclave)
   ```
 
-#### `GenesisChild { owner_did }` — (`:154-177`)
+#### `GenesisChild { owner_did }` — `state_nft_logic.validate_mint` nhánh `GenesisChild`
 - **Điều-kiện:** như trên + (G-owner) `find_owner_reference` trả owner NFT ở `Script(π)`, `owner.did == owner_did`, `status Active`; (G-1) `owner.controller_pkh ∈ signers`; (G-2) `can_own(owner.entity, child.entity)`; (G-3) `child.parent_did == Some(owner_did)`; (G-4) `child.entity ≠ Person`.
 - **Ký:** owner-controller (parent-sig). Parent-sig chặn `GenesisChild` bất-hợp-lệ nhưng KHÔNG tự nó là thứ đóng CID-1 (đường tấn-công đi qua `GenesisPerson`, không cần parent) — an-toàn thật tới từ PoP-bind, xem §3.0 trên.
 - **Shape:**
@@ -196,22 +200,22 @@ Ký-hiệu: `d`/`d′` = datum vào/ra; `π` = own_policy; `N=blake2b_256(did)`.
   signer: owner.controller_pkh
   ```
 
-#### `GenesisBurn` — (`:136,186-192`)
+#### `GenesisBurn` — `state_nft_logic.validate_mint` nhánh `GenesisBurn` → `all_movements_negative`
 - **Điều-kiện:** pure-burn — `list.length(moved) > 0 ∧ ∀ movement < 0`. Đóng anchor.
 
-### 3.1 `Rotate` — xoay chìa — (`:62-73`)
+### 3.1 `Rotate` — xoay chìa — `taad_logic.validate_spend` nhánh `Rotate`
 - **Điều-kiện (7):** `(Rotate,Active)`; ctrl cũ ký; `seq+1`; core immut; `ctrl′=new_ctrl`, `hw′=new_hw`; `status Active`; guardians giữ.
 - **Ký:** controller hiện-tại. `did` giữ ⟹ danh-tính bất-biến.
 - **Shape:** `in:[ANCHOR] redeemer=Rotate → out:[ANCHOR recreate: ctrl+hw mới, seq+1]  signer: ctrl cũ`.
 
-### 3.2 `Deactivate` — đóng-băng — (`:163-183`)
+### 3.2 `Deactivate` — đóng-băng — `taad_logic.validate_spend` nhánh `Deactivate`
 - **Điều-kiện (9):** `(Deactivate,Active)`; ctrl ký; `seq+1`; did/entity/parent/ctrl/hw/guardians giữ; `status Revoked`; `revoked_slot = Some(lb)` (lb = finite lower-bound).
 - **Ký:** controller. Revoked = dead-end.
 
-### 3.3 `UpdateGuardians` — (`:186-198`)
+### 3.3 `UpdateGuardians` — `taad_logic.validate_spend` nhánh `UpdateGuardians`
 - **Điều-kiện:** `(UpdateGuardians,Active)`; ctrl ký; `seq+1`; immut; `guardians′=new_guardians`; `len ≤ 5`; Active.
 
-### 3.4 `Transfer` — bàn-giao ServiceDID 2-of-2 — (`:202-219`)
+### 3.4 `Transfer` — bàn-giao ServiceDID 2-of-2 — `taad_logic.validate_spend` nhánh `Transfer`
 - **Điều-kiện (11):** `entity_type == Service`; **ctrl cũ VÀ ctrl mới cùng ký**; `new_ctrl ≠ ctrl`; `seq+1`; immut; `ctrl′=new_ctrl`, `hw′=new_hw`; Active; `value′ ≥ value`; guardian mới atomic (≤5).
 - **Ký:** 2-of-2 (native Ed25519 witness — KHÔNG verify thêm on-chain). Cài guardian mới cùng tx tránh cửa-sổ zero-recovery.
 - **Shape:**
@@ -222,15 +226,15 @@ Ký-hiệu: `d`/`d′` = datum vào/ra; `π` = own_policy; `N=blake2b_256(did)`.
   ```
 
 ### 3.5 Recovery (Init/Cancel/Finalize) — tóm, chi-tiết ở Rebirthme
-`InitRecovery` (`:76-110`): ≥`min_guardian_sigs` guardian ký, collateral ≥ ngưỡng khóa vào continuing UTxO (A-5), status→Recovering. `CancelRecovery` (`:116-131`): `ub < deadline_slot` (A-6), ctrl ký, →Active. `FinalizeRecovery` (`:134-157`): `lb > deadline_slot`, `pending_controller_pkh` ký, cài hw/ctrl pending, →Active. **Ranh-giới MECE: module Rebirthme sở-hữu; Core-Anchorme chỉ neo 3 nhánh này giữ A-1/A-2.**
+`InitRecovery` (nhánh của `taad_logic.validate_spend`): ≥`min_guardian_sigs` guardian ký, collateral ≥ ngưỡng khóa vào continuing UTxO (A-5), status→Recovering. `CancelRecovery` (cùng hàm): `ub < deadline_slot` (A-6), ctrl ký, →Active. `FinalizeRecovery` (cùng hàm): `lb > deadline_slot`, `pending_controller_pkh` ký, cài hw/ctrl pending, →Active. **Ranh-giới MECE: module Rebirthme sở-hữu; Core-Anchorme chỉ neo 3 nhánh này giữ A-1/A-2.**
 
-### 3.6 `anchor_controller_ok` — ví "đi-theo-DID" đọc anchor (`auth_logic.ak:37-52`)
+### 3.6 `anchor_controller_ok` — ví "đi-theo-DID" đọc anchor (`auth_logic.anchor_controller_ok`)
 ```
 find_anchor_datum(refs, π, N(did)) = Some(anchor)   # ĐÚNG 1 carrier, else None→REJECT
 ∧ is_active(anchor.status)
 ∧ list.has(extra_signatories, anchor.controller_pkh)
 ```
-Dùng bởi `did_payment.ak`/`did_stake.ak` (module Rebirthme). KHÔNG ép entity_type (`:16-18`) — CỐ Ý, vì PoP-bind đã cam-kết `entity_type` vào tiền-ảnh `did` ở tầng mint; đọc lại nó ở đây là dư (§CID-2). Bề mặt CID-1 đóng bằng PC + PoP-bind, đã land + đã nối (→ [STATUS](./PhoenixKey-STATUS.md#anchorme)).
+Dùng bởi `did_payment.ak`/`did_stake.ak` (module Rebirthme). KHÔNG ép entity_type (không có conjunct `entity_type` nào trong `anchor_controller_ok`) — CỐ Ý, vì PoP-bind đã cam-kết `entity_type` vào tiền-ảnh `did` ở tầng mint; đọc lại nó ở đây là dư (§CID-2). Bề mặt CID-1 đóng bằng PC + PoP-bind, đã land + đã nối (→ [STATUS](./PhoenixKey-STATUS.md#anchorme)).
 
 ### 3.7 Bảng ai-ký
 
@@ -499,7 +503,7 @@ Bổ-sung bắt-buộc trước khi mở production:
 - **PA2/PC (đã land + đã nối):** kiến-trúc THẬT là **PC** — gộp `taad`+`UniquenessThread` thành 1 validator (`anchor_policy ≡ thread_policy ≡ own_policy`), thay cho thiết-kế PA2-hai-validator ban-đầu (đã loại vì vô-nghiệm fixed-point hash). K=32 (không phải 256 — trần bootstrap-tx 16 KB). Sorted-list scale ~triệu (N/shard ≤ 400); dân-số → Merkle-root-in-datum (§5.7bis Math). **Địa-chỉ ví ĐÃ ĐỔI** khi PC land (5 validator bake `anchor_nft_policy` mới — khác PA2 gốc vốn giữ nguyên địa-chỉ) — chi-tiết `PhoenixKey-Anchorme-Math.md` §5.7ter.5.
 - **resolve-by-hash + point-in-time:** cần index ngược + `did_state_history` V16 (đội backend) trước khi Strata/VeData/MAGIC did_commit dùng được.
 - **DeviceDID:** `Op_create_device` (đội on-chain) + hw_cert verify (đội backend, validator chỉ neo hash) — cả hai phải xong đồng thời để tránh cert giả lọt.
-- **Type-code:** canonical LÀ bảng-byte `DidPhoenixGenerator.java:56-65` ≡ `types.ak:21-32` (Device=2…Service=7,Context=8). Văn Math §2.2 PHẢI bám bảng-byte này. Rà bản Rust/mobile bám đúng trước khi mint author-DID phi-nhân.
+- **Type-code:** canonical LÀ bảng-byte `DidPhoenixGenerator.java:56-65` ≡ `types.EntityType` (Device=2…Service=7,Context=8). Văn Math §2.2 PHẢI bám bảng-byte này. Rà bản Rust/mobile bám đúng trước khi mint author-DID phi-nhân.
 - **`Migrated` status:** cần maintainer chốt ai/khi-nào chuyển Active→Migrated, hoặc bỏ field.
 - **Registries + Permission/Consent + ServiceDID self-service:** chờ duyệt trước khi triển khai.
 - **Ranh-giới sửa code:** validator (đội on-chain) + backend (đội backend) thuộc PhoenixKey backend — nhóm tài-liệu KHÔNG sửa; phát-hiện lỗi → báo maintainer / tạo Issue. Tài-liệu này chỉ đặc-tả.
@@ -698,7 +702,7 @@ PhoenixKey cấp **danh-tính + chữ-ký Grant + resolve khoá**. KHÔNG lưu h
 
 ## 12. Chuẩn-hoá thuật-ngữ & i18n (VI/EN) — nhãn hiển-thị cho `EntityType`/`TAADStatus` (PROPOSAL, CHỜ DUYỆT)
 
-> **Trạng-thái: PROPOSAL — chờ duyệt.** Nguồn: `spec-proposals/PhoenixKey-Terminology-i18n-Spec.md`. Áp-dụng cho mọi chuỗi hiển-thị người-đọc trong toàn hệ (app, SDK, frontend, resolver) ánh-xạ từ giá-trị canonical on-chain/backend — ví-dụ nhãn 10 `EntityType` (§1.3, field 1 `TAADDatum`) và 4 trạng-thái `TAADStatus` (§2.1 field 5: Active/Recovering/Migrated/Revoked, cộng các trạng-thái vòng-đời mở-rộng ở tầng point-in-time §5.2). Đây là tầng **trình-bày**, KHÔNG đổi giá-trị canonical on-chain (byte enum `types.ak:21-32`, §1.3) hay giá-trị `status` trong response API (§5.1/§5.2 vẫn trả `active`/`revoked`/`recovering`/`migrated` dạng máy-đọc).
+> **Trạng-thái: PROPOSAL — chờ duyệt.** Nguồn: `spec-proposals/PhoenixKey-Terminology-i18n-Spec.md`. Áp-dụng cho mọi chuỗi hiển-thị người-đọc trong toàn hệ (app, SDK, frontend, resolver) ánh-xạ từ giá-trị canonical on-chain/backend — ví-dụ nhãn 10 `EntityType` (§1.3, field 1 `TAADDatum`) và 4 trạng-thái `TAADStatus` (§2.1 field 5: Active/Recovering/Migrated/Revoked, cộng các trạng-thái vòng-đời mở-rộng ở tầng point-in-time §5.2). Đây là tầng **trình-bày**, KHÔNG đổi giá-trị canonical on-chain (byte enum `types.EntityType`, §1.3) hay giá-trị `status` trong response API (§5.1/§5.2 vẫn trả `active`/`revoked`/`recovering`/`migrated` dạng máy-đọc).
 
 ### 12.1 Cơ-chế
 
@@ -711,7 +715,7 @@ PhoenixKey cấp **danh-tính + chữ-ký Grant + resolve khoá**. KHÔNG lưu h
 
 | Miền | Tiền-tố | Neo dữ-liệu canonical | Ví-dụ |
 |---|---|---|---|
-| Loại DID | `pk.didtype.*` | `TAADDatum.entity_type` (§2.1 field 1, `types.ak:21-32`) — 10 loại | `pk.didtype.person` → "Cá nhân" / "Person" |
+| Loại DID | `pk.didtype.*` | `TAADDatum.entity_type` (§2.1 field 1, `types.EntityType`) — 10 loại | `pk.didtype.person` → "Cá nhân" / "Person" |
 | Trạng-thái vòng-đời | `pk.status.*` | `TAADDatum.status` (§2.1 field 5) + trạng-thái mở-rộng point-in-time (§5.2) | `pk.status.recovering` → "Đang khôi phục" / "Recovering" |
 | Khoá & danh-tính | `pk.key.*` | `controller_pkh`/`hw_key_pubkey` (§2.1 field 2-3) | `pk.key.hw_key` → "Khoá phần cứng (sinh trắc)" / "Hardware key (biometric)" |
 | Khôi-phục/sao-lưu | `pk.recovery.*` | luồng Rebirthme (§3.5) | `pk.recovery.guardian` |
