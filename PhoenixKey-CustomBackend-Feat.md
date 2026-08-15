@@ -3,7 +3,7 @@
 > **Tài liệu này viết cho ai:** người dùng PhoenixKey, đội sản phẩm, VÀ kỹ sư tích hợp — gộp chung vì đây là một tính năng hạ tầng nhỏ, không phải một module trong 8 module chính. Mục tiêu: hiểu **vì sao ví cần cho chọn nguồn dữ liệu chuỗi riêng**, **cơ chế hoạt động**, **bảo mật ra sao**, và **giới hạn thật của thiết kế**.
 > **Thuộc hạ tầng ví:** dùng chung bởi Ví Phượng hoàng (Phoenix) lẫn Ví tiêu chuẩn (Standard) — xem [PhoenixKey-Rebirthme-Vi-Feat.md](./PhoenixKey-Rebirthme-Vi-Feat.md) cho tổng quan ví. **Ngày:** 2026-07-14.
 > Đối chiếu code thật: `Enclave/lib/services/backend_config_service.dart`, `Enclave/lib/screens/backend_settings_screen.dart`, `Enclave/lib/bridge/cardano_tx_builder.dart` — nhánh `claude/custom-backend-config`.
-> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md).
+> → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
 
 ---
 

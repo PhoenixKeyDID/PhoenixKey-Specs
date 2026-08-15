@@ -40,7 +40,7 @@ Nền: hòm Smartsend = **địa-chỉ script Plutus V3 stateful** (UTxO mang `S
 3. **Byte-perfect payout**: Cancel/ReclaimTimeout/ResolveFreeze-timeout ép `Σ→sender == amount + min_ada`, Finalize ép `Σ→receiver == amount + min_ada` (SS-1/SS-5′/SS-12) — không đổi hướng, không rút bớt, `fee_covered` KHÔNG vào biểu-thức output.
 4. **Factor neo anchor-enroll**: tập factor Cancel + cờ `independent_of_seed` neo trong anchor lúc enroll, KHÔNG tin datum lúc Open (SSR-4) → chống kẻ Open tự đặt factor dễ; mỗi factor phải **distinct FactorKind** + verify thật (SS-3/SSR-13).
 5. **Authority nguồn + guardian đọc động qua anchor ref-input** (CIP-31): nạp hòm và Freeze quy về `anchor_controller_ok` / guardian-sig — dẫn-chiếu `auth_logic.ak`, KHÔNG sao-chép.
-6. **Freeze có lối thoát bắt-buộc**: Freeze chỉ dùng trong cửa-sổ-veto; giải-Freeze qua guardian-quorum (m-of-n) hoặc `freeze_deadline` auto-hoàn sender — không kẹt vĩnh-viễn (SS-8/SS-8′).
+6. **Freeze có lối thoát bắt-buộc**: Freeze chỉ dùng trong cửa-sổ-veto; giải-Freeze qua guardian-quorum (Σ trọng-số ≥ threshold, I-GUARD-WEIGHT) hoặc `freeze_deadline` auto-hoàn sender — không kẹt vĩnh-viễn (SS-8/SS-8′).
 7. **`window` có sàn cứng**: `veto_deadline - open_slot ≥ min_window_floor` bất-kể "2-bên-thoả"; `open_slot` phải nằm trong validity-range của chính tx Open (SS-10).
 
 ---
@@ -76,7 +76,7 @@ Smartsend ĐỌC (không sửa): `controller_pkh` (verify nguồn nạp + `recei
 | **Smartsend Accept** | `smartsend_escrow` | verify controller-sig `receiver_commit` qua anchor; chỉ set `receiver_consent=true`, mọi field khác + value bất-biến (SS-9′/SSR-14) | receiver (controller) |
 | **Smartsend Finalize** | `smartsend_escrow` | `now≥veto_deadline` (cận-dưới); consent nếu `amount≥large_threshold` (trừ đích ngoài-Phoenix); `Σ→receiver==amount+min_ada` (SS-5′) | (permissionless / Bob) |
 | **Smartsend Freeze** | `smartsend_escrow` | `now<veto_deadline`; guardian-sig hợp-lệ (neo anchor) → `frozen:=true`, chặn Finalize (SS-8) | guardian |
-| **Smartsend ResolveFreeze** | `smartsend_escrow` | `frozen==true` ∧ (guardian-quorum m-of-n anchor.guardians ∨ `now≥freeze_deadline`) → `Σ→sender==amount+min_ada` (SS-8′) | guardian-quorum / permissionless sau `freeze_deadline` |
+| **Smartsend ResolveFreeze** | `smartsend_escrow` | `frozen==true` ∧ (guardian-quorum Σ trọng-số ≥ threshold trên `anchor.guardians` ∨ `now≥freeze_deadline`) → `Σ→sender==amount+min_ada` (SS-8′) | guardian-quorum / permissionless sau `freeze_deadline` |
 | **Smartsend ReclaimTimeout** | `smartsend_escrow` | `now≥reclaim_deadline ∧ receiver_consent==false`; `Σ→sender==amount+min_ada` (SS-11) | sender (permissionless sau hạn) |
 | **Nạp nguồn (chi ví)** | `did_payment` | anchor Active + controller ký (dẫn-chiếu Rebirthme) | controller |
 
@@ -98,7 +98,7 @@ Smartsend ĐỌC (không sửa): `controller_pkh` (verify nguồn nạp + `recei
 Người-nhận thấy hòm → `build Accept` (controller `receiver_commit` ký) → set `receiver_consent=true`, mọi field khác byte-perfect bất-biến (SSR-14). Hết cửa-sổ → Finalize hợp-lệ (SS-4 thoả). Không consent tới `reclaim_deadline` → `ReclaimTimeout` hoàn sender (SS-11). Đích ngoài-Phoenix (`receiver_commit==#""`): `large_threshold` không enforce on-chain được — xem giới-hạn ở [PhoenixKey-Smartsend-Vi-Feat.md](./PhoenixKey-Smartsend-Vi-Feat.md) §7.
 
 ### 5.4 Nghi trộm (Freeze → ResolveFreeze)
-Guardian `build Freeze` trong cửa-sổ-veto → escrow `frozen:=true` → chặn Finalize. Giải-Freeze qua `ResolveFreeze`: guardian-quorum (m-of-n anchor.guardians) xử-lý, HOẶC tới `freeze_deadline` không resolve → auto-hoàn sender permissionless (SS-8′, chống grief kẹt vĩnh-viễn).
+Guardian `build Freeze` trong cửa-sổ-veto → escrow `frozen:=true` → chặn Finalize. Giải-Freeze qua `ResolveFreeze`: guardian-quorum (Σ trọng-số ≥ threshold trên `anchor.guardians`) xử-lý, HOẶC tới `freeze_deadline` không resolve → auto-hoàn sender permissionless (SS-8′, chống grief kẹt vĩnh-viễn).
 
 ### 5.5 ZK-context bind escrow (Phase 2, VeData/Glint) — SSR-12
 Public-input proof Glint (FaceMatch/SecretSelfie/DeviceGeo) PHẢI gồm `blake2b_256(own_ref ‖ escrow_datum_hash)` — proof gắn-cứng vào escrow-UTxO đang spend, validator ép public-input khớp escrow đó. Spectra off-chain đảm-bảo liveness + anti-replay (nonce theo escrow) — chống dùng lại 1 proof cho nhiều lệnh Cancel.
@@ -137,7 +137,7 @@ Backend chỉ index + thông-báo; KHÔNG giữ khoá, KHÔNG ký thay.
 
 **Phụ-thuộc ngoài:**
 - **Anti-drain `limit_meter.ak`** (Rebirthme) — chống-trộm SS-6/T-SS-3 phụ-thuộc; khuyến-nghị land trước hoặc song-song.
-- **Guardian factor + Freeze/ResolveFreeze** — dựa guardian-recovery + quorum m-of-n từ anchor.guardians.
+- **Guardian factor + Freeze/ResolveFreeze** — dựa guardian-recovery + quorum theo TỔNG trọng-số (I-GUARD-WEIGHT) từ `anchor.guardians`.
 - **Enroll-set factor trong anchor** (SSR-4) — schema thuộc Core Anchorme/Validator.
 - **Spectra/Glint** (VeData) cho factor bối-cảnh ZK.
 
