@@ -3,7 +3,7 @@
 > **Module:** Wakeme (kích-hoạt nhận LAMP). **Loại doc:** Toán hình-thức. **Mô hình:** BẢN A — vest-thành-sở-hữu theo epoch. **Cập nhật:** 2026-07-31.
 > **Đối-tượng đọc:** auditor smart-contract + nhà kiểm-toán tokenomic. Đây là đặc-tả TOÁN (định-nghĩa, bất-biến, công-thức, chứng-minh money-safety), KHÔNG phải doc thiết-kế. Thiết-kế/động-cơ ở [Vi-Feat](./PhoenixKey-Wakeme-Vi-Feat.md); kỹ-thuật/API ở [Tech](./PhoenixKey-Wakeme-Tech.md); điều-hành ở [Exec](./PhoenixKey-Wakeme-Exec.md).
 >
-> **Thuật-ngữ (anh Aladin chốt 2026-07-31):** khoản LAMP khoá-điều-kiện = **"quyền dùng" (usage right)** — user được cấp QUYỀN DÙNG để sinh MAGIC, KHÔNG sở-hữu/định-đoạt, không lãi, không dùng việc khác. **`WakemeUsageRight`** = lượng quyền-dùng cấp lúc genesis (trước gọi "WakemeLent" — đã bỏ). Phần đã kiếm được chuyển sang **`owned` (sở-hữu-hẳn)**.
+> **Thuật-ngữ (chốt 2026-07-31):** khoản LAMP khoá-điều-kiện = **"quyền dùng" (usage right)** — user được cấp QUYỀN DÙNG để sinh MAGIC, KHÔNG sở-hữu/định-đoạt, không lãi, không dùng việc khác. **`WakemeUsageRight`** = lượng quyền-dùng cấp lúc genesis (trước gọi "WakemeLent" — đã bỏ). Phần đã kiếm được chuyển sang **`owned` (sở-hữu-hẳn)**.
 >
 > **Nguồn chân-lý = CODE, không phải văn:** mọi bất-biến neo trực-tiếp `file:hàm:dòng` trong validator. Khi văn ≠ code → **code thắng**. Auditor thấy chênh → báo lỗi CODE hoặc lỗi SPEC, không tự hoà.
 >
@@ -94,7 +94,7 @@ p2_epoch(lo, s₀) = ⌊off / slots_per_epoch⌋   nếu off ≥ 0
 
 **Ghi-chú LAMP tổng-thể (hard-constraint):** LAMP tổng-cung cố-định 36 tỷ, **KHÔNG burn**. Mọi LAMP rời vault đi ĐÚNG một trong hai đích {**pot** (kế-toán Treasury/hồ-chung), **ví-owner**} — KHÔNG có đường đốt. Sinh MAGIC KHÔNG spend/đốt LAMP: engine Gen ĐỌC số-dư qua reference-input, KHÔNG là redeemer của validator này (§7-T4). MAGIC = account-trong-Vault (non-transferable), `nanogic = MAGIC × 10⁹`, KHÔNG mint MAGIC token, KHÔNG policy-id.
 
-> **Không còn redeemer `GenDrip`.** Bản trước có redeemer spend `GenDrip` (identity no-op ép `c′=c ∧ o′=o ∧ L bất-biến`) để "chứng LAMP không rời khi Gen". Đã **gỡ** (anh Aladin chốt 2026-07-31): Gen sinh MAGIC bằng cách ĐỌC vault qua reference-input (read-only), KHÔNG spend UTxO ⟹ một redeemer spend cho việc đó là thừa + bề-mặt griefing (churn UTxO miễn phí). Validator model-A chỉ còn **4 redeemer spend** {Reclaim, OwnEpoch, ReclaimEpoch, Redeem}. Bất-biến "LAMP không rời vault khi tương-tác không-tài-chính" nay do **OwnEpoch** (I-ACT-7, value-invariant) gánh + giả-định Gen-đọc-số-dư (T-4).
+> **Không còn redeemer `GenDrip`.** Bản trước có redeemer spend `GenDrip` (identity no-op ép `c′=c ∧ o′=o ∧ L bất-biến`) để "chứng LAMP không rời khi Gen". Đã **gỡ** (chốt 2026-07-31): Gen sinh MAGIC bằng cách ĐỌC vault qua reference-input (read-only), KHÔNG spend UTxO ⟹ một redeemer spend cho việc đó là thừa + bề-mặt griefing (churn UTxO miễn phí). Validator model-A chỉ còn **4 redeemer spend** {Reclaim, OwnEpoch, ReclaimEpoch, Redeem}. Bất-biến "LAMP không rời vault khi tương-tác không-tài-chính" nay do **OwnEpoch** (I-ACT-7, value-invariant) gánh + giả-định Gen-đọc-số-dư (T-4).
 
 ---
 
@@ -266,7 +266,7 @@ Vậy giảm-`o` ⟺ Redeem ⟺ owner ký ⟹ user toàn-quyền phần đã-s�
 
 ## 9. Nguồn nạp pot (Feecover surplus) — kế-toán + điều-kiện bền-vững
 
-> Anh Aladin chốt 2026-07-31: **nguồn CHỦ-YẾU làm pot tăng = thặng-dư LAMP từ Feecover.** Mục này đặc-tả **kế-toán dòng** + **điều-kiện cân-đối**; cơ-chế mua-lại/redeem cụ-thể (chọn giá, khớp lệnh) thuộc **Feecover/LAMP** (Wakeme là bên NHẬN nguồn) — KHÔNG đặc-tả ở đây.
+> Chốt 2026-07-31: **nguồn CHỦ-YẾU làm pot tăng = thặng-dư LAMP từ Feecover.** Mục này đặc-tả **kế-toán dòng** + **điều-kiện cân-đối**; cơ-chế mua-lại/redeem cụ-thể (chọn giá, khớp lệnh) thuộc **Feecover/LAMP** (Wakeme là bên NHẬN nguồn) — KHÔNG đặc-tả ở đây.
 
 **Kế-toán pot `P` (oildrop).** Ký `Σ` trên tập vault + khoảng thời-gian:
 ```
@@ -334,7 +334,7 @@ tức tốc-độ-nạp (Feecover + idle-reclaim + forfeit) ≥ tốc-độ-rờ
 ## Nguồn
 
 - Code (nguồn chân-lý): `PhoenixKey-Validator/lib/phoenixkey/wakeme_logic.ak` (~2852 dòng, 491 checks), `validators/wakeme_vault.ak`, `lib/phoenixkey/auth_logic.ak` (`anchor_controller_ok`).
-- Mô hình BẢN A: Issue #67 (anh Aladin chốt 2026-07-30); gỡ GenDrip + thuật-ngữ usage-right (2026-07-31).
+- Mô hình BẢN A: Issue #67 (chốt 2026-07-30); gỡ GenDrip + thuật-ngữ usage-right (2026-07-31).
 - Nguồn thiết-kế nội-bộ (không công khai).
 - Tài-liệu cùng bộ: [Vi-Feat](./PhoenixKey-Wakeme-Vi-Feat.md), [Tech](./PhoenixKey-Wakeme-Tech.md), [Exec](./PhoenixKey-Wakeme-Exec.md).
 

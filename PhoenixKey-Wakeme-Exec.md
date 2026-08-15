@@ -5,7 +5,7 @@
 >
 > Tài-liệu này KHÔNG lặp toán. Chỉ nêu điều lãnh-đạo cần để duyệt và chốt.
 >
-> **Nguồn canonical DUY NHẤT của mô hình Wakeme = bộ 4-doc này.** Khung **closed-loop-pot / "tấm-pin"** (2026-07-17, "user KHÔNG BAO GIỜ sở hữu LAMP") **ĐÃ BỊ LOẠI** (anh Aladin chốt 2026-07-30) → lưu ở `Legacy/wakeme-modelB-closed-loop-pot-2026-07-17/`. Khung v4.1 (vest 1 LAMP/ngày, redeemer `VestToOwner`/`ClaimVested`/`ForfeitPhase2`) **lỗi thời** — thay bằng bản A dưới đây.
+> Khung **closed-loop-pot / "tấm-pin"** (2026-07-17, "user KHÔNG BAO GIỜ sở hữu LAMP") **ĐÃ BỊ LOẠI** (chốt 2026-07-30) → lưu ở `Legacy/wakeme-modelB-closed-loop-pot-2026-07-17/`. Khung v4.1 (vest 1 LAMP/ngày, redeemer `VestToOwner`/`ClaimVested`/`ForfeitPhase2`) **lỗi thời** — thay bằng bản A dưới đây.
 
 ---
 
@@ -36,7 +36,7 @@
 
 > 🔴 **CỔNG GO/NO-GO (đọc trước khi duyệt bật production):** validator an-toàn tiền-tệ nhưng **KHÔNG được mở Wakeme-PersonDID trên production tới khi uniqueness person-level + Registry-chuẩn land.** Lý do: PersonDID **giả-mạo được ở tầng neo-anchor** (did-string đúc anchor bất-kỳ, HW_Key P-256 không verify on-chain — KHÔNG phải lỗ sinh-trắc) + cổng chống-wash chưa tồn tại → kẻ tấn-công rút-ròng nhiều suất D. Enterprise/Org/Service DID (có parent-sig) KHÔNG dính lỗ này. Xem §7.
 
-→ Trạng-thái & tiến-độ hiện tại: [Wakeme STATUS](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#wakeme)
+→ Trạng-thái & tiến-độ hiện tại: [Wakeme STATUS](./PhoenixKey-STATUS.md#wakeme)
 
 ---
 
@@ -113,8 +113,7 @@
 
 ## Nguồn
 
-- Nguồn thiết-kế nội-bộ (không công khai). Mô hình bản A: Issue #67 (anh Aladin chốt 2026-07-30).
-- Memory: `anchor-uniqueness-limit`, `no-sybil-concern`, `magic-not-native-token`, `activation-getlamp-model`, `guardian-recovery-model`.
+- Nguồn thiết-kế nội-bộ (không công khai). Mô hình bản A: Issue #67 (chốt 2026-07-30).
 - Code (nguồn chân-lý): `PhoenixKey-Validator/lib/phoenixkey/wakeme_logic.ak` + `validators/wakeme_vault.ak` (BẢN A, 491 checks/0 err; rename định-danh activation→wakeme 2026-07-31, hash bất-biến `3f6e5bf6…f23`; on-chain redeploy đi theo PA-1).
 - Tài-liệu cùng bộ: [Vi-Feat](./PhoenixKey-Wakeme-Vi-Feat.md), [Math](./PhoenixKey-Wakeme-Math.md), [Tech](./PhoenixKey-Wakeme-Tech.md).
 

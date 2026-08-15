@@ -3,7 +3,7 @@
 > **Module:** Smartsend (gửi-có-bảo-vệ). **Loại doc:** Toán hình-thức cho auditor. **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** auditor / kiểm-toán mật-mã. Định-nghĩa hình-thức, bất-biến, mệnh-đề-ép từng thao-tác, đối-chiếu dòng code thật (khi land).
 >
-> **Ranh giới (MECE):** module này đặc-tả **hòm ký-quỹ gửi-có-bảo-vệ** (`smartsend_escrow`): escrow + cửa-sổ-veto + huỷ đa-yếu-tố + đồng-ý người-nhận + hoàn-tất byte-perfect + Freeze + ReclaimTimeout. Cơ-chế **ví theo-DID** (`did_payment`), **guardian-recovery**, **anti-drain** (`limit_meter`) **thuộc module Rebirthme** — ở đây CHỈ dẫn-chiếu, không định-nghĩa lại. Xem [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) (§2.1 cổng chi, §4.B anti-drain, §4.I guardian) + [PhoenixKey-Math.md](./PhoenixKey-Math.md) §10/§11.
+> **Ranh giới (không chồng lấn, không bỏ sót):** module này đặc-tả **hòm ký-quỹ gửi-có-bảo-vệ** (`smartsend_escrow`): escrow + cửa-sổ-veto + huỷ đa-yếu-tố + đồng-ý người-nhận + hoàn-tất byte-perfect + Freeze + ReclaimTimeout. Cơ-chế **ví theo-DID** (`did_payment`), **guardian-recovery**, **anti-drain** (`limit_meter`) **thuộc module Rebirthme** — ở đây CHỈ dẫn-chiếu, không định-nghĩa lại. Xem [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) (§2.1 cổng chi, §4.B anti-drain, §4.I guardian) + [PhoenixKey-Math.md](./PhoenixKey-Math.md) §10/§11.
 >
 > **Mã bất-biến:** bất-biến Smartsend giữ NGUYÊN tiền-tố `SS-*` / `SSR-*` (đã độc-lập từ nguồn). Bất-biến tái-dùng từ Rebirthme ghi rõ mã gốc + nguồn (I-WALLET-*, I-LIMIT-*, I-GUARD-*, I-CURVE-*). Bất-biến từ `PhoenixKey-Math.md` ghi rõ §.
 

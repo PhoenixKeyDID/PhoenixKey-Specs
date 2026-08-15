@@ -38,7 +38,7 @@
   content CID                         Stamp → anchor_request → Mosaic
 ```
 
-**Phân định ranh-giới cốt-lõi (MECE):**
+**Phân định ranh-giới cốt-lõi (không chồng lấn, không bỏ sót):**
 - **PhoenixKey (module Knowme) LÀM:** đóng-gói credential (envelope), phân-giải khoá (resolve DID/issuer), **tiết-lộ chọn-lọc** (selective disclosure), lớp tài-liệu (commit + seal + version + re-seal), neo hash on-chain.
 - **VeData LÀM:** catalog các loại giấy-tờ (VC types) + issuer thật, cùng các module Stamp/Query/Glint/Spectra. Knowme **dẫn-chiếu**, không tự dựng, không gọi thẳng Mosaic (chỉ qua Stamp intake).
 

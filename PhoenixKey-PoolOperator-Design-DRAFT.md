@@ -181,7 +181,7 @@ khởi động block-producer với node.opcert
 5. **Sinh KES/VRF ở node** (không trên điện thoại) — xác nhận đúng ý đồ vận hành GreenSun.
 
 ---
-_DRAFT — Phoenix agent soạn cho anh Aladin + Long + Tuân duyệt. Chưa commit/push._
+_DRAFT — bản thiết kế đang chờ duyệt._
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._
