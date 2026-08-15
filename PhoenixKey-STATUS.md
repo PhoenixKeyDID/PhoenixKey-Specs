@@ -2,7 +2,7 @@
 
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
-> Cập nhật: 2026-08-12. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy.
+> Cập nhật: 2026-08-15. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy.
 
 ---
 
@@ -72,7 +72,9 @@ Trạng-thái đo được trên `main` của kho Validator:
 
 **Nền đã chạy (173/173 Aiken PASS, 2026-07-08):** ví theo-DID `did_payment` (chi khi Active + controller ký; tài-sản sống qua rotate; địa chỉ bất-biến); đóng-băng theo trạng-thái (Recovering/Migrated/Revoked chặn chi); singleton-anchor I-WALLET-4/5; guardian recovery Init/Cancel/Finalize/UpdateGuardians(≤5) + timelock 3600 slot + collateral 50 ADA (bỏ Shamir); ví Standard + Rotation Account; P-256 low-s (I-SIGN-LOWS); `lampnet.rs` fail-closed (I-VAULT-4); Ed25519 dalek deterministic.
 
-**Chưa có code:** 🔴 `limit_meter.ak` anti-drain — KHÔNG tồn tại (I-CURVE-4 load-bearing, hở HIGH, ưu-tiên M2); 🔴 `did_subaddr.ak` (L3 unlinkable, chờ chốt [DEP-2]); 🔴 `did_stake.ak` (stake theo-DID). 🟡 I-CURVE-5 chưa enforce builder; kho bí-mật/phả-hệ seed chưa hợp-nhất; export re-key UI chưa cắm mặc-định; guardian nâng-cao (trọng-số/veto/cap) Todo; chứng-thực VeData-Glint/Midnight chờ VeData. ⚪ CIP-30 connector, legacy-migration, on-ramp mandate, pool-ops (KES/VRF) build-ready-Todo.
+**Chưa có code:** 🔴 `limit_meter.ak` anti-drain — KHÔNG tồn tại (I-CURVE-4 load-bearing, hở HIGH, ưu-tiên M2); 🔴 `did_subaddr.ak` (L3 unlinkable, chờ chốt [DEP-2]); 🔴 `did_stake.ak` (stake theo-DID). 🟡 I-CURVE-5 chưa enforce builder; kho bí-mật/phả-hệ seed chưa hợp-nhất; export re-key UI chưa cắm mặc-định; guardian nâng-cao (trọng-số/veto/cap) Todo; chứng-thực VeData-Glint/Midnight chờ VeData. ⚪ legacy-migration, on-ramp mandate, pool-ops (KES/VRF) build-ready-Todo.
+
+**CIP-30 connector — nay CÓ CODE, chưa lên sản-xuất (2026-08-15).** Kho `PhoenixKeyDID/Wallet` dựng xong lớp dApp-connector: kết nối ví mở rộng (Lace/Eternl/Typhon/…), xem-bằng-khoá-công-khai, gửi ADA/token, staking, uỷ-quyền dRep, gửi Governance action — 178/178 test PASS, `tsc --noEmit` sạch, 4 ngôn ngữ ngang khoá. Kho `PhoenixKey-Frontend` gắn kho này bằng **submodule** và mở hai đường `/wallet` + `/night` (`bun run build` xanh, 16 route). **Cả hai còn ở PR chưa merge** (Wallet #18, Frontend #19) ⇒ phoenixkey.me **chưa** có đường nào chạm tới ví. Đây là ví **ngoài** (khoá nằm ở tiện-ích mở rộng của người dùng) — KHÔNG phải ví Phoenix theo-DID, và **không** đụng tới blocker khoá-thiết-bị bên dưới.
 
 **Blocker ngoài:** CARP policy-id, stake-state indexer (backend), Merkle LAMP (LAMP), schema anchor mới vào TAADDatum (backend, chờ duyệt), crate KES/VRF (PoC).
 
@@ -156,10 +158,12 @@ Hiện-trạng triển-khai các phần của đặc-tả toán v4.6 (đã tách
 | 2026-08-08 | Đăng nhập web | Gọi thật máy chủ đang chạy: `POST /auth/session/init` → 200; `GET /api/v1/.well-known/jwks.json` → 200, `kid=phoenixkey-ed25519-1`; `POST /auth/token/exchange` tồn tại (403 với token giả). ⚠ `/.well-known/jwks.json` ở **gốc miền → 404** |
 | 2026-08-08 | Backend | `Tests run: 393, Failures: 0, Errors: 0, Skipped: 0` (CI run `31252652916`); `DidOpWatermarkUpsertPostgresTest` chạy trên Postgres thật 10,37s / 6 test / Skipped 0 |
 | 2026-08-08 | Tài liệu | 67 endpoint có mã / 64 có tài liệu → nay 67/67 (PR Database #132); thêm 4 sequence diagram + đặc tả 5 màn hình (PR Specs #24) |
+| 2026-08-15 | Wallet (CIP-30) | `vitest run`: **14 file / 178 test PASS**; `tsc --noEmit` sạch; `check:locales` → "Locale parity OK — 4 languages × 2 namespaces". Vá 3 lỗi treo-kết-nối CIP-30 (`enable()` không bao giờ settle, đổi mạng giữa chừng, submit không chắc chắn) + 4 điểm hội-đồng chỉ ra (cổng xác-nhận tự tắt không báo, DoS liệt-kê ví qua getter ném lỗi, QR rơi về hex, mạo-danh token). Kho `PhoenixKeyDID/Wallet` PR #18 — **chưa merge** |
+| 2026-08-15 | Frontend | `bun run typecheck` sạch; `bun run build` → `Compiled successfully`, 16 route có `○ /wallet` + `○ /night`; chạy thật `localhost:3000` dựng đủ 3 chế độ, đổi tiếng Việt đúng, console 0 lỗi. Gắn `Wallet` bằng submodule. PR Frontend #19 — **chưa merge, chưa deploy** |
 
 ---
 
-## 5. Đo hiện trạng năng lực đầu-cuối (2026-08-08)
+## 5. Đo hiện trạng năng lực đầu-cuối (2026-08-08, bổ-sung 2026-08-15)
 
 Mục 1–3 tổ chức theo module. Mục này tổ chức theo **việc người dùng làm được**, vì một module xanh không có nghĩa người dùng bấm được.
 
@@ -168,6 +172,8 @@ Mục 1–3 tổ chức theo module. Mục này tổ chức theo **việc ngư�
 | Tạo ví **Standard** và chi tiền | **ĐƯỢC** | — (đường chi duy nhất đang chạy) |
 | Tạo ví **Phoenix**, nhận tiền | **ĐƯỢC** | ⚠ địa chỉ đang dẫn ứng với CBOR bản cũ 1-chữ-ký (xem blocker mục 2) |
 | **Chi tiền từ ví Phoenix** | **KHÔNG** | khoá thiết bị chưa tồn tại trong mã; không có hàm dựng+ký giao dịch 2-chữ-ký ở cả app lẫn backend |
+| Nối **ví ngoài** (Lace/Eternl/Typhon) vào web, gửi ADA/token, staking, uỷ-quyền dRep, gửi Governance action | **CÓ CODE, CHƯA LÊN WEB** (2026-08-15) | code + test xong ở `Wallet` (178/178) và điểm-gắn xong ở `Frontend`; nhưng PR #18/#19 **chưa merge** và **chưa deploy** ⇒ phoenixkey.me hôm nay trả trang không-tìm-thấy cho `/wallet` |
+| **Tạo bộ seed mới** (ví base + enterprise) hoặc **khôi phục bộ khoá cũ** ngay trên web | **KHÔNG — và là cố ý** | web là **cửa sổ**, điện thoại là **két**: không trang nào của kho `Wallet`/`Frontend` được phép hỏi cụm từ khôi phục (`Wallet/README.md:39-45`, `Frontend/README.md:3`). Sinh/khôi phục seed nằm ở app Core (`rust_core`). Muốn có trên web thì phải đổi thiết kế, không phải thêm màn hình |
 | Bấm **Wakeme / GetLAMP** | **KHÔNG** | 3 biến `ACTIVATION_*` rỗng ⇒ `501`; pot chưa có LAMP; giao diện web hiện trỏ luồng cũ đã ngừng dùng |
 | **ScheduleGen / InstantGen** | **KHÔNG** | 0 dòng mã; và đang bị cấm nối tới khi MAGIC pha-2 chỉ-đọc xong (`PhoenixKey-Wakeme-Tech.md:239`) |
 | Đăng nhập web PhoenixKey bằng QR | **ĐƯỢC** | — |
