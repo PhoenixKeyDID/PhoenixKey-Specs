@@ -221,14 +221,24 @@ I-EGG-2 (`epoch` +1) + I-EGG-3 (`log_root` MMR append-only, commit `leaf_count`)
 `epoch` tăng nghiêm, log không xoá; submit datum `epoch` cũ ⇒ reject. ∎
 
 ### Định-lý E3 (Unlinkability — phát biểu CHÍNH XÁC + giới hạn)
-**Đạt được.** *Tầng 1:* explorer chỉ đọc `PoolDatum` (không field per-DID); `bal(DID)` ẩn dưới salt
-⇒ **ẩn STOCK** với explorer. *Tầng 0:* mỗi sub payment credential khác ⇒ không nhóm khi NHẬN
-(I-EGG-11). *Tầng 2:* Groth16 + nullifier ⇒ không ghép cặp nạp↔rút; operator-blind (ZK-Math §A.1).
+**Đạt được.** *Tầng 1 (chỉ đúng với DID CHƯA TỪNG chạm hồ):* explorer chỉ đọc `PoolDatum` (không
+field per-DID); `bal(DID)` ẩn dưới salt ⇒ **ẩn STOCK** với explorer — xem giới hạn REDEEMER ngay
+dưới đây, phá vỡ điều này kể từ lần chạm đầu tiên. *Tầng 0:* mỗi sub payment credential khác ⇒
+không nhóm khi NHẬN (I-EGG-11). *Tầng 2:* Groth16 + nullifier ⇒ không ghép cặp nạp↔rút;
+operator-blind (ZK-Math §A.1).
 **KHÔNG đạt (giới hạn, KHÔNG giấu).** *Tầng 1* không ẩn FLOW: timing + amount mỗi khoản NHẬN của addr
 công khai lộ trước sweep; batching chỉ trộn khi mật độ đủ (thưa ⇒ anonymity ≈ 1); không ẩn với
-operator (indexer giữ lá plaintext). *Tầng 0* lộ khi CHI (mở một `tag_i` + tham chiếu anchor DID).
-*Tầng 2* LỘ ai-nạp/ai-nhận/amount(denomination)/tổng-pot; `K_min` chặn `k` (đếm) KHÔNG bảo đảm `k'`
-(hiệu dụng) — self-fill là residual kinh-tế (OQ-EGG-5). ∎ (phát biểu — cấm marketing "vô hình")
+operator (indexer giữ lá plaintext). **Redeemer `LeafUpdate{did, leaf_index, amount, old_balance,
+old_salt, new_salt, proof}` (`pool_types.ak:56-64`) là trường của REDEEMER, không phải datum ẩn —
+redeemer nằm trong witness-set của giao dịch Cardano, công khai VĨNH VIỄN trên chuỗi, đọc được bởi
+BẤT KỲ block explorer nào, không riêng operator. Ngay lần Sweep/Withdraw ĐẦU TIÊN chạm một DID,
+`did`+`old_balance`+`amount` lộ công khai ⇒ ai cũng tính được `new_balance = old_balance ± amount`;
+lặp lại ở MỌI lần chạm sau đó, không phải lỗi một lần. Vì sweep định kỳ là luồng bình thường của
+sản phẩm (không phải trường hợp hiếm), "ẩn STOCK" ở trên chỉ còn đúng cho DID chưa từng chạm hồ.
+Đây là GIỚI HẠN KIẾN TRÚC của cách hiện tại đọc/ghi Merkle-Sum-Tree bằng redeemer công khai, không
+phải bug chờ bản vá.** *Tầng 0* lộ khi CHI (mở một `tag_i` + tham chiếu anchor DID). *Tầng 2* LỘ
+ai-nạp/ai-nhận/amount(denomination)/tổng-pot; `K_min` chặn `k` (đếm) KHÔNG bảo đảm `k'` (hiệu dụng)
+— self-fill là residual kinh-tế (OQ-EGG-5). ∎ (phát biểu — cấm marketing "vô hình")
 
 ### Định-lý E4 (Recovery-symmetry — điều kiện + LỖ HỔNG G5)
 **Mệnh đề.** Tầng 1 tài sản phục hồi thuần bằng cơ chế DID nếu (i) quyền chi đọc động authority hiện

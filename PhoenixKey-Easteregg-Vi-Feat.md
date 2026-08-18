@@ -233,6 +233,15 @@ vào-ra và số dư*, chứ **vẫn lộ** ai nạp, ai nhận, và mỗi kho�
   cần đối-chiếu nút gốc là biết ngay tổng sổ có khớp tổng tiền thật hay không, không phải cộng
   tay từng người); tiền phải "quét" (sweep) từ địa-chỉ Phoenix công-khai vào, KHÔNG nhận trực-tiếp.
 
+- **Giới hạn kiến trúc (redeemer công khai — KHÔNG phải lỗi sắp vá):** dữ-liệu ghi vào hồ khi
+  quét/rút — `did`, `số dư cũ`, `số tiền` — nằm trong **redeemer** của giao dịch, không phải trong
+  phần dữ-liệu ẩn. Redeemer thuộc witness-set của giao dịch Cardano nên **công khai vĩnh viễn trên
+  chuỗi**, khác hẳn bằng-chứng ZK thật (bằng-chứng ZK không lộ dữ-liệu gốc). Ngay lần quét/rút ĐẦU
+  TIÊN chạm tới một danh-tính, `did` + số dư cũ + số tiền lộ công khai — ai cũng tính ra được số
+  dư mới. Lặp lại ở MỌI lần chạm sau đó, không phải một lần. Vì quét tiền định kỳ là luồng bình
+  thường của sản phẩm, lời hứa "ẩn số dư" ở mục 4 **chỉ đúng cho danh-tính chưa từng chạm hồ**.
+  Đây là một đánh-đổi của kiến-trúc hiện-tại, không phải một lỗ sắp có bản vá.
+
 - **5 lỗ thiết-kế cần vá trước khi mở-khoá từng mức** (chi-tiết kỹ-thuật ở bản Tech):
   - **G1 — Cấn phí khi rút (🔴):** bạn rút được mà không cần giữ ADA lẻ, và không ai lách phí.
   - **G2 — Chuyển nội bộ (🟡):** cách chuyển thẳng trong hồ thay vì rút-ra-nạp-lại.
