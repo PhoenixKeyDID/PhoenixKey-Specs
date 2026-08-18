@@ -8,8 +8,8 @@
 > **Thuật-ngữ (anh Aladin chốt 2026-07-31):** LAMP khoá-điều-kiện = **quyền dùng (usage right)**; lượng cấp genesis = **`WakemeUsageRight`** (= `1001·d_unit` oildrop); phần đã kiếm = **`owned`** (sở-hữu-hẳn). "activation"→"wakeme" toàn nhánh (validator/endpoint/type).
 >
 > **Nguồn đối-chiếu (code = nguồn chân-lý; văn ≠ code → code thắng):**
-> - `PhoenixKey-Validator/validators/wakeme_vault.ak` — thin validator (mint-gate 2 + spend dispatch 4 redeemer). *(Tên khai-báo `validator activation_vault(...)` chưa đổi — rename định-danh này gộp vào đợt endpoint/deploy, đụng tra-cứu blueprint-title off-chain.)*
-> - `PhoenixKey-Validator/lib/phoenixkey/wakeme_logic.ak` — datum/redeemer type + `*_ok` (491 checks/0 errors).
+> - `PhoenixKey-Validator/validators/wakeme_vault.ak` — thin validator (mint-gate 2 + spend dispatch 4 redeemer). Tên khai-báo đã đổi: `validator wakeme_vault(...)` (`:64`).
+> - `PhoenixKey-Validator/lib/phoenixkey/wakeme_logic.ak` — datum/redeemer type + `*_ok` (đo 2026-08-19: 94 bài test; cùng `wakeme_vault.ak` 18 bài = 112 bài, 0 lỗi).
 > - `PhoenixKey-Validator/lib/phoenixkey/auth_logic.ak` — `anchor_controller_ok` (owner-sig = 2-of-2 controller+device).
 >
 > → Trạng-thái build/test/deploy: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)

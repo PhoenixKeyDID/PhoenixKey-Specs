@@ -8,7 +8,7 @@
 > **Nguồn chân-lý = CODE, không phải văn:** mọi bất-biến neo trực-tiếp `file:hàm:dòng` trong validator. Khi văn ≠ code → **code thắng**. Auditor thấy chênh → báo lỗi CODE hoặc lỗi SPEC, không tự hoà.
 >
 > **Code neo (nguồn chân-lý):**
-> - `PhoenixKey-Validator/lib/phoenixkey/wakeme_logic.ak` — toàn bộ toán + cơ-chế-ép (`*_ok`). Auditor tự chạy `aiken check` (491 checks/0 errors) xác nhận bao-phủ.
+> - `PhoenixKey-Validator/lib/phoenixkey/wakeme_logic.ak` — toàn bộ toán + cơ-chế-ép (`*_ok`). Auditor tự chạy `aiken check` (đo 2026-08-19: toàn kho 642 bài test/0 lỗi; riêng `wakeme_logic.ak` 94 + `wakeme_vault.ak` 18 = 112 bài test) xác nhận bao-phủ.
 > - `PhoenixKey-Validator/validators/wakeme_vault.ak` — thin validator (dispatch 4 spend redeemer + 2 mint redeemer).
 > - `PhoenixKey-Validator/lib/phoenixkey/auth_logic.ak` — `anchor_controller_ok` (đồng-thuận owner = 2-of-2 controller+device).
 >
@@ -22,8 +22,8 @@
 |---|---|---|---|
 | `D` | ℤ⁺ (oildrop¹) | `WakemeUsageRight` — lượng quyền-dùng cấp genesis; `D = 1001·d_unit` | genesis `:806` (`conditional == wakeme_nights·d_unit`) |
 | `d_unit` | ℤ⁺ (oildrop) | nhịp đêm `D/1001`, CỐ-ĐỊNH per-vault, `∈ [1, oil_per_lamp]` | `.d_unit`; genesis `:804-805` |
-| `s₀` | slot | `vest_start_slot` — mốc-0 đồng-hồ; genesis ép `== tx_lo` (chống back-date) | `.vest_start_slot`; genesis `:799-802` |
-| `lo` | slot | lower-bound HỮU-HẠN của validity-interval tx = "now" | `tx_lo` (None nếu −∞ → REJECT) `:174` |
+| `s₀` | ms (POSIX) | `vest_start_ms` — mốc-0 đồng-hồ; genesis ép `== tx_hi` (cận TRÊN validity-range — DUY-NHẤT không lùi về quá-khứ được, xem I-TIME-ANCHOR §2) | `.vest_start_ms`; genesis `:807-808` |
+| `lo` | ms (POSIX) | lower-bound HỮU-HẠN của validity-interval tx = "now" (dùng cho đồng-hồ NGÀY/EPOCH, KHÔNG dùng làm neo genesis — xem `s₀`) | `tx_lo` (None nếu −∞ → REJECT) `:174` |
 | `n` | ℤ≥0 | số NGÀY đã trôi = `days_elapsed(lo, s₀)` | `days_elapsed:192` |
 | `e` | ℤ≥−1 | epoch tương-đối từ đầu PHA-2 = `p2_epoch(lo, s₀)` | `p2_epoch:205` |
 | `c` | ℤ≥0 (oildrop) | `conditional_lamp` — quyền-dùng khoá (chưa-sở-hữu) | `.conditional_lamp` |
@@ -47,7 +47,7 @@ phase1_last         = 1001          (PHA-1: n ≤ 1001; PHA-2: n > 1001)  :113
 wakeme_nights       = 1001          (D = 1001·d_unit ⟹ D ⋮ 1001)        :116
 wakeme_use_right_cap= 1001·10⁶      (trần D = 1001 LAMP, oildrop)        :119
 forfeit_epoch_gap   = 1001          (forfeit khi gap epoch ≥ 1001)      :122
-slots_per_day, slots_per_epoch = config (86_400 / 432_000)              :95,:100
+ms_per_day, ms_per_epoch = config (86_400_000 / 432_000_000, ms)       :95,:100
 ```
 
 ---
@@ -56,17 +56,17 @@ slots_per_day, slots_per_epoch = config (86_400 / 432_000)              :95,:100
 
 **Đ-1 · days_elapsed** (`:192`):
 ```
-days_elapsed(lo, s₀) = ⌊(lo − s₀) / slots_per_day⌋   nếu lo − s₀ ≥ 0
-                     = 0                                nếu lo − s₀ < 0   (clamp — chống man-thời-gian âm)
+days_elapsed(lo, s₀) = ⌊(lo − s₀) / ms_per_day⌋   nếu lo − s₀ ≥ 0
+                     = 0                             nếu lo − s₀ < 0   (clamp — chống man-thời-gian âm; lo, s₀ đo bằng ms)
 ```
 
 **Đ-2 · p2_epoch** (`:205`) — epoch tương-đối từ ĐẦU PHA-2 (ngày 1002 = epoch 0):
 ```
-off = lo − s₀ − 1001·slots_per_day
-p2_epoch(lo, s₀) = ⌊off / slots_per_epoch⌋   nếu off ≥ 0
+off = lo − s₀ − 1001·ms_per_day
+p2_epoch(lo, s₀) = ⌊off / ms_per_epoch⌋   nếu off ≥ 0
                  = −1                          nếu off < 0   (chưa tới PHA-2 — sentinel)
 ```
-**Bổ-đề Đ-2a:** OwnEpoch/ReclaimEpoch chỉ chạy khi `n > phase1_last` ⟹ `off > 0` ⟹ `e ≥ 0` (sentinel −1 không lọt so-sánh ngưỡng, guard `e_now >= 0` ở `:518,:571,:628`). Chứng-minh: `n > 1001 ⟹ lo − s₀ ≥ 1002·slots_per_day > 1001·slots_per_day ⟹ off > 0`. ∎
+**Bổ-đề Đ-2a:** OwnEpoch/ReclaimEpoch chỉ chạy khi `n > phase1_last` ⟹ `off > 0` ⟹ `e ≥ 0` (sentinel −1 không lọt so-sánh ngưỡng, guard `e_now >= 0` ở `:518,:571,:628`). Chứng-minh: `n > 1001 ⟹ lo − s₀ ≥ 1002·ms_per_day > 1001·ms_per_day ⟹ off > 0`. ∎
 
 **Đ-3 · epoch_release** (`:215`): `q = epoch_release(c, d_unit) = min(epoch_nights·d_unit, c) = min(5·d_unit, c)`.
 
@@ -102,7 +102,7 @@ p2_epoch(lo, s₀) = ⌊off / slots_per_epoch⌋   nếu off ≥ 0
 
 | ID | Bất-biến (hình-thức) | Cơ-chế-ép on-chain | Neo `wakeme_logic.ak` |
 |---|---|---|---|
-| **I-ACT-1** | Genesis: `c = D = 1001·d_unit ∧ d_unit ∈ [1,10⁶] ∧ o = 0 ∧ r = 0 ∧ td = 0 ∧ te = −1 ∧ s₀ = tx_lo ∧ L(vault) = c ∧ did_commit ≠ ∅ ∧ did_commit = owner_commit = name` | mint-gate GenesisVault ép ĐÚNG 1 NFT (name=owner_commit) + khuôn + `lamp_locked == conditional` + **anchor_controller_ok** | `genesis_vault_ok:776` (mệnh-đề `:793-828`) |
+| **I-ACT-1** | Genesis: `c = D = 1001·d_unit ∧ d_unit ∈ [1,10⁶] ∧ o = 0 ∧ r = 0 ∧ td = 0 ∧ te = −1 ∧ s₀ = tx_hi ∧ L(vault) = c ∧ did_commit ≠ ∅ ∧ did_commit = owner_commit = name` | mint-gate GenesisVault ép ĐÚNG 1 NFT (name=owner_commit) + khuôn + `lamp_locked == conditional` + **anchor_controller_ok** | `genesis_vault_ok:776` (mệnh-đề `:793-828`) |
 | **I-ACT-2** | Ranh-giới pha: Reclaim ⟹ `n ≤ 1001`; OwnEpoch/ReclaimEpoch ⟹ `n > 1001`. Không chồng-lấn. | guard `n <= phase1_last` (Reclaim) ; `n > phase1_last` (còn lại) | `reclaim_ok:408`; `own_epoch_ok:517`; `reclaim_epoch_ok:570` |
 | **I-ACT-3** | (Registry-gate) `active` = tiêu qua dịch-vụ Registry, counterparty ≠ owner | **NGOÀI on-chain MVP** — keeper attest (tin-cậy §8). Stub `has_counterparty_consume → False` (KHÔNG dùng như gate — sẽ brick). Blocker **B2**. | `has_counterparty_consume:360` |
 | **I-ACT-4** | Reclaim (PHA-1 anti-idle): `c′ = c − d_unit ∧ r′ = r + d_unit ∧ o′ = o ∧ td′ = n ∧ te′ = te`; đúng `d_unit` → pot(tag); grace + monotonic + đủ-số-dư; `c′ ≥ 1` (else đóng) | 14 mệnh-đề (keeper, n≤1001, n≥grace, n>td, c≥d_unit, sổ, c′≥1, sổ↔value, đích-pot-tag, anti-drain) | `reclaim_ok:388` |
@@ -180,7 +180,7 @@ owner_signed                                  -- controller DID (anchor_controll
 **_close_ok `:703`:** khi `c_in = 0 ∧ rút TOÀN BỘ owned` → owned → owner(tag) + min-ADA → owner + `¬recreate` → burn.
 
 ### 5.5 Mint-gate — `genesis_vault_ok` / `close_vault_ok` `:776` / `:840`
-- **GenesisVault:** ĐÚNG 1 movement `+1` dưới own_policy; carrier output DUY-NHẤT tại `Script(own_policy)`; `name == owner_commit`; `s₀ == tx_lo` (chống back-date → nhảy PHA-2 né anti-idle, ôm trọn `D` 1 phí — `:799-802`); khuôn I-ACT-1; `lamp_locked == conditional`; `only_expected_policies`; **`anchor_controller_ok`** (owner ký genesis, `:824`).
+- **GenesisVault:** ĐÚNG 1 movement `+1` dưới own_policy; carrier output DUY-NHẤT tại `Script(own_policy)`; `name == owner_commit`; `s₀ == tx_hi` — neo vào cận TRÊN của validity-range, KHÔNG phải cận dưới (I-TIME-ANCHOR, `:807-808`): ledger chỉ ép `lb ≤ now ≤ ub`, nên `lb` (cận dưới) back-date được tuỳ ý — khai `lb` lùi về quá-khứ vẫn hợp lệ, và neo vào `lo` mở lại đúng lỗ cũ (builder nhảy thẳng PHA-2, né toàn bộ anti-idle PHA-1, ôm trọn `D` bằng 1 phí tx). `ub ≥ now` là mốc DUY-NHẤT không lùi về quá-khứ được — kẻ tấn công đẩy `ub` ra xa chỉ tự lùi ngày bắt-đầu vesting của chính mình; do đó dùng `hi` làm neo genesis; khuôn I-ACT-1; `lamp_locked == conditional`; `only_expected_policies`; **`anchor_controller_ok`** (owner ký genesis, `:824`).
 - **CloseVault:** PURE-BURN — `∀ movement own_policy < 0 ∧ len > 0`. Nối các nhánh close (`¬vault_recreated`). `:840`.
 
 ### 5.6 Đích gắn-tag (chống double-satisfaction) `lamp_to_addr_tagged:306`
@@ -306,7 +306,7 @@ tức tốc-độ-nạp (Feecover + idle-reclaim + forfeit) ≥ tốc-độ-rờ
 5. **OwnEpoch VALUE bất-biến** `L(out)=L(in)` (LAMP không rời vault) + `q = min(5·d_unit, c)` (không chuyển quá).
 6. **ReclaimEpoch gap** `e − te ≥ 1001` load-bearing; `te` chỉ tiến qua OwnEpoch.
 7. **Redeem** `1 ≤ k ≤ owned` + conditional bất-biến (`c′ = c`) + không phase-gate.
-8. **Genesis khuôn:** `s₀ == tx_lo` (chống back-date) + `D = 1001·d_unit` (`⋮1001`, `≤ cap`) + `owned=0` + `te=−1` + `did_commit==owner_commit==name` + `anchor_controller_ok`.
+8. **Genesis khuôn:** `s₀ == tx_hi` (neo cận TRÊN — chống back-date, xem I-TIME-ANCHOR §2) + `D = 1001·d_unit` (`⋮1001`, `≤ cap`) + `owned=0` + `te=−1` + `did_commit==owner_commit==name` + `anchor_controller_ok`.
 9. **Monotonic** `td` (Reclaim), `te` (OwnEpoch once/epoch). Anti-drain `nonlamp_preserved` + `only_expected_policies` mọi redeemer.
 10. **Close/burn** đúng: `*_close_ok` chỉ khi vault thực-rỗng (Reclaim: `c=d_unit∧o=0`; ReclaimEpoch: `o=0`; Redeem: `c=0∧k=o`) nối `close_vault_ok` pure-burn.
 11. **KHÔNG còn `GenDrip`/`VestToOwner`/`ClaimVested`/`ForfeitPhase2`** trong code — grep phải rỗng (model v4.1 đã bỏ).
