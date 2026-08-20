@@ -14,10 +14,34 @@
 | **Rebirthme** | ví theo-DID `did_payment`, đóng-băng theo trạng-thái, guardian recovery ngưỡng+timelock, P-256 low-s, `lampnet.rs`; **`limit_meter_vault` + `did_stake` nay build được** (hash `f3be6d6d…` / `eb535cc1…`) | `did_subaddr` chưa có; **khoá thiết bị (yếu-tố-2 chi tiêu) chưa tồn tại trong mã app** | NO-GO ví-giá-trị-lớn tới khi khoá thiết bị land |
 | **Wakeme** | validator `wakeme_vault` build được (hash `8655974a…`); backend `buildGetLamp`/`submitGetLamp` là hiện thực thật | B1 engine Gen đọc-số-dư, B2 Registry consume-gate, B3 PA2 cho GetLAMP-PersonDID; **3 biến môi trường `ACTIVATION_*` rỗng ⇒ mọi lời gọi trả `501`** | NO-GO tới khi Registry + PA2 land |
 | **Feecover** | ConsumeMAGIC lõi (kế thừa) | Layer Feecover 0 dòng; B1 MAGIC-model, B2 CARP policy-id, B3 did_commit per-DID; FG-4 EpochSettle tự-vá | NO-GO tới khi B1+B2+B3 + FG-4 |
-| **Protectme** | cổng chi-trả `protectme_logic`+`protectme_beacon_logic`+`protectme_payout` (72 bài test đối-kháng sạch: 23 beacon + 14 logic + 35 payout, branch `feat/protectme-payout`) | Beacon one-shot per claim_id đã nối (`protectme_beacon_logic.ak` 733 dòng, mint gọi từ `protectme_payout.ak:49-53`) — đóng double-satisfaction trong-cùng-tx; còn hở LIÊN-tx: 2 MintClaim khác tx cho cùng claim_id thật vẫn tạo 2 escrow độc-lập (`protectme_beacon_logic.ak:36-45`); 2-bucket + resolver + UI chưa có; 11 quyết-định PROT-1..11 | NO-GO tới khi uniqueness liên-tx + blocker + quyết-định |
+| **Protectme** | cổng chi-trả `protectme_logic`+`protectme_beacon_logic`+`protectme_payout` (72 bài test đối-kháng sạch: 23 beacon + 14 logic + 35 payout, branch `feat/protectme-payout`); hash `b1f90fca…` → **`cd4f2c24…` sau PR Validator #88**, chưa merge | Beacon one-shot per claim_id đã nối (`protectme_beacon_logic.ak` 733 dòng, mint gọi từ `protectme_payout.ak:49-53`) — đóng double-satisfaction trong-cùng-tx; ~~còn hở LIÊN-tx: 2 MintClaim khác tx cho cùng claim_id thật vẫn tạo 2 escrow độc-lập~~ **ĐÃ VÁ** (PR Validator #88, chưa merge): `claim_id` nay do SỔ CÁI sinh — `claim_id_bound_to_spent_input` ép `claim_id == blake2b_256(cbor.serialise(outref))` của một input thật, nên duy nhất theo cấu trúc, không cần SMT và không đẻ tranh chấp UTxO. → phá giao diện off-chain: builder phải sinh claim_id từ UTxO bucket sắp tiêu; escrow kiểu `"claim-0001"` bị từ chối; 2-bucket + resolver + UI chưa có; 11 quyết-định PROT-1..11 | NO-GO tới khi uniqueness liên-tx + blocker + quyết-định |
 | **Knowme** | Mức 1+2 SD-VC có code+test, demo `/vc` (20 file / 415 test PASS) | B1 lib BBS (Mức 3), B2 LampNet gateway (lớp tài-liệu), B4 StampRecord | M1 chạy; Mức 3/tài-liệu chờ blocker |
 | **Easteregg** | 1 PoC Python off-chain trên Preview (3 tx-hash); **`did_pool` nay build được** (hash `9ba97ba4…`) | `did_subaddr.ak` chưa có; ZK Tầng 2 verifier chưa viết; G1/G3/G5 chưa vá | NO-GO; chỉ GO build+test Preview T1 + T3-mode-1 |
-| **Smartsend** | spec đầy đủ SS-1..12; **validator `smartsend` nay build được** (hash `9ed1b56f…`) | verifier Glint/Spectra (Phase 2); SS-11 vừa khôi phục điều kiện `amount ≥ large_threshold` (PR #23) | NO-GO; money-critical, review trước code |
+| **Smartsend** | spec đầy đủ SS-1..12; **validator `smartsend` nay build được** (hash `9ed1b56f…` → **`e5656fbf…` sau PR Validator #88**, chưa merge) | verifier Glint/Spectra (Phase 2); SS-11 vừa khôi phục điều kiện `amount ≥ large_threshold` (PR #23) | NO-GO; money-critical, review trước code |
+
+### 1b. AssetDID + phả hệ nông sản (mới 2026-08-20)
+
+Không phải module thứ 9 — là một năng lực cắt ngang Anchorme, dựng cho truy xuất nguồn gốc nông sản (OriLifeTrace).
+
+| Thứ | Trạng thái | Bằng chứng |
+|---|---|---|
+| `EntityType.Asset` on-chain | **có sẵn**, `can_own(Person\|Org\|Service, Asset) = True` | `state_nft_logic.ak:92-135` |
+| `can_own(Asset, Asset)` | **False** — Asset là lá thụ động (§22.1) | `state_nft_logic.ak:131`, `PhoenixKey-Math.md:2209-2233` |
+| `POST /identity/asset/create` | có, đòi Bearer (interceptor mặc-định-từ-chối) | `IdentityController.java`, test `assetCreate_noBearer_401` |
+| 5 lỗ trên đường đó | **đã vá**, PR Database #200 chưa merge (639 test, 0 đỏ) | chữ ký thiếu `locationProof` · khoá active-đầu-tiên ký thay chủ · `assetClass` tự phong · owner ép Person · neo rỗng bằng chứng |
+| SDK client | **0 dòng** trên `main` (`grep -ri asset src/` = 0) — nhánh `claude/sdk-asset-did` đang dựng | — |
+| UI Flutter | `entityType` hard-code `'PERSON'` | `create_identity_screen.dart:261` |
+| Validator phả-hệ `lineage` | đang dựng, nhánh `claude/lineage-nong-san` | — |
+
+**Hai số quyết định chi phí, đo được:**
+- **min-ADA ≈ 2,36 ADA / DID** — `(388+160)×4310`; 388 byte là CBOR `TxOut` đầy đủ theo CDDL, 4310 là `coinsPerUTxOByte` lấy sống từ Koios mainnet epoch 650.
+- **Đúc được ĐÚNG 1 state-NFT / giao dịch** — `state_nft_logic.ak:246-252` (`has_non_unit`). Ràng buộc **thiết kế**, không phải tài nguyên: ExUnit mới dùng mem 6,8% / cpu 3% trần.
+
+🔴 **min-ADA KHÔNG thu hồi được.** `taad_logic.ak:97-98` ép output tiếp diễn mang đúng NFT ở đúng địa chỉ script **vô điều kiện, trước mọi nhánh redeemer**; `TAADRedeemer` (`types.ak:161-277`) **không có Burn**; `Deactivate` (`:310-334`) chỉ đổi `status`. ⇒ 100.000 quả = **236.188 ADA khoá vĩnh viễn**. Cấp TAAD AssetDID cho từng quả là không khả thi — phải phân tầng, quả nằm trong lá Merkle của UTxO lô.
+
+**CIP-113 đã khảo sát và LOẠI:** Status *Proposed*, PR `cardano-foundation/CIPs#444` chưa merge từ 2023-01, `cips.cardano.org/cip/CIP-113` trả 404 (đối chứng CIP-68 tải được), repo chính chủ tự ghi *"do not deploy to mainnet or use with real assets"*; và nó là chuẩn **quyền chuyển**, không có ngữ nghĩa transformation/bảo toàn khối lượng. CIP-143 = *Inactive*. CIP-25 = label 721, Plutus không đọc được. CIP-68 = *Active*, dùng làm lớp trình bày — ⚠ label 444 (RFT) là *fungible* nên **không dùng cho hộp bán lẻ** (mất định danh cá thể = mở đường rửa nguồn gốc). GS1 EPCIS `TransformationEvent` đúng ngữ nghĩa nhưng mọi trường Optional, **không ràng buộc số học nào**.
+
+**Ranh giới phải nói với người ngoài:** on-chain chỉ bảo đảm không tạo được khối lượng từ hư không **sau khi đã nhập**. Cái cân nằm ngoài chuỗi; điểm nhập là oracle. Đường tấn công rẻ nhất — thuê một nông dân thật, chở hàng ngoài tới vườn, đăng ký tại gốc — làm mọi cổng đều xanh, và không cơ chế on-chain nào chạm tới.
 
 ---
 
