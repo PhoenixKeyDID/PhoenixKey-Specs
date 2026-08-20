@@ -2,7 +2,7 @@
 
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
-> Cập nhật: 2026-08-19. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy. Đợt 15/08 bổ sung: đọc chip giấy tờ (eMRTD), đầu dò tầm với, CORS tra-tên-công-khai, SDK username — **cả bốn đều là PR chưa merge**, xem mục 4. Riêng eMRTD đã **nối đầu-cuối** trong cùng ngày (PR Core #73, 2 commit thêm) — chỗ đứt còn lại là chưa chạm thẻ thật. Đợt 19/08: Protectme — `protectme_beacon_logic.ak` đã có mã (733 dòng, không còn 0 dòng) và đã nối vào `protectme_payout.ak`; đo lại `aiken check` = 72 bài test (23 beacon + 14 logic + 35 payout); phần hở còn lại là đúc trùng `claim_id` liên-giao-dịch, xem mục 1 + phần Protectme.
+> Cập nhật: 2026-08-20. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy. Đợt 15/08 bổ sung: đọc chip giấy tờ (eMRTD), đầu dò tầm với, CORS tra-tên-công-khai, SDK username — **cả bốn đều là PR chưa merge**, xem mục 4. Riêng eMRTD đã **nối đầu-cuối** trong cùng ngày (PR Core #73, 2 commit thêm) — chỗ đứt còn lại là chưa chạm thẻ thật. Đợt 19/08: Protectme — `protectme_beacon_logic.ak` đã có mã (733 dòng, không còn 0 dòng) và đã nối vào `protectme_payout.ak`; đo lại `aiken check` = 72 bài test (23 beacon + 14 logic + 35 payout); phần hở còn lại là đúc trùng `claim_id` liên-giao-dịch, xem mục 1 + phần Protectme.
 
 ---
 
@@ -28,10 +28,12 @@ Không phải module thứ 9 — là một năng lực cắt ngang Anchorme, d�
 | `EntityType.Asset` on-chain | **có sẵn**, `can_own(Person\|Org\|Service, Asset) = True` | `state_nft_logic.ak:92-135` |
 | `can_own(Asset, Asset)` | **False** — Asset là lá thụ động (§22.1) | `state_nft_logic.ak:131`, `PhoenixKey-Math.md:2209-2233` |
 | `POST /identity/asset/create` | có, đòi Bearer (interceptor mặc-định-từ-chối) | `IdentityController.java`, test `assetCreate_noBearer_401` |
-| 5 lỗ trên đường đó | **đã vá**, PR Database #200 chưa merge (639 test, 0 đỏ) | chữ ký thiếu `locationProof` · khoá active-đầu-tiên ký thay chủ · `assetClass` tự phong · owner ép Person · neo rỗng bằng chứng |
-| SDK client | **0 dòng** trên `main` (`grep -ri asset src/` = 0) — nhánh `claude/sdk-asset-did` đang dựng | — |
+| 8 lỗ trên đường đó | **đã vá**, PR Database #200 chưa merge (**659** test, 0 đỏ) | 5 lỗ đầu: chữ ký thiếu `locationProof` · khoá active-đầu-tiên ký thay chủ · `assetClass` tự phong · owner ép Person · neo rỗng bằng chứng. 3 lỗ do chính bản vá mở ra: cam kết không muối lộ ô GPS · hai mã lỗi mới trùng số · chưa ai đọc cam kết để đối chiếu |
+| Muối cam kết on-chain | **có**, 32 byte mỗi bản ghi, migration `V42` | cam kết không muối cho đoán-và-đối-chiếu ra đúng ô GPS vườn: `assetClass` 13 giá trị · `physicalIdHash` tính lại được từ ảnh cây công khai · `locationProof` = H(ô ~111 m), không gian ~10⁷ |
+| `GET /identity/{did}/commitment-check` | **có**, đòi Bearer, **6** trạng thái | `MATCH · MISMATCH · NO_COMMITMENT_LEGACY · NO_SALT_UNVERIFIABLE · NOT_ANCHORED · NOT_AN_ASSET` |
+| SDK client | **có**, PR SDK #16 chưa merge (107 test, 0 đỏ) | `verifyAssetCommitment` đối chiếu CHÉO NGÔN NGỮ với hàm Java sản xuất chạy qua `jshell` — cùng chuỗi byte |
 | UI Flutter | `entityType` hard-code `'PERSON'` | `create_identity_screen.dart:261` |
-| Validator phả-hệ `lineage` | đang dựng, nhánh `claude/lineage-nong-san` | — |
+| Validator phả-hệ `lineage` | **đã dựng + đã tấn công + đã vá**, PR Validator #89 chưa merge | 871 test 0 đỏ; hash `5cff3fc3…`; **9 hash validator cũ giữ nguyên từng byte** |
 
 **Hai số quyết định chi phí, đo được:**
 - **min-ADA ≈ 2,36 ADA / DID** — `(388+160)×4310`; 388 byte là CBOR `TxOut` đầy đủ theo CDDL, 4310 là `coinsPerUTxOByte` lấy sống từ Koios mainnet epoch 650.
@@ -39,9 +41,34 @@ Không phải module thứ 9 — là một năng lực cắt ngang Anchorme, d�
 
 🔴 **min-ADA KHÔNG thu hồi được.** `taad_logic.ak:97-98` ép output tiếp diễn mang đúng NFT ở đúng địa chỉ script **vô điều kiện, trước mọi nhánh redeemer**; `TAADRedeemer` (`types.ak:161-277`) **không có Burn**; `Deactivate` (`:310-334`) chỉ đổi `status`. ⇒ 100.000 quả = **236.188 ADA khoá vĩnh viễn**. Cấp TAAD AssetDID cho từng quả là không khả thi — phải phân tầng, quả nằm trong lá Merkle của UTxO lô.
 
+**Phả hệ `lineage` — 8 lỗ do audit + red-team dựng PoC, đã vá TRƯỚC khi deploy** (validator chưa lên chuỗi nên sửa còn miễn phí):
+
+| | Lỗ | Vá |
+|---|---|---|
+| V1 🔴 | `waste` rửa NGƯỢC thành `mass` — đẳng thức đặt trên TỔNG nên hai sổ khả hoán hai chiều; bội số rửa hàng bằng đúng phân số hao hụt sinh học (cà phê ~4,5×) | `waste` đơn điệu tăng |
+| V2 🔴 | Rút một lá vô số lần — `Split` nhân bản cả `merkle_root` lẫn `next_index` | Con luôn `next_index == 0`, `merkle_root == None` |
+| V3 🔴 | Nhân bản trùng byte mọi trường trừ `attestor_did` — `unit_id` con tự chọn, `origin_root` thành tự-khai gián tiếp | **Suy `unit_id` theo đường đi**, duy-nhất chứng minh bằng quy nạp từ gốc one-shot |
+| V4 🔴 | Lá Merkle không cam kết khối lượng | `lá = H(0x00 ‖ unit_id_con ‖ be8(mass))` |
+| V5 🟡 | Thu hồi DID bên chứng thực hoá gạch cả `Destroy` ⇒ phạt đúng hành vi bảo mật đúng đắn | `Destroy` nhận anchor mọi trạng thái, vẫn đòi controller ký |
+| V6 🟡 | Trường `did` tự khai ⇒ mạo danh tài sản | Con kế thừa `did` của cha; đặt mới chỉ ở `Genesis` có cổng |
+| V7 🟡 | L-2 chỉ ghim `payment_credential` ⇒ đổi stake credential là biến mất khỏi bên giám sát quét theo địa chỉ | So toàn địa chỉ |
+| V8 🟡 | Trần Merge 20 không bao giờ đạt được | Tách `max_merge_parents = 4` |
+
+**Trần Merge là trần THỰC THI, không phải trần logic.** Merge chi n UTxO ⇒ ledger chạy validator n+1 lần, mỗi lần lại O(n) ⇒ bậc hai. Đo mem toàn tx, trần 14 M: n=4 → 62,3 % · n=6 → **111,3 % ✗** (hình dạng xấu nhất: 5 output ví × 30 policy). Đại lượng đội chi phí là **số policy** trên một output, không phải số token — `assets.tokens` tra một khoá trong từ điển policy.
+
+**`Commit` là đường DUY NHẤT sinh ra một lô** (L-21), một chiều `None → Some`. Nhánh này **không** kiểm Σ khối lượng lá, có chủ ý: `promote_leaf_ok` trừ dần `lot.mass_mg` ở mỗi lần rút, nên trần nằm ở khối lượng lô chứ không ở cây — cam kết một cây khai 10 tấn trên lô 1 tấn vẫn chỉ rút được 1 tấn. Kiểm Σ đòi cả cây lên chuỗi, mất sạch ý nghĩa ở quy mô 100.000 lá.
+
 **CIP-113 đã khảo sát và LOẠI:** Status *Proposed*, PR `cardano-foundation/CIPs#444` chưa merge từ 2023-01, `cips.cardano.org/cip/CIP-113` trả 404 (đối chứng CIP-68 tải được), repo chính chủ tự ghi *"do not deploy to mainnet or use with real assets"*; và nó là chuẩn **quyền chuyển**, không có ngữ nghĩa transformation/bảo toàn khối lượng. CIP-143 = *Inactive*. CIP-25 = label 721, Plutus không đọc được. CIP-68 = *Active*, dùng làm lớp trình bày — ⚠ label 444 (RFT) là *fungible* nên **không dùng cho hộp bán lẻ** (mất định danh cá thể = mở đường rửa nguồn gốc). GS1 EPCIS `TransformationEvent` đúng ngữ nghĩa nhưng mọi trường Optional, **không ràng buộc số học nào**.
 
 **Ranh giới phải nói với người ngoài:** on-chain chỉ bảo đảm không tạo được khối lượng từ hư không **sau khi đã nhập**. Cái cân nằm ngoài chuỗi; điểm nhập là oracle. Đường tấn công rẻ nhất — thuê một nông dân thật, chở hàng ngoài tới vườn, đăng ký tại gốc — làm mọi cổng đều xanh, và không cơ chế on-chain nào chạm tới.
+
+**Bốn ranh giới còn mở, chưa có cơ chế** (nêu để không ai đọc quá lời):
+1. `lineage` **không có khái niệm chủ sở hữu** — cổng duy nhất là chữ ký bên chứng thực, và `Destroy` không ràng buộc ADA chảy đi đâu ⇒ về kinh tế min-ADA của mọi đơn vị thuộc về bên chứng thực.
+2. **Merge không mang tỉ phần** — gộp hai lô cùng bên chứng thực, cùng tầng thì con ra là một con số khối lượng duy nhất; mọi hộp con sau đó bit-identical.
+3. **Trần `depth_phys = 8`** — chuỗi nông trại→thửa→cây→lô→quả→phân hạng→đóng gói→thùng→hộp đã ăn hết 8 trước hạ nguồn, chưa trừ đóng gói lại.
+4. **Cổng bên chứng thực là 1-of-1** (`controller_pkh`), trong khi `did_payment`/`did_stake`/`wakeme_vault` đều 2-of-2 qua `auth_logic.anchor_controller_ok`.
+
+**Chưa dựng tx thật trên Preview** — mọi số ExUnit là aiken tự đánh giá, chỉ báo chứ không phải số ledger thật.
 
 ---
 
