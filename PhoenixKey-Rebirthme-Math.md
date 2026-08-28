@@ -576,7 +576,7 @@ Không thoả (1) hoặc (2) ⟹ thiệt-hại tối-đa = **toàn-bộ kho** kh
 - **[CẦN CHỐT-W3]** `vault_index_anchor` + `recovery_anchor` vào `TAADDatum` (schema thuộc Specs/Validator — đội backend). [OPEN-V2 Secret-Vault].
 - **[CẦN CHỐT-W4]** Smartsend (nay module riêng): 5 vá 🔴 + phụ-thuộc anti-drain — treo ở `PhoenixKey-Smartsend-Math.md §9`.
 - **[CẦN CHỐT-W5]** `did_subaddr.ak` (L3 unlinkable) — dependency onchain MỚI [DEP-2], chờ maintainer chốt.
-- **[CẦN CHỐT-W6]** R1 vs R2 khoá kho: chốt R2 (VaultKEK cách-ly) canonical cho kho, R1 cho `recovery_anchor` [OPEN-V1].
+- **[CẦN CHỐT-W6]** R1 vs R2 khoá kho: đề-xuất R2 (VaultKEK cách-ly) cho kho, R1 cho `recovery_anchor` [OPEN-V1, chưa chốt].
 - **[CẦN CHỐT-W7]** Bước bucket B + sàn FLOOR_BYTES (đề xuất 4 KiB / 64 KiB) [OPEN-V4].
 - **[CẦN CHỐT-W8]** Enforce I-CURVE-5 ở builder: guardian/secondary Ed25519 phải khác gốc seed (chưa thấy enforce).
 - **[CẦN CHỐT-W9]** GuardianConfig (trọng-số/vai) vào `TAADDatum` cần `schema_version` + headroom (Feat §1) — thuộc Core Anchorme/Validator; module này dẫn-chiếu.
@@ -607,7 +607,7 @@ Không thoả (1) hoặc (2) ⟹ thiệt-hại tối-đa = **toàn-bộ kho** kh
 ## Nguồn
 
 Nguồn thiết-kế nội-bộ (không công khai).
-Math canonical (dẫn-chiếu, KHÔNG sửa): `PhoenixKey-Math.md` §6, §7, §9, §10, §11, §33;
+Dẫn-chiếu (KHÔNG sửa lại ở đây): `PhoenixKey-Math.md` §6, §7, §9, §10, §11, §33;
 `PhoenixKey-Connector-CIP30-Feat-Math.md` (§4.L — cơ-chế CIP-30/CIP-45 đầy-đủ).
 Code: `PhoenixKey-Validator/validators/did_payment.ak`, `lib/phoenixkey/{auth_logic,taad_logic}.ak`; `rust_core/src/{lampnet,crypto,sign}.rs`.
 

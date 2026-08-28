@@ -213,7 +213,7 @@ Ba định-lý Smartsend chỉ đứng khi ba tiền-đề thoả (nếu không,
 ## Nguồn
 
 Nguồn thiết-kế nội-bộ (không công khai).
-Math canonical (dẫn-chiếu, KHÔNG sửa): `PhoenixKey-Math.md` §10, §11.
+Dẫn-chiếu (KHÔNG sửa lại ở đây): `PhoenixKey-Math.md` §10, §11.
 Hạ-tầng nền (dẫn-chiếu): [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) §2.1, §4.B, §4.C, §4.I.
 Code: `PhoenixKey-Validator/validators/smartsend_escrow.ak`.
 

@@ -209,7 +209,7 @@ P-LAYER-1 đúng như đang phát-biểu.
 | Schedule read | `fee_magic == price(entry.op_type)` từ `PriceParam` (chống lệch 2 bảng) | FEECOVER-PAY-1b + §7.3 |
 | Settle | `closed_epoch == last_settled+1` ∧ chỉ CARP → Treasury hiến-định | FEECOVER-SETTLE-1/2 |
 
-**Điểm nối load-bearing:** FEECOVER-PAY-1b + schedule-read cùng đọc `PriceParam` qua `price_ref` mà `consume.ak` dùng. Vì `consume.ak` ĐÃ ép `total_burned == total_required` (C-CM-2, dấu `==` nghiêm ở bản canonical), chuỗi ràng đóng kín: `Σburns == required == fee_magic == carp_paid`. Không có kẽ khai service rẻ mà tiêu nhiều (gaming eval FG-2 🟢 CHẶN trên bản canonical).
+**Điểm nối load-bearing:** FEECOVER-PAY-1b + schedule-read cùng đọc `PriceParam` qua `price_ref` mà `consume.ak` (`MAGIC/ConsumeMAGIC`) dùng. Vì `consume.ak` ĐÃ ép `total_burned == total_required` (C-CM-2, dấu `==` nghiêm — bản `MAGIC-paymaster/ConsumeMAGIC` dùng `≥` KHÔNG đạt điều này và PHẢI archive trước khi build, xem FG-1), chuỗi ràng đóng kín: `Σburns == required == fee_magic == carp_paid`. Không có kẽ khai service rẻ mà tiêu nhiều (gaming eval FG-2 🟢 CHẶN trên `MAGIC/ConsumeMAGIC`).
 
 ---
 
@@ -371,7 +371,7 @@ Mỗi `ServiceFeeEntry` mang `op_type` trỏ dòng `OpPrice` trong `PriceParam`;
 
 ## 8. Giả-định tin-cậy (ngoài phạm-vi chứng-minh)
 
-- **C-CM-1..5 đúng** (đã audit ở ConsumeMAGIC bản canonical `MAGIC/ConsumeMAGIC`). Nếu dùng nhầm bản CŨ `MAGIC-paymaster/ConsumeMAGIC` (mint-burn, `≥`, không did_commit) → T1/T5 cần soát lại (gaming eval FG-1).
+- **C-CM-1..5 đúng** (đã audit ở `MAGIC/ConsumeMAGIC`). `MAGIC-paymaster/ConsumeMAGIC` (mint-burn, `≥`, không did_commit) PHẢI archive trước khi build — xem FG-1.
 - **CARP peg giữ** bởi lớp L3 (INV-PEG-BY-DEMAND). Feecover KHÔNG bảo vệ giá-trị nếu CARP peg vỡ (chủ đích — T6 firewall).
 - **Resolve API point-in-time** (`did_active`/`key_authorized`) trung-thực và fail-closed. GATE-1 dựa API này (đội backend implement, chưa live).
 - **Provider trung-thực ở khâu settle** — validator PHẢI tự ép (luật thiết-kế FG-4, §9), không được để lộ chỗ trung-thực-tự-khai.
@@ -396,7 +396,7 @@ Mỗi `ServiceFeeEntry` mang `op_type` trỏ dòng `OpPrice` trong `PriceParam`;
 - [ ] Xác nhận settle ép `closed_epoch == last_settled+1` monotonic + chỉ CARP về đúng địa-chỉ Treasury hiến-định — FEECOVER-SETTLE-1/2.
 - [ ] Xác nhận settle KHÔNG dùng Withdraw-operator-cosign (FG-4 vá).
 - [ ] Xác nhận `deposit`/`request_topup` chỉ ghi sổ + gov-release, không mint/burn/oracle — FEECOVER-HO-1/2/3 (T6).
-- [ ] Xác nhận dùng bản canonical `MAGIC/ConsumeMAGIC` (no-mint, `==`, có did_commit), KHÔNG bản `MAGIC-paymaster/ConsumeMAGIC` (FG-1).
+- [ ] Xác nhận dùng `MAGIC/ConsumeMAGIC` (no-mint, `==`, có did_commit) — `MAGIC-paymaster/ConsumeMAGIC` PHẢI đã archive trước khi build (FG-1).
 - [ ] Xác nhận DID credential đọc qua reference input, không mint/tiêu trong tx — FEECOVER-GATE-3.
 
 ---
