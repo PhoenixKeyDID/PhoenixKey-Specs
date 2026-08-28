@@ -63,10 +63,14 @@
 
 ### 1.3 Đồng-hồ + hằng-số (chi-tiết công-thức: Math §1-2)
 
+⚠ **Đơn-vị = mili-giây POSIX, KHÔNG PHẢI slot.** `tx.validity_range` của Plutus V3 là `POSIXTimeRange` đo bằng ms kể từ epoch Unix (stdlib `cardano/transaction.ak:80`) — script KHÔNG đọc được số slot. Nhét số slot (~10⁸) vào một phép tính chờ ms là sai đơn-vị **1000×**: `days_elapsed`/`p2_epoch` (Math §2) cộng/chia thẳng hằng này với mốc đọc từ `validity_range`, nên hằng PHẢI cùng đơn-vị ms. Vá ở commit `550256d` (đóng #50).
+
+⚠ **Đây là lỗi MẤT TRẮNG, không phải "cửa-sổ ngắn".** Nếu `vest_start_ms` bị ghi bằng một con-số cỡ slot (~1,79×10⁸) thay vì ms thật (~1,79×10¹²), `days_elapsed` (`:192`) nhảy lên **hơn 20.000 "ngày"** ngay ở genesis — vượt xa `phase1_last=1001` (`:113`) — nên vault coi như đã ở PHA-2 với `p2_epoch` (`:205`) cũng nhảy vọt. Genesis `last_tick_epoch = −1` (sentinel), nên `e_now − last_tick_epoch` (`reclaim_epoch_ok:573`) vượt xa `forfeit_epoch_gap=1001` (`:122`) ngay lập-tức ⟹ `ReclaimEpoch` quét sạch toàn-bộ `conditional_lamp` về pot ở lần gọi ĐẦU TIÊN, không có cửa-sổ chờ nào.
+
 | Thang | Hằng (`wakeme_logic.ak`) | Dùng cho |
 |---|---|---|
-| NGÀY | `slots_per_day` (86_400) | ranh-giới-pha, anti-idle tick, monotonic `last_tick_day` |
-| EPOCH | `slots_per_epoch` (432_000 = 5 ngày) | gate epoch-active PHA-2, đo gap forfeit |
+| NGÀY | `ms_per_day` (86_400_000, `:95`) | ranh-giới-pha, anti-idle tick, monotonic `last_tick_day` |
+| EPOCH | `ms_per_epoch` (432_000_000 = 5 ngày, `:100`) | gate epoch-active PHA-2, đo gap forfeit |
 
 Hằng khác: `oil_per_lamp=10⁶` (`:104`), `epoch_nights=5` (`:107`), `grace_days=7` (`:110`), `phase1_last=1001` (`:113`, ranh-giới PHA-1/PHA-2), `wakeme_nights=1001` (`:116`), `wakeme_use_right_cap=1001·10⁶` (`:119`, trần usage-right = 1001 LAMP), `forfeit_epoch_gap=1001` (`:122`). **Đơn-vị on-chain = oildrop** (`1 LAMP = 10⁶ oildrop`).
 
@@ -84,7 +88,7 @@ Neo: `wakeme_logic.ak:126-144`. `Constr 0 [...]` — thứ-tự field = thứ-t�
 |---|---|---|---|---|---|
 | 0 | `owner_commit` | `ByteArray` | bytes | commit DID + **vault-NFT name** (I-ACT-10) | `blake2b_256(did)` (32B) |
 | 1 | `did_commit` | `ByteArray` | bytes | con-trỏ DID; MVP `== owner_commit`, `≠ #""` | `blake2b_256(did)` |
-| 2 | `vest_start_slot` | `Int` | int | mốc-0 đồng-hồ; genesis ép `== tx_lo` | slot lúc submit |
+| 2 | `vest_start_ms` | `Int` | int | mốc-0 đồng-hồ (POSIX ms); genesis ép `== tx_hi` (cận TRÊN — `genesis_vault_ok:808`, xem cảnh-báo I-TIME-ANCHOR ở trên) | POSIX-ms của cận trên validity-range |
 | 3 | `conditional_lamp` | `Int` | int | quyền-dùng khoá (oildrop) | `WakemeUsageRight` = `1001·d_unit` |
 | 4 | `reclaimed_to_pot` | `Int` | int | luỹ-kế về pot (audit, chỉ tăng) | `0` |
 | 5 | `last_tick_day` | `Int` | int | NGÀY tick gần nhất (monotonic) | `0` |
@@ -99,7 +103,7 @@ Neo: `wakeme_logic.ak:126-144`. `Constr 0 [...]` — thứ-tự field = thứ-t�
 d8799f                          # Constr 0 (tag 121), 9 field
   581f <owner_commit 32B>       # bytes
   581f <did_commit 32B>         # bytes
-  1a<vest_start_slot>           # int (= tx_lo)
+  1a<vest_start_ms>             # int (= tx_hi, cận TRÊN — POSIX ms)
   1b000000e8d4a51000            # int 1001000000 (conditional_lamp)
   00                            # int 0 (reclaimed_to_pot)
   00                            # int 0 (last_tick_day)
@@ -156,13 +160,13 @@ Ký-hiệu: `d_in`/`d_out` datum vào/ra; `lamp_in`/`lamp_out` LAMP oildrop vaul
 
 ### 3.0 Mint-gate
 
-**`GenesisVault` (Wakeme genesis)** `genesis_vault_ok:776` — đúc ĐÚNG 1 vault-NFT(name=owner_commit) + ép khuôn BẢN A (`s₀==tx_lo`, `conditional=1001·d_unit`, `owned=0`, `last_tick_epoch=−1`, `did_commit==owner_commit`) + `lamp_locked==conditional` + **`anchor_controller_ok`** (owner ký genesis = 2-of-2 controller+device). Ký: owner-witness.
+**`GenesisVault` (Wakeme genesis)** `genesis_vault_ok:776` — đúc ĐÚNG 1 vault-NFT(name=owner_commit) + ép khuôn BẢN A (`s₀==tx_hi` — cận TRÊN, `:808`, xem I-TIME-ANCHOR §1.3, `conditional=1001·d_unit`, `owned=0`, `last_tick_epoch=−1`, `did_commit==owner_commit`) + `lamp_locked==conditional` + **`anchor_controller_ok`** (owner ký genesis = 2-of-2 controller+device). Ký: owner-witness.
 ```
 in:  [pot UTxO (WakemeUsageRight LAMP)] + [ví Phoenix (fee)]
 mint: +1 vault-NFT(own_policy, owner_commit)   redeemer=GenesisVault
 out: [VAULT: Script(own) + NFT + minADA + conditional LAMP + inline datum(9-field)]
      [pot recreate]  [change]
-signer: owner (controller+device)   validity: [lo, lo+ttl]  (vest_start = lo)
+signer: owner (controller+device)   validity: [lo, hi]  (vest_start = hi, cận TRÊN)
 ```
 
 **`CloseVault`** `close_vault_ok:840` — pure-burn (mọi movement own_policy < 0). Nối nhánh *-close.
@@ -226,10 +230,10 @@ Core: keygen vân tay → ví Phoenix
    backend đọc pot_balance → tính WakemeUsageRight + d_unit (công-thức Math §1)
    → apply-param 7 tham-số per-DID → sinh vault script-hash + address
    → build unsigned tx: spend pot → mint GenesisVault → VAULT(datum 9-field)
-   → trả {unsigned_tx_cbor, required_signer_key_hash, vault_address, usage_right_lamp, d_unit_oildrop, vest_start_slot}
+   → trả {unsigned_tx_cbor, required_signer_key_hash, vault_address, usage_right_lamp, d_unit_oildrop, vest_start_ms}
 Core: Enclave witness (controller+device = 2-of-2)
 1b POST /wakeme/submit {signed_tx_cbor} → {cardano_tx_hash, SUBMITTED}
-Kết-quả: VAULT conditional=WakemeUsageRight, owned=0, last_tick_epoch=−1, vest_start=lo.
+Kết-quả: VAULT conditional=WakemeUsageRight, owned=0, last_tick_epoch=−1, vest_start=hi (cận TRÊN validity-range, POSIX ms).
 ```
 
 ### 4.2 Gen (MAGIC yield — nền, NGOÀI Wakeme API)
@@ -294,7 +298,7 @@ Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code
 **Endpoint 2 (`vault/{did}`) — map field validator → JSON:** `phase = (days_elapsed≤1001 ? 1 : 2)`; `conditional_lamp` (usage-right khoá, KHÔNG rút), `owned_lamp` (sở-hữu-hẳn, rút được qua Redeem) — 2 bucket phân-biệt RÕ trên UI; `reclaimed_to_pot_lamp`; `days_elapsed`; `d_unit_oildrop`; `activity_gate.used_this_period = null` tới khi Registry-team nối; cảnh-báo forfeit tính từ `last_tick_epoch` gap. Self-consumption HỢP-LỆ. Mã-lỗi nhánh **135x**.
 
 **Nhóm endpoint (chi-tiết request/response chốt với backend):**
-- **1a build** → `{unsigned_tx_cbor, required_signer_key_hash, vault_address, usage_right_lamp, usage_right_oildrop, d_unit_oildrop, pot_balance_lamp, vest_start_slot, ttl_slot}`. Precondition 1-DID-1-vault (`VAULT_ALREADY_EXISTS`).
+- **1a build** → `{unsigned_tx_cbor, required_signer_key_hash, vault_address, usage_right_lamp, usage_right_oildrop, d_unit_oildrop, pot_balance_lamp, vest_start_ms, ttl_ms}` (POSIX ms, không phải slot). Precondition 1-DID-1-vault (`VAULT_ALREADY_EXISTS`).
 - **2 vault/{did}** → dashboard 2-pha: `phase, days_elapsed, conditional_lamp, owned_lamp, reclaimed_to_pot_lamp, d_unit, magic_*, activity_gate{...}`. `phase/conditional/owned` tính NGAY từ validator; `magic_*` treo tới khi MAGIC/Registry nối.
 - **3 vault/{did}/magic** → MAGIC-yield ĐỌC-số-dư (`gen_basis_lamp = conditional + owned`), note "Gen CHỈ ĐỌC — không burn LAMP".
 - **5a redeem/build** → `{amount_lamp ≤ owned}`; KHÔNG phase-gate (`NO_OWNED_BALANCE` nếu owned=0). KHÔNG phụ-thuộc Gen/GreenBack.
