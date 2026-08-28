@@ -42,20 +42,27 @@ Hai kho **Validator** và **SDK** không có một workflow nào: mọi con số
 
 ---
 
-## 1. Sự thật cấu trúc lớn nhất — đường đúc DID đang sống KHÔNG đi qua validator
+## 1. Hệ đang đứng ở tầng v1.0, và chưa có mốc chuyển sang v1.1
 
 Đây là điều quan trọng nhất trong toàn bộ file, và nó không nằm ở module nào cả.
 
+**Phương pháp neo DID có HAI TẦNG, và điều đó là chủ đích.** `PhoenixKey-SDK/method.md:144-148` (did:phoenix v1.0, Implementors Draft) đặc tả resolver hai chế độ: TAAD UTxO datum là **v1.1, có thẩm quyền khi tồn tại**; metadata nhãn 6789 là **v1.0 MVP, tầng đang chạy**; trong giai đoạn chuyển tiếp hai neo cùng tồn tại và TAAD thắng nếu có. Vậy nên bản thân metadata-6789 **không phải một sai lệch** — nó là tầng đã chốt.
+
 `PhoenixKey-Database/.../cardano/CardanoServiceImpl.java:70-111` — `publishDocument()` trả tiền cho chính ví phí backend, gắn metadata nhãn 6789, ký bằng ví phí rồi submit không chờ xác nhận. **Không mint state-NFT, không gọi `taad`.** Đường này dùng chung cho cả ba loại DID đang cấp được: PersonDID (`/identity/register`), OrgDID (`/org/create`), AssetDID (`/identity/asset/create`).
 
-`PhoenixKey-Validator/deploy/README.md:23` — bản hash TAAD preprod duy nhất từng được chốt trong `deploy/` tự khai **"ĐÃ CHẾT — đừng deploy"** (lý do: `ValidatorParams` đổi 6→7 trường). Tức bản đó lỗi thời *trước khi* deploy, không phải deploy rồi hỏng.
+Mã tự khai đúng như vậy — `CardanoService.java:9-13`: *"Cơ chế hiện tại (transitional) … Sẽ chuyển sang TAAD UTxO datum khi validator state-NFT xong."*
 
-Hệ quả phải nói thẳng:
+`PhoenixKey-Validator/deploy/README.md:23` — bản hash TAAD preprod duy nhất từng được chốt trong `deploy/` tự khai **"ĐÃ CHẾT — đừng deploy"** (lý do: `ValidatorParams` đổi 6→7 trường). Tức bản đó lỗi thời *trước khi* deploy.
 
-- PoP-bind, CanOwn, 2-of-2, uniqueness anchor là **thiết kế có thật, đã build, test xanh — nhưng chưa được thi hành trên chuỗi**.
-- Bất-biến danh tính hôm nay được giữ bởi **Postgres**, không phải sổ cái. Một bản ghi DB sai hoặc bị sửa thì không có lớp thứ hai bắt lại.
-- Điều này đi ngược thứ tự ưu tiên đã chốt cho toàn hệ (an-ninh trước trải-nghiệm, quyền phải ở ledger).
-- 🔴 **Và nó khoá vốn.** `did_payment.ak:55` gọi `auth_logic.anchor_controller_ok`, mà hàm đó mở bằng `expect Some(anchor) = find_anchor_datum(tx.reference_inputs, …)` (`auth_logic.ak:130-131`) rồi đòi `is_active(anchor.status)`. Không có anchor NFT trên chuỗi ⟹ **không ai chi được từ một địa chỉ ví Phoenix — kể cả người giữ đủ 24 từ.** Đây là hệ quả nặng nhất của §1 và nó đi ngược chiều với trực giác thông thường: chỗ này không phải "kém an toàn", mà là "tiền vào thì được, ra thì chưa chứng minh được đường nào".
+**Vấn đề không phải v1.0. Vấn đề là ba điều sau.**
+
+1. 🔴 **Tầng v1.1 chưa tồn tại ở phía backend.** `git grep 'GenesisPerson\|GenesisChild\|StateNftRedeemer'` trong mảng Java = **0**. Validator đã build và test xanh, nhưng không có bên nào gọi được nó. PoP-bind, CanOwn, 2-of-2, uniqueness anchor do đó là **thiết kế đã hoàn thiện nhưng chưa được thi hành trên chuỗi**; bất-biến danh tính hôm nay do Postgres giữ.
+
+2. 🔴 **Tầng v1.0 đang sinh ra dữ liệu mà tầng v1.1 sẽ từ chối.** Xem đoạn khuôn `did` ngay dưới. Càng cấp thêm DID theo khuôn cũ thì cái giá của đợt chuyển càng lớn — đây là món nợ **tăng theo thời gian**, không đứng yên.
+
+3. 🔴 **Chưa có mốc chuyển.** Đợt redeploy mang tên PA-1 là chỗ v1.0 → v1.1 xảy ra, nhưng nó đang chờ bốn việc chưa chốt: schema `TAADDatum`, nâng `taad_did.rs` từ 10 lên 15 trường, chọn `uniqueness_bootstrap_seed`, xử hai UTxO Preview còn lại — cộng thêm khuôn `did` (`PhoenixKey-Validator` #78, OPEN từ 2026-08-12, hỏi thẳng *"bao giờ luồng thật chuyển sang đúc anchor qua `state_nft_logic`"*).
+
+Nói gọn: nguyên tắc **an ninh trước trải nghiệm, quyền phải ở ledger** không bị v1.0 vi phạm — nó bị vi phạm nếu hệ **dừng lại ở v1.0 mà không có ngày chuyển**.
 
 **Điều kiện tiên quyết bị bỏ quên — khuôn `did` lệch.** Backend/app/frontend sinh did theo khuôn `base32(slot)+hex` (`DidPhoenixGenerator.java:43,102`, `taad_did.rs:129-167`). `pop_bind.ak:20-30` đòi khuôn tự-chứng (POSIX-ms thập phân + `controller_pkh` trong tiền-ảnh). Bản Java theo khuôn mới **có mã nhưng đang tắt**: `application.yml:171 pop-bind-encoder-enabled: false`. ⟹ **mọi DID cấp hôm nay không mint được anchor dưới validator hiện hành.** Và vì `N(did) = blake2b_256(did)` là apply-param của `did_payment`, đổi khuôn = đổi địa chỉ ví của mọi DID ⟹ việc này phải đi qua cổng THỜI-CHÍNH, không vá lẻ. Theo dõi ở `PhoenixKey-Validator` #78.
 
@@ -65,7 +72,7 @@ Hệ quả phải nói thẳng:
 
 | Module | Nền đã chạy được | Blocker chính | Production |
 |---|---|---|---|
-| **Anchorme** | `taad` Design-2 + PC (uniqueness anchor) + PoP-bind, đã nối; resolver W3C; register metadata-6789 | §1 (anchor chưa thi hành trên chuỗi); khuôn `did` lệch (#78); DeviceDID; resolve-by-hash | NO-GO — chặn ở §1, không ở CID-1 |
+| **Anchorme** | `taad` Design-2 + PC (uniqueness anchor) + PoP-bind, đã nối và test xanh; resolver W3C; register metadata-6789 (tầng v1.0) | tầng v1.1 chưa có bên gọi; khuôn `did` lệch (#78); DeviceDID; resolve-by-hash | NO-GO — chặn ở đợt PA-1 (§1), không ở CID-1 |
 | **Rebirthme** | ví theo-DID `did_payment`, đóng-băng theo trạng-thái, guardian recovery ngưỡng+timelock, P-256 low-s, `limit_meter_vault` + `did_stake` build được | tầng **Dart** của khoá thiết bị chưa có (xem §3); `did_subaddr.ak` chưa tồn tại trên `main` | NO-GO ví-giá-trị-lớn |
 | **Wakeme** | `wakeme_vault`/`wakeme_logic` merge, test xanh; backend có **hiện thực thật** (`ActivationVaultServiceImpl` `@Primary` + preflight + tx-builder + chọn pot UTxO) | 3 biến `activation-vault-cbor-hex`/`pot-address`/`keeper-pkh` còn rỗng (`application.yml:142-144`) ⟹ trả 501 — **chặn ở deploy, không ở mã**; app không có màn hình Wakeme; **không có mắt nối sang Gen MAGIC** | NO-GO |
 | **Feecover** | ConsumeMAGIC lõi (kế thừa) | **0 validator Feecover tồn tại**; CARP chưa có policy-id thật; hai đầu tiêu thụ chưa cắm vào | NO-GO |
@@ -83,7 +90,7 @@ Hệ quả phải nói thẳng:
 | 🔴 **Đường đúc không qua validator** (§1) | TẤT CẢ | on-chain + backend | `CardanoServiceImpl.java:70-111`. Chưa có phương án chốt (xem §6) |
 | 🔴 **Khuôn `did` lệch** | Anchorme, Rebirthme | on-chain + backend + app | `application.yml:171` đang `false`; Validator #78 |
 | 🔴 **Khoá thiết bị — tầng Dart** | Rebirthme (ví Phoenix) | app | Rust **đã xong**: `device_key.rs` 893 dòng, `device_pkh` 67 lần / 4 tệp, và **đã xuất FFI C** 4 hàm (`lib.rs:955,996,1039,1060`). Tầng Dart: `git grep taad_device_key -- lib` = **0**. Chỗ đứt là *binding Dart*, không phải mã lõi |
-| 🔴 **CBOR `did_payment` đang dùng là bản cũ 1-chữ-ký** | Rebirthme, Anchorme | on-chain + app + backend | Địa chỉ Phoenix đã cấp dẫn ứng với bản validator chỉ đòi 1 chữ ký (thiếu vế `device_pkh`, `auth_logic.ak:143`). Nhưng vế **anchor Active vẫn còn trong cả hai bản** ⟹ kết hợp với §1 thì hôm nay không đường nào chi được, không phải "seed-alone chi được". Re-pin cùng lượt: asset CBOR + vector test backend + env `DID_PAYMENT_CBOR_HEX` |
+| 🔴 **Lỗ đang NGỦ: cổng ví gác bằng biến môi trường, không gác bằng sự thật trên chuỗi** | Rebirthme | backend + app | `DidPhoenixGenerator.java:46-48` ghi thẳng: *"lỗ đang NGỦ, không phải không có"* — DID sinh theo khuôn cũ suy ra một địa chỉ mà anchor tương ứng **không bao giờ tồn tại**. Hôm nay chưa mất gì vì deriver còn Noop. Nhưng ai dán CBOR vào biến môi trường trước khi có anchor thật là bật đường phát địa chỉ chết hàng loạt — `BackfillPhoenixWalletRunner` đã sẵn sàng rót cho người dùng cũ. Cổng phải kiểm **anchor có tồn tại không**, không kiểm biến có rỗng không. Kèm theo: CBOR đang ghim là bản cũ 1-chữ-ký (thiếu vế `device_pkh`, `auth_logic.ak:143`), phải re-pin cùng lượt với vector test backend và env `DID_PAYMENT_CBOR_HEX` |
 | 🔴 **ServiceDID / AgentDID / DeviceDID = 0 dòng backend** | Anchorme, LampNet, Knowme | backend | `types.ak` đã đủ 5 loại + ma trận `can_own` (validator sẵn 100%); `grep DidType.SERVICE\|AGENT\|DEVICE` trong `src/main/java` = **0**. `DeviceController.java` là push-token FCM, **không phải** DeviceDID |
 | 🔴 **Khoá phiên đứt ở HAI chỗ độc lập** | khoá phiên (§5) | backend | (a) `/auth/token/exchange` nhận `sessionToken` trong BODY nhưng không có trong `PUBLIC_POST` (`AuthRequiredInterceptor.java:108-118`) ⟹ đo thực địa trả `401 {"code":1304}`, không bao giờ chạm `TokenExchangeService`. (b) Không API nào ghi được `service[] type=SsoRedirect` lên DID Document ⟹ dù mở (a) thì vẫn chưa đăng ký được website nào. Gỡ một chỗ không đủ |
 | 🔴 **B1 — MAGIC engine đọc-số-dư** | Wakeme, Feecover, Protectme | MAGIC team | Model = account-in-vault (không native) |
@@ -119,7 +126,7 @@ Mục 2–4 tổ chức theo module. Mục này tổ chức theo **việc ngư�
 | Người dùng làm được gì | Hiện trạng | Chỗ đứt |
 |---|---|---|
 | Tạo ví **Standard** và chi tiền | **ĐƯỢC** | đường chi duy nhất đang chạy — không phụ thuộc anchor |
-| Tạo ví **Phoenix**, nhận tiền | ⚠ **NHẬN ĐƯỢC, CHƯA CHỨNG MINH CHI RA ĐƯỢC** | `did_payment.ak:55` đòi anchor Active qua reference input; §1 cho thấy chưa có đường đúc anchor nào trên chuỗi. Cho tới khi đo được một UTxO anchor thật, phải coi đây là **rủi ro khoá vốn**, không phải ô xanh |
+| Tạo ví **Phoenix**, nhận tiền | **CHƯA BẬT** | Không phải hỏng — là chưa mở. `PhoenixCustodyDeriver` còn bản Noop trả rỗng; hai biến `did-payment-cbor-hex` và `taad-anchor-policy` đều rỗng; app hiện đúng dòng *"Chờ TAAD deploy trên PreProd"* (`wallet_screen.dart:813`); `send_screen.dart` không có tham chiếu nào tới địa chỉ ví Phoenix |
 | **Chi tiền từ ví Phoenix** (2 yếu tố) | **KHÔNG** | Rust + FFI đã xong; **binding Dart chưa viết** ⟹ app không gọi được |
 | **Một người một DID** | **KHÔNG** | Cổng duy nhất là `existsByPublicKeyHex` (`IdentityServiceImpl.java:107-113`) ⟹ thực chất **một MÁY một DID**. Registry giấy-tờ chưa nối vào `/identity/register` nhưng đường ghi trực tiếp đã mở và chưa an toàn (§4b). Mất máy = tạo DID mới = chính nguồn sinh trùng |
 | Tạo **OrgDID** | **ĐƯỢC** | nhưng chỉ là giao dịch metadata (§1) |
@@ -136,6 +143,16 @@ Mục 2–4 tổ chức theo module. Mục này tổ chức theo **việc ngư�
 | Xem **danh sách người bảo trợ** | **KHÔNG** | không có `GET /guardians`; `/add`+`/remove` chỉ trả về SỐ LƯỢNG — mà đây là màn hình bắt buộc trong luồng khôi phục |
 | **Từ chối** một yêu cầu ký | **KHÔNG** | không có `POST /sign/{id}/reject`; chỉ `approve`/`cancel`, dù enum trạng thái đã có sẵn `"rejected"` |
 
+### Tài liệu công khai đang nói quá mã
+
+`PhoenixKey-DIDMethod-W3C.md` — bản đã đăng ký ở `w3c/did-extensions` — mô tả mỗi DID được neo **một-đối-một bằng một NFT singleton trên Cardano** (dòng 5), và §6.2 ghi *"The authoritative state is always the on-chain TAADDatum"*. `grep 6789` trong tệp đó = **0**.
+
+Nhưng **100% DID đang sống là metadata-6789**. Bản đăng ký công khai mô tả tầng v1.1 như thể nó là tầng duy nhất.
+
+Nặng thêm: hai đặc tả công khai của cùng một phương pháp nói hai điều khác nhau — `PhoenixKey-SDK/method.md:61-64` gọi TAAD là "v1.1 (target)" và metadata-6789 là "v1.0 live today", còn `PhoenixKey-DIDMethod-W3C.md` chỉ có một bản. Người ngoài đọc bản W3C rồi viết resolver theo nó sẽ không giải được DID nào đang tồn tại.
+
+Và `PhoenixKey-Anchorme-Tech.md:355` — schema trả về của resolver chỉ có `"resolved_from": "onchain-cache | metadata-6789"`, **không có giá trị nào cho TAAD UTxO datum**. Tức schema hiện tại không diễn đạt nổi tầng đích.
+
 ### Lệch spec ↔ mã đang sống
 
 | Chỗ | Spec ghi | Mã chạy | Bên nào đúng |
@@ -150,8 +167,9 @@ Mục 2–4 tổ chức theo module. Mục này tổ chức theo **việc ngư�
 
 Những việc dưới đây **không** thiếu người làm — chúng thiếu một lựa chọn được chốt. Liệt kê ở đây để không ai chờ nhầm.
 
-1. **Đường đúc DID** — giữ metadata-6789, chuyển sang TAAD UTxO thật, hay phân tầng theo loại DID. Quyết định này định đoạt §1 và kéo theo cổng THỜI-CHÍNH.
-2. **Khuôn `did`** — bật `pop-bind-encoder`, và di trú các DID đã cấp thế nào (Validator #78).
+1. **Ngày cho đợt PA-1** — mốc v1.0 → v1.1. Bốn việc chặn nó đều là quyết định, không phải việc thiếu người: chốt schema `TAADDatum`, nâng `taad_did.rs` 10 → 15 trường, chọn `uniqueness_bootstrap_seed`, xử hai UTxO Preview còn lại.
+2. **Khuôn `did`** — bật `pop-bind-encoder`, và di trú các DID đã cấp theo khuôn cũ thế nào: giữ song song, cấp lại, hay đóng băng (Validator #78).
+2b. **Ai trả min-ADA cho anchor.** Quy tắc đã chốt là *PersonDID không tính phí, không khoá ADA* — đó chính là lý do tầng v1.0 bỏ đường khoá ADA. Nhưng mỗi anchor TAAD là một UTxO, nên nó **phải** khoá min-ADA. Tiền đó lấy lại được (`GenesisBurn` cho phép đốt thuần, `state_nft_logic.ak:35`; burn theo vòng đời do TAAD spend validator gác), nhưng chỉ khi DID chấm dứt — còn suốt đời DID thì nó nằm đó. Chưa ai chốt ví nào ứng khoản này cho hàng triệu PersonDID, và ứng rồi thì thu về theo đường nào.
 3. **Luật đòi lại AssetDID** khi bị đăng ký nhầm/chiếm chỗ (§4a).
 4. **Điều kiện được ghi vào registry giấy-tờ** (§4b).
 5. **FROST hay VSS** cho phân tán seed — hiện có hai nguyên thuỷ song song, phải chọn một trước khi xây tiếp.
@@ -172,7 +190,8 @@ Ghi lại để không ai dựng lập luận trên nền cũ:
 - **"duy-nhất-người không phụ thuộc bí mật nào"** — đúng cho trường hợp **lộ**, sai cho trường hợp **mất**: `FingerprintRegistryService.java:74-101` ghi rõ mất pepper cũ là mất khả năng nhận ra người cũ.
 - **"`activation_logic.ak` 69 test"** — tệp đó không còn tồn tại; Wakeme nay là `wakeme_logic.ak`.
 - **"Nút Claim MAGIC trong app gọi endpoint luôn trả 410"** — phía app **đã sạch**: `git grep 'magic/claim\|claimMagic' -- lib` trên `bd8ae3d` = **0**. Endpoint `/wallet/magic/claim` vẫn còn ở backend nhưng là bia mộ có chủ đích: `@Deprecated(forRemoval=true)`, thông báo chỉ thẳng sang `/wallet/{did}/all`. Không còn là lỗi người dùng gặp.
-- **"đường đúc không qua validator" chỉ là chuyện kiến trúc** — không phải. Nó kéo theo hệ quả khoá vốn ở §1, và hệ quả đó chưa từng được ghi ở bản nào trước.
+- **"đường đúc DID đi sai thiết kế"** — cách nói đó SAI, và bản nháp của chính tài liệu này từng dùng nó. Hai tầng neo là chủ đích, có đặc tả (`PhoenixKey-SDK/method.md:144-148`) và có quyết định gốc (`PhoenixKey-Database` #18, đóng 2026-06-02 — thứ bị bỏ khi đó là một UTxO 5 ADA đậu datum thô không validator nào gác, **không phải** validator `taad`). Cái sai thật là hệ **dừng ở v1.0 mà chưa có ngày chuyển**, và tầng v1.0 đang tích nợ cho đợt chuyển đó.
+- **"ví Phoenix đang khoá vốn"** — cũng SAI. Ví Phoenix **chưa bật**: deriver còn Noop, biến môi trường rỗng, app hiện dòng chờ hạ tầng, `send_screen.dart` không có đường chi. Rủi ro thật là **bật cổng trước khi có anchor** (§3), không phải tiền đang kẹt.
 
 ---
 
