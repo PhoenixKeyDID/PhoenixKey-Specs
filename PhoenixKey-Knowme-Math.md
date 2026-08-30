@@ -36,7 +36,7 @@
 | `docHash` | b64url(32B) | `H(plaintext bytes)` — ràng-buộc nội-dung tài-liệu | **[SPEC]** Knowme-Feat-Math §3.3 |
 | `k` | ByteArray(32) | khoá của `H_k`. Gánh **riêng-tư** (chặn dò ngược số giấy-tờ), KHÔNG gánh duy-nhất-người. Đích: chia `t`-trong-`n` (Đ-7.1) | **[SPEC]** Đ-7.1 |
 | `kv` | Nat | `keyVersion` — số hiệu đợt khoá đang dùng, lưu cạnh `fp` để xoay được | `fingerprint.ts:Registration` |
-| `fp(t, F)` | b64url(32B) | **dấu giấy-tờ** của loại `t` trên tập trường định-danh `F`. **Không phải vân tay sinh-trắc** — xem chú-thích Đ-7 | `fingerprint.ts:documentFingerprintPeppered` |
+| `fp(t, F)` | b64url(32B) | **dấu giấy-tờ** của loại `t` trên tập trường định-danh `F`. **Không phải vân tay sinh-trắc** — xem chú-thích Đ-7 | `FingerprintRegistryService.computeFingerprintHex` (backend, có pepper, `:209-219`); `fingerprint.ts:documentFingerprint` là bản tham-chiếu/minh-hoạ phía web, KHÔNG khoá — KHÔNG phải hàm chạy thật của registry |
 
 **Đơn-vị wire (bất-biến-dây, load-bearing):** một trường được băm là **mảng 3 phần-tử** `[salt, path, value]` với `value` **vô-hướng**. Đây là điểm neo cross-language: verifier độc-lập chỉ cần lặp `H(canon([salt, path, value]))`. KHÔNG được đổi arity/hình-dạng mảng. Neo: `commit.ts:digestOf`.
 
@@ -78,7 +78,7 @@ Tài-liệu đi qua **cùng** `digestOf`, cùng arity mảng, cùng không-gian 
 Predicate = { id, path, op ∈ {GE,LE,EQ,IN,RANGE}, arg, ctx? }
 ```
 
-**Đ-7 · Dấu giấy-tờ tuỳ-thân (khoá duy-nhất-người v1)** (`fingerprint.ts:documentFingerprintPeppered`):
+**Đ-7 · Dấu giấy-tờ tuỳ-thân (khoá duy-nhất-người v1)** (`FingerprintRegistryService.computeFingerprintHex`, backend, `:209-219`):
 ```
 fp(t, F) = b64url( H_k( canon([ t, normalize(F) ]) ) )           -- H_k = BLAKE2b-256 keyed
 ```
@@ -91,6 +91,32 @@ fp(t, F) = b64url( H_k( canon([ t, normalize(F) ]) ) )           -- H_k = BLAKE2
 > Mẫu sinh-trắc thật **không bao giờ rời Secure Enclave**, không đi qua mạng, và **không nằm trong
 > bảng nào** — kể cả bảng này. Đọc nhầm hai thứ đó thành một sẽ dẫn tới đánh giá sai toàn bộ mục
 > dưới đây. Trong đặc-tả này, thứ được lưu và đối-chiếu luôn là **dấu giấy-tờ** `fp`.
+
+> **Registry THẬT chạy ở backend, không phải ở TS.** `fingerprint.ts:UniquenessRegistry`
+> (`PhoenixKey-Frontend`) giữ state trong một `Map` bộ nhớ và tự khai trong chính docstring của nó
+> là **"reference semantics"** — đây là bản tham-chiếu/minh-hoạ cho việc thiết-kế API, **KHÔNG phải
+> registry chạy thật/production**. Cơ chế duy-nhất-người v1 của Đ-7 chạy thật ở
+> `PhoenixKey-Database` (backend Java):
+> - `FingerprintRegistryService.computeFingerprintHex` (`:209-219`) — đúng công-thức
+>   `H(pepper ‖ canonicalize(t, F))`; `canonicalize` dạng netstring (mỗi đoạn tiền-tố bằng độ-dài,
+>   đơn-ánh — tránh ambiguity khi nối chuỗi); pepper 32 byte **fail-closed khi khởi-động** ở
+>   prod/staging (thiếu pepper ⟹ service không lên được, không âm-thầm chạy không-khoá).
+> - Bảng `document_fingerprints` — migration `V35__document_fingerprints.sql` +
+>   `V37__document_fingerprints_intent.sql`.
+> - Endpoint `KnowmeFingerprintController`: `POST /identity/fingerprint/register`,
+>   `GET /identity/fingerprint/status`.
+>
+> **⚠️ Cảnh-báo có thời-hạn — `documentFingerprint` phía web CHƯA khoá.** Cạnh
+> `UniquenessRegistry` (tham-chiếu), `fingerprint.ts` còn có hàm `documentFingerprint`
+> (`fingerprint.ts:77-80`) — hàm này **CÓ chạy thật** ở phía Frontend (copy-detection), và nó tính
+> `blake2b256(canonicalBytes(["phoenix-docfp/1", …]))` **trần, không pepper/không salt**. Số CCCD
+> Việt-Nam 12 số có cấu-trúc công-khai (3 số đầu = mã tỉnh · 1 số = giới-tính+thế-kỷ · 2 số = năm
+> sinh · 6 số cuối = ngẫu-nhiên) ⟹ kẻ tấn-công biết tỉnh+năm-sinh+giới-tính của một người thì miền
+> còn lại chỉ `10⁶` tổ-hợp ⟹ băm trần bị vét cạn gần như tức-thì — cùng lỗ đúng như Đ-7.1(B) mô-tả
+> cho trường-hợp thiếu pepper, nhưng ở đây là hiện-trạng thật của mã, không phải giả-định. Ngày
+> 2026-08-19 hàm này **chưa có nơi gọi sống nào** (route/UI) — chỉ export ở `index.ts:63` và trong
+> file test — nên rủi-ro hiện chưa hiện-thực-hoá. Nhưng nó phải được khoá **TRƯỚC KHI** lớp tài-liệu
+> tiếp theo của Knowme lên public, không phải sau.
 
 **Đ-7.1 · Duy-nhất-người dựa vào phép SO-SÁNH, không dựa vào bí-mật** **[SPEC]**
 
@@ -172,10 +198,10 @@ không có nút bật/tắt theo người.
 | **I-KNOW-10** | **Least-disclosure tài-liệu:** người nhận chỉ có Envelope + opener của đúng tài-liệu đã chọn; phần còn lại là commitment ẩn trong `sd[]`. | re-seal per-recipient + Presentation | **[SPEC]** INV-K5 |
 | **I-KNOW-11** | **Lịch-sử bất-biến (versioning):** mọi cập-nhật tài-liệu = một `append_version` Strata mới; bản cũ giữ nguyên, proof field-level của một tài-liệu vẫn đúng dưới root mới; anchor đơn-điệu theo `seq` ⟹ không neo-lại phiên-bản cũ để "khôi-phục" giấy-tờ đã bị thay (chống rollback). | kế-thừa bất-biến Strata (KHÔNG redefine ở đây): hash-link, seq đơn-điệu, append-only, field-privacy, chống-rollback | **[SPEC]** Knowme-Feat-Math §5, §11 INV-K4 (alias Strata `_CONTRACT.md` INV-E1, E2, E3, E5, E6, E7) |
 
-| **I-KNOW-12** | **Một giấy-tờ ⇒ một PersonDID (duy-nhất-người v1):** với mọi `(t, F)`, tồn tại **nhiều nhất một** PersonDID đang giữ `fp(t,F)`. Đăng-ký thứ hai cùng `fp` bị từ-chối, KHÔNG ghi đè. | `UniquenessRegistry.register` kiểm `fp` đã có chủ chưa trước khi ghi | `fingerprint.ts:UniquenessRegistry` |
-| **I-KNOW-13** | **Từ-chối trùng KHÔNG lộ chủ hiện-hữu:** kết-quả trả về khi trùng chỉ nói **có** chủ khác, không nói **ai**. | `isHeldByAnother()` trả Bool; kết-quả `conflict_other_owner` không mang DID | `fingerprint.ts` (đã bỏ trường `existingOwner`) |
-| **I-KNOW-14** | **`fp` là hàm CÓ KHOÁ, không phải băm trần:** mọi `fp` sinh qua `H_k`; `kv` lưu rời để xoay được. Đây là bất-biến **riêng-tư** — nó chặn dò ngược số giấy-tờ từ bảng — **KHÔNG** phải bất-biến duy-nhất-người. Vi-phạm nó làm lộ liên-kết DID ↔ số giấy-tờ, **không** làm cấp thêm được DID. | tham-số khoá **bắt-buộc** ở chữ-ký hàm — không có đường gọi nào bỏ qua | `fingerprint.ts:documentFingerprintPeppered` + **[SPEC]** Đ-7.1(B) |
-| **I-KNOW-15** | **Duy-nhất-người KHÔNG phụ-thuộc vào bất-kỳ bí-mật nào:** phép so-sánh `fp` ở registry cho cùng kết-quả dù bảng công-khai hay không. Lộ `k`, lộ toàn bộ bảng `fp`, hay mất cả hai, đều **không** cấp thêm được DID nào cho một giấy-tờ đã có chủ. | `UniquenessRegistry.register` từ-chối theo `isHeldByAnother(fp)`; điều-kiện từ-chối không đọc `k`, không đọc gì bí-mật | **[SPEC]** Đ-7.1(A); `fingerprint.ts:UniquenessRegistry` |
+| **I-KNOW-12** | **Một giấy-tờ ⇒ một PersonDID (duy-nhất-người v1):** với mọi `(t, F)`, tồn tại **nhiều nhất một** PersonDID đang giữ `fp(t,F)`. Đăng-ký thứ hai cùng `fp` bị từ-chối, KHÔNG ghi đè. | Backend THẬT: `FingerprintRegistryService` + bảng `document_fingerprints` (migration V35/V37) kiểm `fp` đã có chủ chưa trước khi ghi, qua `KnowmeFingerprintController: POST /identity/fingerprint/register`. `UniquenessRegistry.register` (`fingerprint.ts`) chỉ là bản tham-chiếu/minh-hoạ cùng logic, KHÔNG chạy thật | `FingerprintRegistryService.java`; `V35__document_fingerprints.sql`, `V37__document_fingerprints_intent.sql`; `KnowmeFingerprintController.java:/identity/fingerprint/register`; (minh-hoạ) `fingerprint.ts:UniquenessRegistry` |
+| **I-KNOW-13** | **Từ-chối trùng KHÔNG lộ chủ hiện-hữu:** kết-quả trả về khi trùng chỉ nói **có** chủ khác, không nói **ai**. | Endpoint `GET /identity/fingerprint/status` (backend) — verify response không mang DID chủ khác. `isHeldByAnother()`/`conflict_other_owner` (`fingerprint.ts`, đã bỏ trường `existingOwner`) là minh-hoạ cùng nguyên-tắc, KHÔNG phải server thật | `KnowmeFingerprintController.java:/identity/fingerprint/status`; (minh-hoạ) `fingerprint.ts` |
+| **I-KNOW-14** | **`fp` là hàm CÓ KHOÁ, không phải băm trần:** mọi `fp` sinh qua `H_k`; `kv` lưu rời để xoay được. Đây là bất-biến **riêng-tư** — nó chặn dò ngược số giấy-tờ từ bảng — **KHÔNG** phải bất-biến duy-nhất-người. Vi-phạm nó làm lộ liên-kết DID ↔ số giấy-tờ, **không** làm cấp thêm được DID. | tham-số pepper **bắt-buộc** ở `computeFingerprintHex`, fail-closed khi thiếu ở prod/staging (backend, `:107-158`) — không có đường gọi nào bỏ qua | `FingerprintRegistryService.computeFingerprintHex:209-219` + **[SPEC]** Đ-7.1(B). ⚠️ KHÔNG nhầm với `fingerprint.ts:documentFingerprint` (web) — hàm đó KHÔNG có khoá, xem cảnh-báo sau Đ-7 |
+| **I-KNOW-15** | **Duy-nhất-người KHÔNG phụ-thuộc vào bất-kỳ bí-mật nào:** phép so-sánh `fp` ở registry cho cùng kết-quả dù bảng công-khai hay không. Lộ `k`, lộ toàn bộ bảng `fp`, hay mất cả hai, đều **không** cấp thêm được DID nào cho một giấy-tờ đã có chủ. | Điều-kiện từ-chối của backend registry (`FingerprintRegistryService`) không đọc pepper, không đọc gì bí-mật — chỉ so `fp` đã tồn-tại trong `document_fingerprints` chưa | **[SPEC]** Đ-7.1(A); `FingerprintRegistryService.java`; bảng `document_fingerprints`; (minh-hoạ) `fingerprint.ts:UniquenessRegistry` |
 | **I-KNOW-16** | **Sinh-trắc gác LƯỢT ĐĂNG-KÝ, không gác NGƯỜI:** cổng Enclave buộc mỗi lượt ghi `fp` phải qua một người thật trên máy đó ⟹ chặn đăng-ký hàng-loạt bằng máy. Nó **không** chứng người đó chưa đăng-ký ở máy khác — mẫu sinh-trắc nằm trong Enclave từng máy, **không rời máy**, **không có bảng nào** đối-chiếu chéo. | cổng sinh-trắc chạy trước `register`; không có kho mẫu sinh-trắc phía máy-chủ để đối-chiếu | §8; T-1 |
 
 ### 4.1 Tranh-chấp một giấy-tờ — hai mức, hệ-quả tách rời
@@ -358,13 +384,18 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 | I-KNOW-9 no-plaintext | **[SPEC]** INV-K2 |
 | I-KNOW-10 least-disclosure doc | **[SPEC]** INV-K5 |
 | I-KNOW-11 lịch-sử bất-biến (versioning) | **[SPEC]** Feat-Math §5, §11 INV-K4 (alias Strata `_CONTRACT.md` INV-E1,E2,E3,E5,E6,E7) |
+| I-KNOW-12 một-giấy-tờ-một-PersonDID | `FingerprintRegistryService.java`; `document_fingerprints` (V35/V37); `KnowmeFingerprintController.java:/identity/fingerprint/register` — backend THẬT. `fingerprint.ts:UniquenessRegistry` chỉ là tham-chiếu |
+| I-KNOW-13 từ-chối trùng không lộ chủ | `KnowmeFingerprintController.java:/identity/fingerprint/status` — backend THẬT. `fingerprint.ts` chỉ là tham-chiếu |
+| I-KNOW-14 fp có-khoá | `FingerprintRegistryService.computeFingerprintHex:209-219` (pepper fail-closed `:107-158`) — backend THẬT. KHÔNG phải `fingerprint.ts:documentFingerprint` (web, KHÔNG khoá) |
+| I-KNOW-15 duy-nhất-người không phụ-thuộc bí-mật | **[SPEC]** Đ-7.1(A); `FingerprintRegistryService.java` + bảng `document_fingerprints` |
+| I-KNOW-16 sinh-trắc gác lượt không gác người | §8; T-1 |
 | I-KYC-PRIVATE/UNLINKABLE/... | **[SPEC]** KYC-KYB-ZK §B.8 |
 
 ---
 
 ## Nguồn
 
-- Code (nguồn chân-lý Mức 1+2): `PhoenixKey-Frontend/src/lib/sdvc/{commit,canonical,credential,disclose,didDoc,didResolver,statusList,trust,trustList,crypto,lampnet,dossier,fingerprint,consent,schema,schemaRegistry,anchor,did}.ts`.
+- Code (nguồn chân-lý Mức 1+2): `PhoenixKey-Frontend/src/lib/sdvc/{commit,canonical,credential,disclose,didDoc,didResolver,statusList,trust,trustList,crypto,lampnet,dossier,fingerprint,consent,schema,schemaRegistry,anchor,did}.ts`. Riêng phần **registry duy-nhất-người v1 (Đ-7, I-KNOW-12..15)**, nguồn chân-lý là backend `PhoenixKey-Database` (`FingerprintRegistryService.java`, `document_fingerprints`, `KnowmeFingerprintController.java`) — `fingerprint.ts:UniquenessRegistry`/`documentFingerprint` chỉ là bản tham-chiếu/minh-hoạ phía web.
 - Spec (lớp tài-liệu + Mức 3): thiết-kế nội-bộ (không công khai) — Knowme-Feat-Math (§3, §6, §9, §11), KYC-KYB-ZK-Feat-Math (§B).
 - `PhoenixKey-Math.md §34` (Privacy/GDPR tombstone — dẫn-chiếu, KHÔNG sửa).
 - → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
