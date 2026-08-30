@@ -15,7 +15,7 @@
 > **Bao-phủ test bắt-buộc:** module danh-tính (`taad_logic`, `state_nft_logic`, `attack_tests`; `auth_logic`/`types` không cần test riêng) phải phủ GenesisPerson/GenesisChild/can_own/Rotate/Cancel/Finalize/Deactivate + regression Bug#3 (NFT off-script).
 > → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#anchorme)
 >
-> **Aliasing từ `PhoenixKey-Math.md`:** bất-biến A-1/A-2/A-3 (§10.4), CanOwn (§22.1), C-SEQ (§26), Active/Authority (§4) là canonical trong Math.md — ở đây TÁI DÙNG và ánh-xạ sang code, GHI RÕ nguồn §. Mã mới cho tầng code này dùng tiền-tố **`I-CID-n`**.
+> **Aliasing từ `PhoenixKey-Math.md`:** bất-biến A-1/A-2/A-3 (§10.4), CanOwn (§22.1), C-SEQ (§26), Active/Authority (§4) được định-nghĩa ở `PhoenixKey-Math.md` §10.4/§22.1/§26/§4 — ở đây TÁI DÙNG và ánh-xạ sang code. Mã mới cho tầng code này dùng tiền-tố **`I-CID-n`**.
 
 ---
 
@@ -204,7 +204,7 @@ I-CID-1/I-CID-2 là bất-biến **trong-phạm-vi-1-tx** (đúng 1 mint +1, đ�
 | PA3 | Gate `did` prefix kiểu `did:phoenix:person:` on-chain | **BẤT-KHẢ-THI** với format DID thật: canonical = `did:phoenix:{base32(slot)}:{hex(hash)}` (`taad_did.rs:126`), entity_type nằm TRONG preimage hash (`type_byte`), KHÔNG lộ segment `:person:`/`:org:` để parse on-chain. Chuỗi `did:phoenix:org:acme` trong tài-liệu minh-hoạ là HƯ-CẤU, không phải format thật. |
 | PA4 | did_payment/stake/subaddr bake thêm ref tới UTxO-anchor-GỐC (địa-chỉ = f(outref-genesis)) | Phá tính tất-định địa-chỉ theo `did` → **breaking địa-chỉ** (mất tính "địa-chỉ tính được từ did không cần index"). Loại vì trái mục-tiêu thiết-kế địa-chỉ. |
 | PA5-a | `anchor_controller_ok` nhận thêm `allowed: List<EntityType>`, ép `anchor.entity_type ∈ allowed` | Viết + test xanh (= §CID-2), nhưng **CHỐT KHÔNG NỐI** (2026-08-12, `PhoenixKey-Validator` PR #73) — PoP-bind (dưới, §5.7ter) đã cam-kết `entity_type` vào tiền-ảnh `did` ngay lúc mint, nên đọc lại nó ở tầng chi chỉ kiểm-lại thứ apply-param đã ép sẵn. Hàm giữ deprecated làm test đối-kháng. |
-| PA2 | Global uniqueness-thread: 1 UTxO thread duy-nhất, genesis phải spend+update accumulator, chứng-minh did∉accumulator trước khi thêm | **CANONICAL dài-hạn, ĐÃ CHỌN** (= §CID-3). Cách DUY-NHẤT khép-kín uniqueness toàn-cục trên eUTXO vì ép mọi genesis chuỗi-hoá qua 1 điểm tranh-chấp. Chi-phí: contention 1 thread (giảm bằng shard K-thread theo prefix hash) + ExUnit chứng-minh non-membership (accumulator/Merkle). |
+| PA2 | Global uniqueness-thread: 1 UTxO thread duy-nhất, genesis phải spend+update accumulator, chứng-minh did∉accumulator trước khi thêm | **Hướng dài-hạn đã chọn** (= §CID-3, chưa build). Cách DUY-NHẤT khép-kín uniqueness toàn-cục trên eUTXO vì ép mọi genesis chuỗi-hoá qua 1 điểm tranh-chấp. Chi-phí: contention 1 thread (giảm bằng shard K-thread theo prefix hash) + ExUnit chứng-minh non-membership (accumulator/Merkle). |
 
 **Evidence test PA5-a (patch đã thử-nghiệm, ADDITIVE, không đổi validator/param):**
 ```
@@ -528,7 +528,7 @@ Owner ký = "duyệt" — KHÔNG có khâu phê-duyệt người (self-service p
 | Quyền kiểm-soát | chữ-ký off-chain, backend kiểm | on-chain, validator ép — chống backend tự ý đổi |
 | Đời-sống ServiceDID | khó làm state-machine sạch (rotate `service_key`, revoke) | có TAAD state-machine đúng §20 `version` monotone |
 
-**KHUYẾN-NGHỊ (đã trong DRAFT):** (b) TAAD anchor NFT là đích canonical dài-hạn (ServiceDID cần rotate `service_key`/revoke/`version` monotone — chỉ on-chain state-machine làm sạch được, validator Design-2 ĐÃ hỗ-trợ mint theo `entity_type` nên chi-phí kỹ-thuật là tx-builder chứ không phải validator mới). Phát-hành **2 giai-đoạn**: GĐ1 dùng (a) để self-service chạy NGAY (tái-dùng đường PersonDID đã live); GĐ2 chuyển canonical sang (b) khi tx-builder merge, (a) hạ xuống vai-trò compatibility-mirror (đúng mẫu §2.5.6 Math: UTxO datum tồn-tại thì nó authoritative). `client_id ≜ service_did` bất-biến qua migration.
+**KHUYẾN-NGHỊ (đã trong DRAFT):** (b) TAAD anchor NFT là đích dài-hạn (ServiceDID cần rotate `service_key`/revoke/`version` monotone — chỉ on-chain state-machine làm sạch được, validator Design-2 ĐÃ hỗ-trợ mint theo `entity_type` nên chi-phí kỹ-thuật là tx-builder chứ không phải validator mới). Phát-hành **2 giai-đoạn**: GĐ1 dùng (a) để self-service chạy NGAY (tái-dùng đường PersonDID đã live); GĐ2 chuyển sang (b) khi tx-builder merge, (a) hạ xuống vai-trò compatibility-mirror (đúng mẫu §2.5.6 Math: UTxO datum tồn-tại thì nó authoritative). `client_id ≜ service_did` bất-biến qua migration.
 
 **Platform vs App:** KHÔNG type mới — dùng quan-hệ owner-chain sẵn-có của §20 (`Service→Service ≤ 3 hop`, I-SVC-CHAIN). Platform = ServiceDID `owner=OrgDID`, capability_set rộng; App = ServiceDID `owner=ServiceDID-của-Platform`, capability_set hẹp hơn (⊑ capability_set Platform, C-SCOPE-1). Ví-dụ chain `OriLife → SatelliteAPI → WeatherAPI` (§20).
 
