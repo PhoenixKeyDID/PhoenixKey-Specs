@@ -3,7 +3,7 @@
 > **Module:** Rebirthme (slug `Rebirthme`). **Loại doc:** Toán hình-thức cho auditor. **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** auditor / kiểm-toán mật-mã + kinh-tế. Định-nghĩa hình-thức, bất-biến, mệnh-đề-ép từng thao-tác, đối-chiếu dòng code thật.
 >
-> **Ranh giới (MECE):** module này đặc-tả **cổng CHI của Ví Phượng-hoàng** (`did_payment`), **địa-chỉ đa-tầng**, **hạn-mức anti-drain**, **kho bí-mật / phả-hệ seed**, **vệ-sinh nonce ký**, **stake theo-DID**. **Smartsend** (gửi-có-bảo-vệ) nay là module độc-lập — xem [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md); module này CHỈ cung-cấp hạ-tầng tái-dùng (cổng chi, guardian, anti-drain). Cơ-chế **state-machine TAAD** (Genesis/Rotate/Init·Cancel·Finalize·Recovery/UpdateGuardians/Transfer/Deactivate) **thuộc Core Anchorme** — ở đây CHỈ dẫn-chiếu, không định-nghĩa lại. Xem `PhoenixKey-Anchorme-Math.md` + `PhoenixKey-Math.md` §10 (TAAD), §11 (recovery), §6 (key hierarchy), §7 (LampNet), §33 (emergency vault).
+> **Ranh giới (không chồng lấn, không bỏ sót):** module này đặc-tả **cổng CHI của Ví Phượng-hoàng** (`did_payment`), **địa-chỉ đa-tầng**, **hạn-mức anti-drain**, **kho bí-mật / phả-hệ seed**, **vệ-sinh nonce ký**, **stake theo-DID**. **Smartsend** (gửi-có-bảo-vệ) nay là module độc-lập — xem [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md); module này CHỈ cung-cấp hạ-tầng tái-dùng (cổng chi, guardian, anti-drain). Cơ-chế **state-machine TAAD** (Genesis/Rotate/Init·Cancel·Finalize·Recovery/UpdateGuardians/Transfer/Deactivate) **thuộc Core Anchorme** — ở đây CHỈ dẫn-chiếu, không định-nghĩa lại. Xem `PhoenixKey-Anchorme-Math.md` + `PhoenixKey-Math.md` §10 (TAAD), §11 (recovery), §6 (key hierarchy), §7 (LampNet), §33 (emergency vault).
 > → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
 >
 > **Mã bất-biến:** MOD = `WALLET`. Bất-biến mới của module = `I-WALLET-n`. Các bất-biến gốc từ nguồn giữ NGUYÊN mã (I-LIMIT-*, I-LIN-*, I-VAULT-*, I-CURVE-4/5, I-ADDR-*, I-SIGN-*, I-DIDSTAKE-*, I-GUARD-*) và ghi rõ nguồn. (**SS-*** của Smartsend nay ở module riêng `PhoenixKey-Smartsend-Math.md`.) Bất-biến tái-dùng từ `PhoenixKey-Math.md` ghi rõ §.
@@ -382,7 +382,7 @@ validator tệ nhất chỉ là sai định-tuyến reward một chu-kỳ, và a
 > công-thức CKDpub derivation watch-only (`acct_xvk` → payment/stake/DRep pub, M2),
 > bảng ánh-xạ method→khoá/Grant (§B.3), pseudocode `authorize(session,op,tx)` (§B.4)
 > và `verify_session`/`verify_login` (§B.5), CIP-45 pairing (§A.4) — ở
-> `PhoenixKey-Connector-CIP30-Feat-Math.md` (MECE: file này không định-nghĩa lại).
+> `PhoenixKey-Connector-CIP30-Feat-Math.md` (file này không định-nghĩa lại).
 
 | Mã | Mô tả | Neo / ghi-chú |
 |---|---|---|

@@ -12,8 +12,8 @@
 > **Neo nguồn (đã đối chiếu):**
 > - `PhoenixKey-Math.md` §6 (phân cấp khoá), §6.1.1 (HKDF `wallet-seed-v1`), §7
 >   (LampNet LT-code), §8.1 (CIP-1852).
-> - Đề xuất thiết kế: `Legacy/spec-proposals-2026-07-10/PhoenixKey-SeedDistribution-FROST-and-PA2-SMT-Design.md`,
->   `Legacy/spec-proposals-2026-07-10/PhoenixKey-Seed-Lineage-Strata-Feat-Math.md`.
+> - Đề xuất thiết kế: `[nội-bộ] PhoenixKey-SeedDistribution-FROST-and-PA2-SMT-Design.md`,
+>   `[nội-bộ] PhoenixKey-Seed-Lineage-Strata-Feat-Math.md`.
 > - Mã thật: `PhoenixKey-Core/Enclave/rust_core/src/{cardano.rs,sign.rs}`,
 >   `derive-demo/src/main.rs`; primitive LampNet `Mirage` (LT-fountain), `Strata`
 >   (MMR phả hệ).

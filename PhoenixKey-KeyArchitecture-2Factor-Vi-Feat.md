@@ -1,9 +1,9 @@
 # PhoenixKey — Kiến trúc khoá 2-yếu-tố · Recovery đa-yếu-tố · AdaptiveAuth
 
-> **Trạng thái**: thiết kế qua 4 hội đồng opus (mathematician · adversary · game-theorist · optimizer, 2026-07-22). Anh Aladin chốt: **(A)** recovery = seed ∧ yếu-tố-2 do user tự giữ (RMP mạnh), KHÔNG bắt guardian; Face/Knowme là tuỳ chọn thêm khi hoàn thiện. **Non-oracle**. **AdaptiveAuth** = danh-mục+trần on-chain / tính-toán off-chain. Bản này chờ anh review + tự merge.
+> **Trạng thái**: bản thiết kế 2026-07-22, đã qua rà soát toán học · đối kháng · lý thuyết trò chơi · tối ưu chi phí. Hướng đã chốt: **(A)** recovery = seed ∧ yếu-tố-2 do user tự giữ (RMP mạnh), KHÔNG bắt guardian; Face/Knowme là tuỳ chọn thêm khi hoàn thiện. **Non-oracle**. **AdaptiveAuth** = danh-mục+trần on-chain / tính-toán off-chain.
 > **Thay thế/đồng bộ**: `PhoenixKey-SeedDistribution-SelfCustody-Feat.md` (§3 dùng lại cơ chế RMP + client-Shamir của nó, thêm envelope-before-split — KHÔNG viết lại), `PhoenixKey-Anchorme-*` (thêm §5 datum device_pkh), `PhoenixKey-Rebirthme-*` (Rail-2 guardian), `PhoenixKey-Knowme-*` (yếu-tố tuỳ chọn §4.3), `limit_meter.ak` (§8 mở rộng — KHÔNG validator mới).
 
-## 0. Mục tiêu (anh chốt) + sự thật nền
+## 0. Mục tiêu + sự thật nền
 
 1. Seed KHÔNG còn là **đặc quyền duy nhất** kiểm soát DID. Kẻ có seed, **chỉ trên CLI**, KHÔNG chi được ví Phoenix/Easteregg (cưỡng chế 2-of-2 on-chain — §5).
 2. Recovery = **seed ∧ ≥1 yếu-tố user tự giữ**; user tự khôi phục KHÔNG cần guardian; hacker-chỉ-seed thất bại (§4).
@@ -11,7 +11,7 @@
 4. Thiết bị LAN = chỉ lưu mảnh (durability), không guardian/đồng thuận; chạy 1/2/3+ máy (§3).
 5. **AdaptiveAuth**: cấp độ xác thực tăng theo giá trị/bối cảnh; sàn on-chain cố định, ma-sát thêm ở app (§8).
 
-**Sự thật nền (mathematician — phải hiểu để không hứa sai):** một yếu-tố mà user tái tạo được trên **máy mới** chỉ từ dữ-liệu-công-khai + đầu-vào-người là yếu-tố **entropy thấp** (khuôn mặt ~20-30 bit, câu hỏi bảo mật <40 bit và OSINT-được). Hacker biết DID cũng tái tạo được. ⟹ **sinh trắc và Knowme KHÔNG THỂ là yếu-tố khôi phục ĐƠN LẺ** — chỉ là lớp tiện lợi AND lên trên. Yếu-tố-2 vừa mang-đi-được vừa đủ mạnh chỉ có: **(a) passphrase RMP mạnh sinh-máy (~70+ bit)**, **(b) khoá guardian**. Hướng A = chọn (a) làm mặc định không-guardian.
+**Sự thật nền (phải hiểu để không hứa sai):** một yếu-tố mà user tái tạo được trên **máy mới** chỉ từ dữ-liệu-công-khai + đầu-vào-người là yếu-tố **entropy thấp** (khuôn mặt ~20-30 bit, câu hỏi bảo mật <40 bit và OSINT-được). Hacker biết DID cũng tái tạo được. ⟹ **sinh trắc và Knowme KHÔNG THỂ là yếu-tố khôi phục ĐƠN LẺ** — chỉ là lớp tiện lợi AND lên trên. Yếu-tố-2 vừa mang-đi-được vừa đủ mạnh chỉ có: **(a) passphrase RMP mạnh sinh-máy (~70+ bit)**, **(b) khoá guardian**. Hướng A = chọn (a) làm mặc định không-guardian.
 
 ## 1. Hai định lý bất khả (nền)
 
@@ -46,7 +46,7 @@ K_env bọc dưới F_cold:  wrap(K_env) = AEAD(HKDF(F_cold,"kenv"), K_env)
 ```
 - **R1 (gom hết mảnh→vô dụng):** dựng lại `EnvSeed`; thiếu `K_env` thì phân biệt với ngẫu nhiên = phá IND-CCA của AEAD (negligible). `K_env` không nằm trong mảnh. ∎
 - **R2 (gom hết MÁY→vẫn cần yếu-tố-2):** `K_env` chỉ tái tạo từ `F_cold` (RMP mạnh / guardian) — KHÔNG ở máy LAN nào. ∎
-- **⚠ Điều kiện chặt (adversary):** nhánh `F_cold = RMP` thì "gom hết vô dụng" **chỉ đúng khi RMP mạnh** — shard công khai + brute offline ⟹ **RMP phải SINH-MÁY ≥70 bit (diceware), Argon2id tham số nặng, KHÔNG cho user tự nghĩ**. Rate-limit vô dụng (tấn công offline). Ghi rõ trong UX.
+- **⚠ Điều kiện chặt (rà soát đối kháng):** nhánh `F_cold = RMP` thì "gom hết vô dụng" **chỉ đúng khi RMP mạnh** — shard công khai + brute offline ⟹ **RMP phải SINH-MÁY ≥70 bit (diceware), Argon2id tham số nặng, KHÔNG cho user tự nghĩ**. Rate-limit vô dụng (tấn công offline). Ghi rõ trong UX.
 - **Sửa lỗi cũ** `lampnet.rs derive_x25519_static_from_kek(Master_KEK)` (khoá giải = seed, circular) → khoá giải = `K_env` off-device.
 - **1/2/3+ máy:** mảnh chỉ mang durability (LT-fountain), KHÔNG secret-share → 1 máy đủ; thêm/bớt máy = re-encode + bump epoch (`K_env` bất biến); KHÔNG cần PSS.
 
@@ -88,7 +88,7 @@ Test: `test_gather_all_shards_yields_only_ciphertext` · `test_all_machines_no_f
 
 ## 8. AdaptiveAuth — danh-mục + trần on-chain / tính-toán off-chain (non-oracle)
 
-**Nguyên tắc (hội đồng):** validator eUTXO cục-bộ KHÔNG biết tổng-tài-sản/tier/ngành/môi-trường (off-chain toàn cục). Nên:
+**Nguyên tắc:** validator eUTXO cục-bộ KHÔNG biết tổng-tài-sản/tier/ngành/môi-trường (off-chain toàn cục). Nên:
 - **I-FLOOR-2OF2-FIXED:** sàn on-chain = 2-of-2 (§5) cho MỌI tier, MỌI lúc, từ genesis. AdaptiveAuth **chỉ THÊM** yếu-tố, TUYỆT ĐỐI không hạ sàn. "Account mới = 1-2 factor, cho thử-sai" chỉ ở **app-UX**, không đục sàn on-chain.
 - **Enforce = trần PER-LỚP theo đơn-vị-gốc** (KHÔNG oracle). Tái dùng `limit_meter.ak` (bucket/refill/loosen-delay/singleton) — mở rộng: `LimitMeterDatum` scalar → `List<ClassRule{class_id, ceiling, required_factors, bucket_Q, last_refill_slot}>` + `default_rule`; `LargeWithdraw_ok` nhị-phân → **đếm ≥ required_factors khoá PHÂN BIỆT** (tái dùng `protectme committee_ok`). Bể factor từ anchor đã load: controller/device/guardians/secondary → **0 ref-input thêm**.
 - **Catalog** = 1 UTxO governance (`CatalogDatum` + catalog-NFT), đọc **chỉ ở cold-path SetConfig** (lúc user đặt/đổi trần), KHÔNG mỗi spend. GĐ1: CARP, LAMP, ADA. GĐ2: +FARM/WORK/TRACE/TIGER + user tự khai → sửa **1 UTxO, 0 re-anchor**.

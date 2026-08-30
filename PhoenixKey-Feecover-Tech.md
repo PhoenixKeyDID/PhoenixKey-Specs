@@ -12,7 +12,7 @@ Tài-liệu cùng bộ: [PhoenixKey-Feecover-Vi-Feat.md](./PhoenixKey-Feecover-V
 
 > **Nguồn engine tái-dùng:** `MAGIC/ConsumeMAGIC/{CONTRACT.md, onchain/lib/magiclamp/consume/types.ak, onchain/validators/consume.ak, onchain/lib/magiclamp/consume/pricing.ak}`; `MAGIC/Paymaster/onchain/lib/magiclamp/paymaster/types.ak`.
 > **Nguồn resolve API:** nguồn thiết-kế nội-bộ (không công khai).
-> **Nguồn canonical đơn-vị/peg:** `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` §4/§5. `1 nanogic = 1 byte·ngày`; `1 MAGIC = 1e9 nanogic = 1 GB·ngày`; `1 CARP = 1 MAGIC`.
+> **Đơn-vị/peg (định nghĩa nằm ở đặc-tả tokenomic MagicLamp, không lặp lại ở đây):** `1 nanogic = 1 byte·ngày`; `1 MAGIC = 1e9 nanogic = 1 GB·ngày`; `1 CARP = 1 MAGIC`.
 
 ---
 

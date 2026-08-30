@@ -127,7 +127,7 @@ flowchart LR
 
 **Đọc sơ đồ:** một vòng đời điển hình — tạo danh tính bằng vân tay, có ví ngay, dùng ví (gửi/nhận, kích hoạt dịch vụ), và nếu chẳng may mất máy thì khôi phục qua người-bảo-chứng mà **không mất tài sản, không cần nhớ 24 từ**.
 
-> **Trạng thái hôm nay:** bước 1–3 (tạo danh tính, có ví, gửi/nhận) đã chạy trên validator (173/173 test PASS); bước 4 (Nhận LAMP) và phần bảo vệ chống rút-sạch trong bước 5 (khôi phục khi khoá đã lộ) đang trong lộ trình xây — xem chi tiết tại [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
+> **Trạng thái hôm nay:** bước 1–3 (tạo danh tính, có ví, gửi/nhận) đã chạy trên validator (638/638 test PASS); bước 4 (Nhận LAMP) và phần bảo vệ chống rút-sạch trong bước 5 (khôi phục khi khoá đã lộ) đang trong lộ trình xây — xem chi tiết tại [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
 
 ### Điều kiện để khôi phục hoạt động
 
@@ -162,7 +162,7 @@ Xem sau: [Tính năng chi tiết](./PhoenixKey-Anchorme-Vi-Feat.md) · Toán/b�
 **Là gì:** ví mà tài sản gắn với DANH TÍNH của bạn, không gắn với chìa khoá — địa chỉ ví bất biến suốt đời, mất máy vẫn khôi phục xong tiêu tiếp.
 Nó giải quyết ba chỗ đau chí mạng của ví crypto truyền thống: mất seed là mất sạch vĩnh viễn, lộ seed là mất sạch tức thì, và đổi khoá thường làm chết luôn địa chỉ cũ. Rebirthme lật ngược cả ba:
 
-- **Khôi phục qua người-bảo-chứng** (họ KHÔNG giữ mảnh bí mật của bạn) và **địa chỉ không đổi dù bạn xoay khoá bao nhiêu lần** — hai điểm này đã có trên validator (173/173 test PASS).
+- **Khôi phục qua người-bảo-chứng** (họ KHÔNG giữ mảnh bí mật của bạn) và **địa chỉ không đổi dù bạn xoay khoá bao nhiêu lần** — hai điểm này đã có trên validator (638/638 test PASS).
 - **Một "van" chống rút-sạch khi khoá lộ** — đây là hạng mục ưu tiên cao nhất đang xây (xem [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md)). *Ví dụ:* nếu chìa khoá của bạn chẳng may bị lộ và có kẻ cố rút sạch trong một lần, "van" này giống cầu dao tự động ngắt khi phát hiện dòng điện bất thường — nó tự động chặn hoặc làm chậm giao dịch bất thường, cho bạn kịp thời gian phản ứng, thay vì mất hết trong một cú bấm. Tới khi van này xong, với ví giữ giá-trị lớn hãy bật **Đóng-băng ngay khi nghi lộ khoá**.
 
 Xem sau: [Tính năng chi tiết](./PhoenixKey-Rebirthme-Vi-Feat.md) · Toán/bất biến: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) (mục §4.B nói về van chống rút-sạch, và chứng minh mức thiệt hại tối đa — mức trần đó chỉ đúng KHI van đang bật)
@@ -257,7 +257,7 @@ Nói ngắn: **Whitepaper → Feat → (Math / Tech / Exec)** — càng đi sâu
 
 ## 5b. Ranh giới hiện tại — cái gì đã chạy, cái gì đang xây
 
-PhoenixKey là kim chỉ nam thiết kế đích. Hôm nay: khung danh tính + ví đã chạy trên validator (173/173 test PASS), nhưng danh tính **Cá nhân** (khác Tổ chức/Dịch vụ) và lớp **chống-rút-sạch** của ví đang trong giai đoạn đóng nốt — đây là hai hạng mục bảo mật ưu tiên cao nhất. Xem tiến độ theo từng module tại [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
+PhoenixKey là kim chỉ nam thiết kế đích. Hôm nay: khung danh tính + ví đã chạy trên validator (638/638 test PASS), nhưng danh tính **Cá nhân** (khác Tổ chức/Dịch vụ) và lớp **chống-rút-sạch** của ví đang trong giai đoạn đóng nốt — đây là hai hạng mục bảo mật ưu tiên cao nhất. Xem tiến độ theo từng module tại [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
 
 ---
 

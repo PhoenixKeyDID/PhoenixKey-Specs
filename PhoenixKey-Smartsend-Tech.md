@@ -3,7 +3,7 @@
 > **Module:** Smartsend (gửi-có-bảo-vệ). **Loại doc:** Kỹ-thuật cho implementer (đội on-chain / đội backend / Core rust_core / VeData-Glint). **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** kỹ-sư triển-khai. HOW: kiến-trúc, datum/redeemer CBOR, điều-kiện tx, luồng e2e, ranh-giới giao-việc, thứ-tự deploy, test.
 >
-> **Ranh giới (MECE):** module CHỈ đặc-tả hòm ký-quỹ `smartsend_escrow` (Open/Cancel/Accept/Finalize/Freeze/ResolveFreeze/ReclaimTimeout). **Cổng chi `did_payment`, guardian-recovery, anti-drain `limit_meter`** thuộc module Rebirthme — chỉ dẫn-chiếu. Xem [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md) cho bất-biến; [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md) cho ví/guardian/anti-drain; [PhoenixKey-Math.md](./PhoenixKey-Math.md) §10/§11 cho TAAD.
+> **Ranh giới (không chồng lấn, không bỏ sót):** module CHỈ đặc-tả hòm ký-quỹ `smartsend_escrow` (Open/Cancel/Accept/Finalize/Freeze/ResolveFreeze/ReclaimTimeout). **Cổng chi `did_payment`, guardian-recovery, anti-drain `limit_meter`** thuộc module Rebirthme — chỉ dẫn-chiếu. Xem [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md) cho bất-biến; [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md) cho ví/guardian/anti-drain; [PhoenixKey-Math.md](./PhoenixKey-Math.md) §10/§11 cho TAAD.
 
 ---
 

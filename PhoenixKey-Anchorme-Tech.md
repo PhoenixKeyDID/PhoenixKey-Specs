@@ -222,7 +222,7 @@ Ký-hiệu: `d`/`d′` = datum vào/ra; `π` = own_policy; `N=blake2b_256(did)`.
   ```
 
 ### 3.5 Recovery (Init/Cancel/Finalize) — tóm, chi-tiết ở Rebirthme
-`InitRecovery` (`:76-110`): ≥`min_guardian_sigs` guardian ký, collateral ≥ ngưỡng khóa vào continuing UTxO (A-5), status→Recovering. `CancelRecovery` (`:116-131`): `ub < deadline_slot` (A-6), ctrl ký, →Active. `FinalizeRecovery` (`:134-157`): `lb > deadline_slot`, `pending_controller_pkh` ký, cài hw/ctrl pending, →Active. **Ranh-giới MECE: module Rebirthme sở-hữu; Core-Anchorme chỉ neo 3 nhánh này giữ A-1/A-2.**
+`InitRecovery` (`:76-110`): ≥`min_guardian_sigs` guardian ký, collateral ≥ ngưỡng khóa vào continuing UTxO (A-5), status→Recovering. `CancelRecovery` (`:116-131`): `ub < deadline_slot` (A-6), ctrl ký, →Active. `FinalizeRecovery` (`:134-157`): `lb > deadline_slot`, `pending_controller_pkh` ký, cài hw/ctrl pending, →Active. **Ranh-giới: module Rebirthme sở-hữu; Core-Anchorme chỉ neo 3 nhánh này giữ A-1/A-2.**
 
 ### 3.6 `anchor_controller_ok` — ví "đi-theo-DID" đọc anchor (`auth_logic.ak:37-52`)
 ```
@@ -511,7 +511,7 @@ Bổ-sung bắt-buộc trước khi mở production:
 
 ## 10. DID Authorization Registry — primitive uỷ-quyền dùng chung (PROPOSAL, CHỜ DUYỆT)
 
-> **Trạng-thái: PROPOSAL — chờ Long/anh Aladin chốt. CHƯA build, CHƯA đụng repo Validator.** Nguồn: `spec-proposals/DID-Authorization-Registry-DRAFT.md`. Tổng-quát-hoá Mint-Authority Registry (`registry.ak`, đã build & test trong LAMP) thành một bảng uỷ-quyền do DID quản, đọc qua reference-input, dùng chung cho nhiều loại verifier (không chỉ mint token). Đây là **primitive MỚI, tách khỏi `TAADDatum`** (§2) — registry là UTxO riêng, không phải trường trong anchor.
+> **Trạng-thái: PROPOSAL — chờ maintainer chốt. CHƯA build, CHƯA đụng repo Validator.** Nguồn: `[nội-bộ] DID-Authorization-Registry-DRAFT.md`. Tổng-quát-hoá Mint-Authority Registry (`registry.ak`, đã build & test trong LAMP) thành một bảng uỷ-quyền do DID quản, đọc qua reference-input, dùng chung cho nhiều loại verifier (không chỉ mint token). Đây là **primitive MỚI, tách khỏi `TAADDatum`** (§2) — registry là UTxO riêng, không phải trường trong anchor.
 
 ### 10.1 Vì sao ACL, không phải capability
 
@@ -579,13 +579,13 @@ Vật-lý qua cầu nối (thiết bị không chạy Plutus): firmware DeviceDI
 4. Thứ-tự constr cho `SpendLimit`/`TimeBox` khi mở-rộng `Authorization`.
 5. **Chống datum phình khi `entries` dài** (nhiều action_tag trong 1 registry): (a) mặc-định — tách nhiều Registry NFT theo namespace (1 registry/nhóm action_tag liên-quan, vd 1 registry/OrgDID cho token nội-bộ, registry riêng cho token đối-tác); (b) khi N rất lớn — đổi `entries` sang lưu Merkle-root trong datum, verifier nhận proof entry kèm redeemer (đánh-đổi: mỗi lần dùng phải mang proof). (a) là lựa-chọn mặc-định; (b) chỉ cân-nhắc khi (a) không đủ. Nguồn: `Mint-Authority-Registry-DRAFT.md §5`.
 
-→ Xem đầy-đủ: `spec-proposals/DID-Authorization-Registry-DRAFT.md`.
+→ Xem đầy-đủ: `[nội-bộ] DID-Authorization-Registry-DRAFT.md`.
 
 ---
 
 ## 11. Permission & Consent — luồng app↔user cấp quyền (PROPOSAL, CHỜ DUYỆT)
 
-> **Trạng-thái: PROPOSAL — chờ Long/anh Aladin chốt. CHƯA build.** Nguồn: `spec-proposals/PhoenixKey-Permission-and-Consent-Spec.md`. Khác **§10 (DID Authorization Registry)**: §10 là ACL on-chain cho *authority* (ai được mint/spend/vận hành thiết-bị on-chain), verifier = validator. Mục này là *off-chain data-access consent* (ai được xem/sửa tài-nguyên app — hồ-sơ trang-trại, ảnh cây…) + đăng-nhập, verifier = backend app. Hai tầng dùng **chung một hình-thức Grant** (§11.2) nhưng khác kênh thực-thi.
+> **Trạng-thái: PROPOSAL — chờ maintainer chốt. CHƯA build.** Nguồn: `[nội-bộ] PhoenixKey-Permission-and-Consent-Spec.md`. Khác **§10 (DID Authorization Registry)**: §10 là ACL on-chain cho *authority* (ai được mint/spend/vận hành thiết-bị on-chain), verifier = validator. Mục này là *off-chain data-access consent* (ai được xem/sửa tài-nguyên app — hồ-sơ trang-trại, ảnh cây…) + đăng-nhập, verifier = backend app. Hai tầng dùng **chung một hình-thức Grant** (§11.2) nhưng khác kênh thực-thi.
 
 ### 11.1 Một primitive, hai tầng thực-thi
 
@@ -693,13 +693,13 @@ PhoenixKey cấp **danh-tính + chữ-ký Grant + resolve khoá**. KHÔNG lưu h
 - **I-GRANT-LIST:** user PHẢI xem được TOÀN-BỘ quyền (RA + VÀO) đang còn hiệu-lực, bất-cứ lúc nào (§11.6).
 - **I-ROLE-1:** thẩm-quyền của chức đọc theo `controller` HIỆN-TẠI của RoleDID; bàn-giao = `Rotate`, không cần thu-hồi từng grant riêng-lẻ.
 
-→ Xem đầy-đủ: `spec-proposals/PhoenixKey-Permission-and-Consent-Spec.md`.
+→ Xem đầy-đủ: `[nội-bộ] PhoenixKey-Permission-and-Consent-Spec.md`.
 
 ---
 
 ## 12. Chuẩn-hoá thuật-ngữ & i18n (VI/EN) — nhãn hiển-thị cho `EntityType`/`TAADStatus` (PROPOSAL, CHỜ DUYỆT)
 
-> **Trạng-thái: PROPOSAL — chờ duyệt.** Nguồn: `spec-proposals/PhoenixKey-Terminology-i18n-Spec.md`. Áp-dụng cho mọi chuỗi hiển-thị người-đọc trong toàn hệ (app, SDK, frontend, resolver) ánh-xạ từ giá-trị canonical on-chain/backend — ví-dụ nhãn 10 `EntityType` (§1.3, field 1 `TAADDatum`) và 4 trạng-thái `TAADStatus` (§2.1 field 5: Active/Recovering/Migrated/Revoked, cộng các trạng-thái vòng-đời mở-rộng ở tầng point-in-time §5.2). Đây là tầng **trình-bày**, KHÔNG đổi giá-trị canonical on-chain (byte enum `types.ak:21-32`, §1.3) hay giá-trị `status` trong response API (§5.1/§5.2 vẫn trả `active`/`revoked`/`recovering`/`migrated` dạng máy-đọc).
+> **Trạng-thái: PROPOSAL — chờ duyệt.** Nguồn: `[nội-bộ] PhoenixKey-Terminology-i18n-Spec.md`. Áp-dụng cho mọi chuỗi hiển-thị người-đọc trong toàn hệ (app, SDK, frontend, resolver) ánh-xạ từ giá-trị canonical on-chain/backend — ví-dụ nhãn 10 `EntityType` (§1.3, field 1 `TAADDatum`) và 4 trạng-thái `TAADStatus` (§2.1 field 5: Active/Recovering/Migrated/Revoked, cộng các trạng-thái vòng-đời mở-rộng ở tầng point-in-time §5.2). Đây là tầng **trình-bày**, KHÔNG đổi giá-trị canonical on-chain (byte enum `types.ak:21-32`, §1.3) hay giá-trị `status` trong response API (§5.1/§5.2 vẫn trả `active`/`revoked`/`recovering`/`migrated` dạng máy-đọc).
 
 ### 12.1 Cơ-chế
 
@@ -717,7 +717,7 @@ PhoenixKey cấp **danh-tính + chữ-ký Grant + resolve khoá**. KHÔNG lưu h
 | Khoá & danh-tính | `pk.key.*` | `controller_pkh`/`hw_key_pubkey` (§2.1 field 2-3) | `pk.key.hw_key` → "Khoá phần cứng (sinh trắc)" / "Hardware key (biometric)" |
 | Khôi-phục/sao-lưu | `pk.recovery.*` | luồng Rebirthme (§3.5) | `pk.recovery.guardian` |
 
-> Bảng đầy-đủ 10 loại DID + 9 trạng-thái + các namespace khác (`pk.cap.*`, `pk.addr.*`, `pk.screen.*`, `pk.msg.*`) — xem `spec-proposals/PhoenixKey-Terminology-i18n-Spec.md §3`. Chú-ý nhãn `agent`: Math gọi **Agent**, validator hiện đặt biến **AI** — chuẩn hiển-thị là "Tác tử AI / AI Agent", khoá ổn-định `pk.didtype.agent`.
+> Bảng đầy-đủ 10 loại DID + 9 trạng-thái + các namespace khác (`pk.cap.*`, `pk.addr.*`, `pk.screen.*`, `pk.msg.*`) — xem `[nội-bộ] PhoenixKey-Terminology-i18n-Spec.md §3`. Chú-ý nhãn `agent`: Math gọi **Agent**, validator hiện đặt biến **AI** — chuẩn hiển-thị là "Tác tử AI / AI Agent", khoá ổn-định `pk.didtype.agent`.
 
 ### 12.3 Trách-nhiệm & vị-trí file
 
@@ -734,7 +734,7 @@ PhoenixKey cấp **danh-tính + chữ-ký Grant + resolve khoá**. KHÔNG lưu h
 - **I-I18N-4:** Overlay app chỉ ĐÈ nhãn, KHÔNG đổi ngữ-nghĩa khoá (vd không được map `pk.cap.mint_token` sang nghĩa khác).
 - **I-I18N-5 (ràng-buộc riêng Anchorme):** khoá `pk.didtype.*`/`pk.status.*` ánh-xạ 1-1 vào giá-trị canonical on-chain (§1.3 type-byte, §2.1 field 5) — đổi thứ-tự/thêm giá-trị enum ở `types.ak` PHẢI đồng-bộ thêm khoá tương-ứng, KHÔNG tái-dùng khoá cũ cho nghĩa mới.
 
-→ Xem đầy-đủ: `spec-proposals/PhoenixKey-Terminology-i18n-Spec.md`.
+→ Xem đầy-đủ: `[nội-bộ] PhoenixKey-Terminology-i18n-Spec.md`.
 
 ---
 
@@ -744,7 +744,7 @@ PhoenixKey cấp **danh-tính + chữ-ký Grant + resolve khoá**. KHÔNG lưu h
 - `PhoenixKey-Specs/PhoenixKey-Math.md` §2, §4–§5, §10, §22.
 - Nguồn thiết-kế nội-bộ (không công khai).
 - `PhoenixKey-Core/Enclave/rust_core`: `phoenix_address.rs:52`, `crypto.rs:339`; `PhoenixKey-Database`: `DidPhoenixGenerator.java`, `ResolverController.java`.
-- `spec-proposals/PhoenixKey-Terminology-i18n-Spec.md` (§12).
+- `[nội-bộ] PhoenixKey-Terminology-i18n-Spec.md` (§12).
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

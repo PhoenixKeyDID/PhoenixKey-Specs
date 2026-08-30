@@ -5,7 +5,7 @@
 >
 > **Doc này KHÔNG chứa công-thức toán** (SpecStandard: toán/bất-biến thuộc [Math](./PhoenixKey-Wakeme-Math.md)). Ở đây chỉ **cấu-trúc dữ-liệu, CBOR, shape tx, API, ranh-giới**. Công-thức `WakemeUsageRight`/`d_unit`/`q`/đồng-hồ → xem Math §1-2. Thiết-kế/động-cơ → [Vi-Feat](./PhoenixKey-Wakeme-Vi-Feat.md); điều-hành → [Exec](./PhoenixKey-Wakeme-Exec.md).
 >
-> **Thuật-ngữ (anh Aladin chốt 2026-07-31):** LAMP khoá-điều-kiện = **quyền dùng (usage right)**; lượng cấp genesis = **`WakemeUsageRight`** (= `1001·d_unit` oildrop); phần đã kiếm = **`owned`** (sở-hữu-hẳn). "activation"→"wakeme" toàn nhánh (validator/endpoint/type).
+> **Thuật-ngữ (chốt 2026-07-31):** LAMP khoá-điều-kiện = **quyền dùng (usage right)**; lượng cấp genesis = **`WakemeUsageRight`** (= `1001·d_unit` oildrop); phần đã kiếm = **`owned`** (sở-hữu-hẳn). "activation"→"wakeme" toàn nhánh (validator/endpoint/type).
 >
 > **Nguồn đối-chiếu (code = nguồn chân-lý; văn ≠ code → code thắng):**
 > - `PhoenixKey-Validator/validators/wakeme_vault.ak` — thin validator (mint-gate 2 + spend dispatch 4 redeemer). *(Tên khai-báo `validator activation_vault(...)` chưa đổi — rename định-danh này gộp vào đợt endpoint/deploy, đụng tra-cứu blueprint-title off-chain.)*
@@ -282,7 +282,7 @@ quote (FX buffer) → checkout (VietQR/gateway) → poll tới CARP_DELIVERED
 
 Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code=1000`=OK). Mẫu **build-unsigned → Enclave witness → submit**. Đơn-vị: trả cả `_lamp` + `_oildrop` (×10⁶); MAGIC theo `nanogic = MAGIC×10⁹`.
 
-> **⚠ BREAKING — đổi namespace `/activation/*` → `/wakeme/*`** (anh Aladin chốt 2026-07-31). SuperApp/SDK/Frontend đã mock `/activation/*` → PHẢI điều-phối đổi đồng-thời (issue Long/Tuân + inbox SuperApp/Thư). **Tên path dưới là ĐỀ-XUẤT — chốt với backend trước khi hard-code.**
+> **⚠ BREAKING — đổi namespace `/activation/*` → `/wakeme/*`** (chốt 2026-07-31). SuperApp/SDK/Frontend đã mock `/activation/*` → PHẢI điều-phối đổi đồng-thời (issue Long/Tuân + inbox SuperApp/Thư). **Tên path dưới là ĐỀ-XUẤT — chốt với backend trước khi hard-code.**
 
 | # | Method | Path | Redeemer/tx | Auth | Chặn bởi |
 |---|---|---|---|---|---|
@@ -350,7 +350,7 @@ Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code
 
 ## 8. Test / evidence
 
-**Đã có (verify THẬT `aiken check`, worktree BẢN A, 2026-07-31):**
+**Đã có (verify THẬT bằng `aiken check` trên BẢN A, 2026-07-31):**
 ```
 Summary 491 checks, 0 errors, 10 warnings
 ```
