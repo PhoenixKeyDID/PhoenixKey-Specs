@@ -154,6 +154,8 @@ Nhưng **100% DID đang sống là metadata-6789**. Bản đăng ký công khai 
 
 Nặng thêm: hai đặc tả công khai của cùng một phương pháp nói hai điều khác nhau — `PhoenixKey-SDK/method.md:61-64` gọi TAAD là "v1.1 (target)" và metadata-6789 là "v1.0 live today", còn `PhoenixKey-DIDMethod-W3C.md` chỉ có một bản. Người ngoài đọc bản W3C rồi viết resolver theo nó sẽ không giải được DID nào đang tồn tại.
 
+Chiều NGƯỢC lại cũng có, và nó nguy hơn vì không ai đi kiểm chiều đó: `PhoenixKey-DIDMethod-W3C.md` §5.1/§5.3 ghi `"service": []` và *"resolver publishes an empty `service` array when none is registered"*. Mã thì luôn publish `#cardano-wallet` mang **địa chỉ ví thật** (`W3CDocumentBuilder.java:81-89`, gọi vô điều kiện từ `ResolverServiceImpl`), và `/identifiers/**` là đường công khai. Nghĩa là **công bố một chuỗi DID = công bố địa chỉ ví = công bố toàn bộ lịch sử giao dịch của người đó**. Một nhà bên ngoài đọc đặc tả rồi kết luận đây là lựa chọn "còn treo, chưa bật" — nó đã bật từ lâu. Đặc tả đã sửa cùng lượt này. Phần lượt phân giải **hiện tại** có nên tiếp tục trả ví hay không là quyết-định của chủ dự án, không phải bản vá kỹ thuật — xem §6. Lượt phân giải theo mốc quá khứ đã thôi trả `service[]` (Database PR #214).
+
 Và `PhoenixKey-Anchorme-Tech.md:355` — schema trả về của resolver chỉ có `"resolved_from": "onchain-cache | metadata-6789"`, **không có giá trị nào cho TAAD UTxO datum**. Tức schema hiện tại không diễn đạt nổi tầng đích.
 
 ### Lệch spec ↔ mã đang sống
@@ -177,7 +179,8 @@ Những việc dưới đây **không** thiếu người làm — chúng thiếu
 4. **Điều kiện được ghi vào registry giấy-tờ** (§4b).
 5. **FROST hay VSS** cho phân tán seed — hiện có hai nguyên thuỷ song song, phải chọn một trước khi xây tiếp.
 6. **`GenesisChild` có nâng lên 2-of-2 không** — nếu có thì đổi hash, đi cổng THỜI-CHÍNH.
-7. **Paymaster giữ hay bỏ** — treo từ 2026-08-12; phần "trả hộ phí mạng" của Feecover phụ thuộc câu trả lời.
+7. **Lượt phân giải hiện tại có tiếp tục trả địa chỉ ví không.** Hôm nay `GET /identifiers/{did}` công khai trả `#cardano-wallet` mang địa chỉ ví thật ⇒ ai biết chuỗi DID là biết ví và toàn bộ lịch sử giao dịch. Đây là hợp đồng công khai đang có bên tích hợp dùng, nên siết nó **không** phải bản vá kỹ thuật: hoặc giữ (và ghi rõ vào tài liệu tích hợp rằng công bố DID = công bố ví), hoặc cho chính chủ tự bật/tắt, hoặc bỏ hẳn khỏi tài liệu công khai và cấp qua đường có xác thực. Lượt phân giải theo mốc quá khứ đã thôi trả (Database PR #214) — phần còn lại chờ chốt.
+8. **Paymaster giữ hay bỏ** — treo từ 2026-08-12; phần "trả hộ phí mạng" của Feecover phụ thuộc câu trả lời.
 
 ---
 
