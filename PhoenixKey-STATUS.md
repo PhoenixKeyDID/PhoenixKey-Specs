@@ -83,6 +83,61 @@ Nói gọn: nguyên tắc **an ninh trước trải nghiệm, quyền phải ở
 
 ---
 
+### 2b. AssetDID + phả hệ nông sản (mới 2026-08-20)
+
+Không phải module thứ 9 — là một năng lực cắt ngang Anchorme, dựng cho truy xuất nguồn gốc nông sản (OriLifeTrace).
+
+| Thứ | Trạng thái | Bằng chứng |
+|---|---|---|
+| `EntityType.Asset` on-chain | **có sẵn**, `can_own(Person\|Org\|Service, Asset) = True` | `state_nft_logic.ak:92-135` |
+| `can_own(Asset, Asset)` | **False** — Asset là lá thụ động (§22.1) | `state_nft_logic.ak:131`, `PhoenixKey-Math.md:2209-2233` |
+| `POST /identity/asset/create` | có, đòi Bearer (interceptor mặc-định-từ-chối) | `IdentityController.java`, test `assetCreate_noBearer_401` |
+| 8 lỗ trên đường đó | **đã vá**, PR Database #200 chưa merge (**659** test, 0 đỏ) | 5 lỗ đầu: chữ ký thiếu `locationProof` · khoá active-đầu-tiên ký thay chủ · `assetClass` tự phong · owner ép Person · neo rỗng bằng chứng. 3 lỗ do chính bản vá mở ra: cam kết không muối lộ ô GPS · hai mã lỗi mới trùng số · chưa ai đọc cam kết để đối chiếu |
+| Muối cam kết on-chain | **có**, 32 byte mỗi bản ghi, migration `V42` | cam kết không muối cho đoán-và-đối-chiếu ra đúng ô GPS vườn: `assetClass` 13 giá trị · `physicalIdHash` tính lại được từ ảnh cây công khai · `locationProof` = H(ô ~111 m), không gian ~10⁷ |
+| `GET /identity/{did}/commitment-check` | **có**, đòi Bearer, **6** trạng thái | `MATCH · MISMATCH · NO_COMMITMENT_LEGACY · NO_SALT_UNVERIFIABLE · NOT_ANCHORED · NOT_AN_ASSET` |
+| SDK client | **có**, PR SDK #16 chưa merge (107 test, 0 đỏ) | `verifyAssetCommitment` đối chiếu CHÉO NGÔN NGỮ với hàm Java sản xuất chạy qua `jshell` — cùng chuỗi byte |
+| UI Flutter | `entityType` hard-code `'PERSON'` | `create_identity_screen.dart:261` |
+| Validator phả-hệ `lineage` | **đã dựng + đã tấn công + đã vá**, PR Validator #89 chưa merge | 871 test 0 đỏ; hash `5cff3fc3…`; **9 hash validator cũ giữ nguyên từng byte** |
+
+**Hai số quyết định chi phí, đo được:**
+- **min-ADA ≈ 2,36 ADA / DID** — `(388+160)×4310`; 388 byte là CBOR `TxOut` đầy đủ theo CDDL, 4310 là `coinsPerUTxOByte` lấy sống từ Koios mainnet epoch 650.
+- **Đúc được ĐÚNG 1 state-NFT / giao dịch** — `state_nft_logic.ak:246-252` (`has_non_unit`). Ràng buộc **thiết kế**, không phải tài nguyên: ExUnit mới dùng mem 6,8% / cpu 3% trần.
+
+🔴 **min-ADA KHÔNG thu hồi được.** `taad_logic.ak:97-98` ép output tiếp diễn mang đúng NFT ở đúng địa chỉ script **vô điều kiện, trước mọi nhánh redeemer**; `TAADRedeemer` (`types.ak:161-277`) **không có Burn**; `Deactivate` (`:310-334`) chỉ đổi `status`. ⇒ 100.000 quả = **236.188 ADA khoá vĩnh viễn**. Cấp TAAD AssetDID cho từng quả là không khả thi — phải phân tầng, quả nằm trong lá Merkle của UTxO lô.
+
+**Phả hệ `lineage` — 8 lỗ do audit + red-team dựng PoC, đã vá TRƯỚC khi deploy** (validator chưa lên chuỗi nên sửa còn miễn phí):
+
+| | Lỗ | Vá |
+|---|---|---|
+| V1 🔴 | `waste` rửa NGƯỢC thành `mass` — đẳng thức đặt trên TỔNG nên hai sổ khả hoán hai chiều; bội số rửa hàng bằng đúng phân số hao hụt sinh học (cà phê ~4,5×) | `waste` đơn điệu tăng |
+| V2 🔴 | Rút một lá vô số lần — `Split` nhân bản cả `merkle_root` lẫn `next_index` | Con luôn `next_index == 0`, `merkle_root == None` |
+| V3 🔴 | Nhân bản trùng byte mọi trường trừ `attestor_did` — `unit_id` con tự chọn, `origin_root` thành tự-khai gián tiếp | **Suy `unit_id` theo đường đi**, duy-nhất chứng minh bằng quy nạp từ gốc one-shot |
+| V4 🔴 | Lá Merkle không cam kết khối lượng | `lá = H(0x00 ‖ unit_id_con ‖ be8(mass))` |
+| V5 🟡 | Thu hồi DID bên chứng thực hoá gạch cả `Destroy` ⇒ phạt đúng hành vi bảo mật đúng đắn | `Destroy` nhận anchor mọi trạng thái, vẫn đòi controller ký |
+| V6 🟡 | Trường `did` tự khai ⇒ mạo danh tài sản | Con kế thừa `did` của cha; đặt mới chỉ ở `Genesis` có cổng |
+| V7 🟡 | L-2 chỉ ghim `payment_credential` ⇒ đổi stake credential là biến mất khỏi bên giám sát quét theo địa chỉ | So toàn địa chỉ |
+| V8 🟡 | Trần Merge 20 không bao giờ đạt được | Tách `max_merge_parents = 4` |
+
+**Trần Merge là trần THỰC THI, không phải trần logic.** Merge chi n UTxO ⇒ ledger chạy validator n+1 lần, mỗi lần lại O(n) ⇒ bậc hai. Đo mem toàn tx, trần 14 M: n=4 → 62,3 % · n=6 → **111,3 % ✗** (hình dạng xấu nhất: 5 output ví × 30 policy). Đại lượng đội chi phí là **số policy** trên một output, không phải số token — `assets.tokens` tra một khoá trong từ điển policy.
+
+**`Commit` là đường DUY NHẤT sinh ra một lô** (L-21), một chiều `None → Some`. Nhánh này **không** kiểm Σ khối lượng lá, có chủ ý: `promote_leaf_ok` trừ dần `lot.mass_mg` ở mỗi lần rút, nên trần nằm ở khối lượng lô chứ không ở cây — cam kết một cây khai 10 tấn trên lô 1 tấn vẫn chỉ rút được 1 tấn. Kiểm Σ đòi cả cây lên chuỗi, mất sạch ý nghĩa ở quy mô 100.000 lá.
+
+**CIP-113 đã khảo sát và LOẠI:** Status *Proposed*, PR `cardano-foundation/CIPs#444` chưa merge từ 2023-01, `cips.cardano.org/cip/CIP-113` trả 404 (đối chứng CIP-68 tải được), repo chính chủ tự ghi *"do not deploy to mainnet or use with real assets"*; và nó là chuẩn **quyền chuyển**, không có ngữ nghĩa transformation/bảo toàn khối lượng. CIP-143 = *Inactive*. CIP-25 = label 721, Plutus không đọc được. CIP-68 = *Active*, dùng làm lớp trình bày — ⚠ label 444 (RFT) là *fungible* nên **không dùng cho hộp bán lẻ** (mất định danh cá thể = mở đường rửa nguồn gốc). GS1 EPCIS `TransformationEvent` đúng ngữ nghĩa nhưng mọi trường Optional, **không ràng buộc số học nào**.
+
+**Ranh giới phải nói với người ngoài:** on-chain chỉ bảo đảm không tạo được khối lượng từ hư không **sau khi đã nhập**. Cái cân nằm ngoài chuỗi; điểm nhập là oracle. Đường tấn công rẻ nhất — thuê một nông dân thật, chở hàng ngoài tới vườn, đăng ký tại gốc — làm mọi cổng đều xanh, và không cơ chế on-chain nào chạm tới.
+
+**Bốn ranh giới còn mở, chưa có cơ chế** (nêu để không ai đọc quá lời):
+1. `lineage` **không có khái niệm chủ sở hữu** — cổng duy nhất là chữ ký bên chứng thực, và `Destroy` không ràng buộc ADA chảy đi đâu ⇒ về kinh tế min-ADA của mọi đơn vị thuộc về bên chứng thực.
+2. **Merge không mang tỉ phần** — gộp hai lô cùng bên chứng thực, cùng tầng thì con ra là một con số khối lượng duy nhất; mọi hộp con sau đó bit-identical.
+3. **Trần `depth_phys = 8`** — chuỗi nông trại→thửa→cây→lô→quả→phân hạng→đóng gói→thùng→hộp đã ăn hết 8 trước hạ nguồn, chưa trừ đóng gói lại.
+4. **Cổng bên chứng thực là 1-of-1** (`controller_pkh`), trong khi `did_payment`/`did_stake`/`wakeme_vault` đều 2-of-2 qua `auth_logic.anchor_controller_ok`.
+
+**Chưa dựng tx thật trên Preview** — mọi số ExUnit là aiken tự đánh giá, chỉ báo chứ không phải số ledger thật.
+
+---
+
+---
+
 ## 3. Ma-trận blocker xuyên-module
 
 | Blocker | Chặn | Đội gỡ | Trạng thái đo được |
@@ -90,7 +145,8 @@ Nói gọn: nguyên tắc **an ninh trước trải nghiệm, quyền phải ở
 | 🔴 **Đường đúc không qua validator** (§1) | TẤT CẢ | on-chain + backend | `CardanoServiceImpl.java:70-111`. Chưa có phương án chốt (xem §6) |
 | 🔴 **Khuôn `did` lệch** | Anchorme, Rebirthme | on-chain + backend + app | `application.yml:171` đang `false`; Validator #78 |
 | 🔴 **Khoá thiết bị — tầng Dart** | Rebirthme (ví Phoenix) | app | Rust **đã xong**: `device_key.rs` 893 dòng, `device_pkh` 67 lần / 4 tệp, và **đã xuất FFI C** 4 hàm (`lib.rs:955,996,1039,1060`). Tầng Dart: `git grep taad_device_key -- lib` = **0**. Chỗ đứt là *binding Dart*, không phải mã lõi |
-| 🔴 **Lỗ đang NGỦ: cổng ví gác bằng biến môi trường, không gác bằng sự thật trên chuỗi** | Rebirthme | backend + app | `DidPhoenixGenerator.java:46-48` ghi thẳng: *"lỗ đang NGỦ, không phải không có"* — DID sinh theo khuôn cũ suy ra một địa chỉ mà anchor tương ứng **không bao giờ tồn tại**. Hôm nay chưa mất gì vì deriver trả rỗng — nhưng nó rỗng vì **thiếu cấu hình**, không vì thiếu mã: `AikenPhoenixCustodyDeriver` đã là bean chính (`@Component @Primary`, `:54-57`) và chỉ trả `Optional.empty()` ở `:119,126` khi hai giá trị cấu hình chưa đặt. Bản `Noop` là dự phòng, không phải bean đang chạy. Nghĩa là cổng này lật bằng **hai biến môi trường**, không cần một dòng mã nào và không qua một lượt duyệt nào. Nhưng ai dán CBOR vào biến môi trường trước khi có anchor thật là bật đường phát địa chỉ chết hàng loạt — `BackfillPhoenixWalletRunner` đã sẵn sàng rót cho người dùng cũ. Cổng phải kiểm **anchor có tồn tại không**, không kiểm biến có rỗng không. Kèm theo: CBOR đang ghim là bản cũ 1-chữ-ký (thiếu vế `device_pkh`, `auth_logic.ak:143`), phải re-pin cùng lượt với vector test backend và env `DID_PAYMENT_CBOR_HEX` |
+| 🔴 **Lỗ đang NGỦ: cổng ví gác bằng cấu hình, không gác bằng sự thật trên chuỗi** | Rebirthme | backend + app | DID sinh theo khuôn cũ suy ra một địa chỉ mà anchor tương ứng **không bao giờ tồn tại**. Hôm nay chưa mất gì vì bộ suy địa chỉ trả rỗng — nhưng nó rỗng vì **thiếu cấu hình**, không vì thiếu mã: bộ suy thật đã là thành phần chính đang chạy, chỉ đứng im khi hai giá trị cấu hình chưa đặt. Nghĩa là cổng này lật được bằng cấu hình, không cần một dòng mã nào và không qua một lượt duyệt nào — trong khi tác vụ rót ví cho người dùng cũ đã sẵn sàng. Cổng phải kiểm **anchor có tồn tại trên chuỗi không**, không kiểm biến cấu hình có rỗng không. Kèm theo: bản CBOR đang ghim là bản cũ, thiếu vế khoá thiết bị, nên phải ghim lại cùng lượt với vector kiểm thử phía backend |
+| 🔴 **Đúc LAMP bằng OrgDID — BẤT KHẢ với token đang sống, không phải "chưa nối"** (đo 2026-08-18) | mục tiêu "OrgDID đúc LAMP" | chủ nhân (quyết định kinh tế) | Bản LAMP đang sống trên mainnet là policy `55d3e01bb6c469e02665e4b6573ce65bbaf7a50ad2024e247eb180f0`, **8 tham số**, WHO-gate = **một pkh nướng cứng** + `extra_signatories` — **không đọc registry, không đọc DID, không reference input nào** (`LAMP/Genesis/offchain/src/deployed.ts:75`). Bản registry-gate **12 tham số** (`Genesis/onchain/validators/lamp_mint.ak`, main `44ccd79`) mới đúng nghĩa "đúc qua OrgDID" nhưng **chưa deploy ở bất kỳ mạng nào** và deploy nó = **policy-id khác = một token KHÁC**. SupplyState đã bootstrap thật trên mainnet (tx `db0610c2…`, 1 triệu LAMP) nhưng dưới policy 8-tham-số. ⇒ không có đường vá; chỉ có đường ra token mới |
 | 🔴 **Một lời gọi công khai khoá vĩnh viễn đường khôi phục-bằng-24-từ của người khác** | khôi phục thiết bị | backend | TAAD pubkey được publish công khai làm `#controller-key` (`W3CDocumentBuilder.java:158-168`, `/identifiers/**` công khai). `POST /identity/register` công khai và **không kiểm sở hữu** `taadPublicKeyHex` — javadoc `IdentityRegisterRequest` ghi thẳng, kèm kết luận "không ảnh hưởng user khác". Cột cố ý **không UNIQUE** (`V38`). `ResolveByControllerService` fail-closed 404 khi `matches.size() > 1`. Ghép lại: đọc khoá của nạn nhân rồi ghi vào bản ghi của mình ⇒ nạn nhân cầm đúng 24 từ vẫn nhận 404 vĩnh viễn. Vá tối thiểu: UNIQUE theo khuôn `V36`. Vá gốc: challenge ký bằng chính TAAD_Key. Database Issue #213 |
 | 🟡 **Vai `manager`/`viewer` không được cưỡng chế ở đâu** — *bản vá đã có, chờ gộp* | đa thiết bị (§5) | backend | **Trên `main` lỗ vẫn nguyên:** `SessionServiceImpl.java:167-168` lập phiên không xét vai; chỉ **hai** tệp trong `src/main/java` đọc tới vai; `AuthenticatedUser` chỉ mang DID ⟹ phiên lập bằng khoá `viewer` gọi được đúng những gì phiên khoá chủ gọi được. **Bản vá: PR #215** (6 commit, 875/875 test, 6 ca trên Postgres thật) — vai vào phiên, cưỡng chế ở một chỗ (`AuthRequiredInterceptor`), ba đường vòng đời thiết bị, và bịt sáu đường vòng tự soi ra được (xem §8). Blocker này chỉ được xoá khỏi bảng **sau khi #215 gộp**. Database Issue #211 |
 | 🟡 **`op-seq`: mã nói công khai · cổng trả 401 · `API.md` nói đã bị bác** | app khôi phục mốc chống phát lại | backend | `GET /identity/{did}/op-seq` tồn tại với javadoc lập luận nó **phải** công khai, nhưng không có trong `PUBLIC_GET` ⇒ trả 401 cho đúng client nó phục vụ; `API.md:741-755` vẫn ghi đề xuất này ĐÃ BỊ BÁC. Không ca kiểm nào chốt hướng nào. Có ứng dụng ngoài đang giữ PR treo chờ. Database Issue #210 |
@@ -102,7 +158,7 @@ Nói gọn: nguyên tắc **an ninh trước trải nghiệm, quyền phải ở
 | 🟡 `GenesisChild` 1 chữ ký | Anchorme | on-chain | `state_nft_logic.ak:198` đòi 1 chữ ký, trong khi mọi đường CHI là 2-of-2 (`auth_logic.ak:137,143`) |
 | 🟡 `app_token` là bearer thuần | khoá phiên | backend + SDK | `PhoenixKey-SDK/INTEGRATION.md:113` tuyên bố đã có DPoP — **tài liệu nói quá mã** |
 | ~~PA2 UniquenessThread~~ | — | — | ✅ loại vĩnh viễn, thay bằng PC (đã land + nối) |
-| ~~PA5-a entity-gate~~ | — | — | ✅ chốt không nối — `entity_type` đã cam-kết ở tầng mint (`pop_bind.ak:109`) |
+| ~~PA5-a entity-gate~~ | — | — | ✅ chốt không nối — `entity_type` đã cam-kết ở tầng mint (`pop_bind.inner_hash`) |
 | ~~`limit_meter.ak` anti-drain~~ | — | — | ✅ build được trên `main`, nằm trong 658/658 |
 | ~~`protectme_beacon.ak` 0 dòng~~ | — | — | ✅ **gỡ 2026-08-28** — `protectme_beacon_logic.ak` 889 dòng / 26 test, đã nối tại `protectme_payout.ak:54` |
 
@@ -132,6 +188,8 @@ Mục 2–4 tổ chức theo module. Mục này tổ chức theo **việc ngư�
 | Tạo ví **Phoenix**, nhận tiền | **CHƯA BẬT** | Không phải hỏng — là chưa mở. `AikenPhoenixCustodyDeriver` **đã là bean chính** (`@Component @Primary`) và trả rỗng chỉ vì hai biến `did-payment-cbor-hex` và `taad-anchor-policy` còn rỗng (`:119,126`) — đặt hai biến đó là bật, không cần sửa mã; app hiện đúng dòng *"Chờ TAAD deploy trên PreProd"* (`wallet_screen.dart:813`); `send_screen.dart` không có tham chiếu nào tới địa chỉ ví Phoenix |
 | **Chi tiền từ ví Phoenix** (2 yếu tố) | **KHÔNG** | Rust + FFI đã xong; **binding Dart chưa viết** ⟹ app không gọi được |
 | **Một người một DID** | **KHÔNG** | Cổng duy nhất là `existsByPublicKeyHex` (`IdentityServiceImpl.java:107-113`) ⟹ thực chất **một MÁY một DID**. Registry giấy-tờ chưa nối vào `/identity/register` nhưng đường ghi trực tiếp đã mở và chưa an toàn (§4b). Mất máy = tạo DID mới = chính nguồn sinh trùng |
+| **Khôi phục trên máy thứ hai ra đúng DID cũ** | **ĐƯỢC, phải TRA** | `did` gấp 32 byte ngẫu nhiên **và** một mốc thời gian trên chuỗi vào tiền-ảnh ⇒ không suy lại được từ seed. Cửa tra theo khoá điều khiển đã có: `POST /identity/resolve-by-controller` (Database PR #171, 2026-08-12) |
+| **Người thứ hai tạo DID riêng trên máy người trước** | **KHÔNG** (đã vá, chờ gộp) | Backend và validator vốn không ràng buộc duy nhất theo thiết bị; chặn nằm toàn bộ ở ứng dụng. Core PR #56 vá, CI xanh, chưa gộp |
 | Tạo **OrgDID** | **ĐƯỢC** | nhưng chỉ là giao dịch metadata (§1) |
 | Tạo **AssetDID** | **ĐƯỢC** | ⚠ không kiểm quyền sở hữu (§4a) |
 | Tạo **ServiceDID / AgentDID / DeviceDID** | **KHÔNG** | 0 dòng backend; validator đã sẵn sàng |
@@ -235,3 +293,116 @@ Ghi lại để không ai dựng lập luận trên nền cũ:
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._
+
+---
+
+## 9. Chi tiết từng module và bảng đặc-tả toán
+
+> Phần này giữ lại từ bản trước để không mất chi tiết theo module. Số đo tổng ở §0–§5 mới hơn; chỗ nào lệch thì §0–§5 đúng.
+
+### Anchorme
+
+**Test bắt-buộc:** module danh-tính (`taad_logic` + `state_nft_logic` + `attack_tests`) phủ GenesisPerson/GenesisChild/can_own/Rotate/Cancel/Finalize/Deactivate + regression Bug#3. Số test toàn-repo Validator = 173/173 PASS (2026-07-08).
+
+**Đã build:** validator `taad` Design-2 (genesis Người/con, rotate, transfer 2-of-2, deactivate, CanOwn); resolver W3C backend; PersonDID register (metadata-6789).
+
+**CID-1 — đo lại 2026-08-12, ĐÃ ĐÓNG (hạ mức từ 🟡 xuống 🟢).** Bản 2026-08-10 ghi *"same-entity đã đóng, cross-entity còn hở tới khi nối PA5-a"*. **Kết-luận đó đã bị bác bởi `PhoenixKey-Validator` PR #73 (MERGED 2026-08-12T00:13:44Z):** cross-entity KHÔNG cần một cổng riêng để đóng, vì PoP-bind (đã land từ trước) cam-kết CẢ `entity_type` LẪN `controller_pkh` vào cùng tiền-ảnh `did` ngay lúc mint (`pop_bind.inner_hash`) — tên anchor `N(did)` do đó đã cam-kết cả hai trường trước khi tồn-tại để mà chi, không riêng `controller_pkh`.
+
+Trạng-thái đo được trên `main` của kho Validator:
+
+| Việc | Trạng-thái | Bằng chứng |
+|---|---|---|
+| **PC** (at-most-one anchor mỗi tên) | ✅ đã land **và đã nối** | `validators/taad.ak` handler `mint` — `own_policy` do ledger cấp, rồi AND `genesis_uniqueness_ok` (phủ cả Person lẫn Child) |
+| **PoP-bind** (the-rightful-one — did tính lại được từ `controller_pkh` **và** `entity_type`) | ✅ đã land **và đã nối** | `lib/phoenixkey/pop_bind.inner_hash` (`enc_type` vào tiền-ảnh), gọi từ `state_nft_logic.validate_mint` nhánh `GenesisPerson` / `GenesisChild` |
+| Cổng địa-chỉ ref-input (`find_anchor_datum` ép đúng `Script(taad)`) | ✅ đã land **và đã nối** | `lib/phoenixkey/auth_logic.ak`, PR #74 MERGED 2026-08-12T00:38:19Z |
+| **PA5-a** (entity-gate ở tầng spend) | ⛔ **chốt KHÔNG nối — dư thừa, không phải thiếu-sót** | PR #73 MERGED 2026-08-12T00:13:44Z: `entity_type` đã cam-kết ở tầng mint, đọc lại lúc chi chỉ kiểm-lại thứ apply-param đã ép sẵn. `auth_logic.anchor_controller_ok_entities` giữ deprecated làm test đối-kháng, 0 call-site thật |
+
+⟹ **Same-entity VÀ cross-entity collision ĐÃ ĐÓNG cùng một cơ-chế** (PoP-bind), không phải hai cơ-chế riêng. Không còn việc "nối" nào treo cho CID-1. Chi-tiết đầy-đủ + rủi-ro-còn-lại (thiếu bộ test giả-mạo chuyên-trách, không phải một đường tấn-công): `PhoenixKey-Anchorme-Math.md` §8 (T-3) / §9 (CID-1).
+
+**Blocker mở (không còn CID-1):** B2 resolve-by-hash + point-in-time V16 (backend). B3 DeviceDID `Op_create_device` (on-chain) + hw_cert endpoint (backend). B4 Full_Authority `⊑` + type-code canonical (Math v4.7). **B5 duy-nhất-người ở mức NGƯỜI — chưa có gì cưỡng-chế** (mới ghi 2026-08-13, xem dưới).
+
+**🔴 B5 — một người vẫn tạo được nhiều PersonDID (Anchorme-Exec R8).** CID-1 đóng nghĩa là *không đúc được anchor thứ hai cho CÙNG một did-string*; nó KHÔNG có nghĩa *một người chỉ tạo được một did-string*. Một người dùng N thiết-bị vẫn đúc được N PersonDID đều hợp-lệ, không cơ-chế nào on-chain chặn. Khoá sinh trong Secure Enclave chỉ gác **mỗi thiết-bị một danh-tính** (mẫu sinh-trắc không rời máy, không có bảng đối-chiếu chéo) — **trước 2026-08-13 bộ spec ghi nhầm rằng sinh-trắc đã đủ chống trùng người, nay đã gỡ ở 8 chỗ**. Ràng-buộc một-người-một-danh-tính v1 thiết-kế nằm ở **Knowme** (neo giấy-tờ tuỳ-thân) — trạng-thái code xem mục Knowme dưới; các lớp person-level còn lại + cổng chặn production xem `PhoenixKey-Wakeme-Exec.md` §7.
+
+**Bug live đã biết:** GET `/identity/{did}/pubkey` trả 500 với user đã qua recovery (consumer: backend bên thứ 3 OriLife/AladinWork) — cần Long vá.
+
+**Byte-9 `Character`→`Avatar` — CHỐT 2026-07-10** (xem `PhoenixKey-Math.md` §21): ranh giới Asset/Avatar dựa **nơi-ra-quyết-định** (locus-of-control, không dùng "agency" — dễ lộn AgentDID byte-6): Avatar = chỉ hành động khi nhận lệnh trực tiếp từ controller ngoài; Asset = không nhận lệnh, chỉ transfer/consume. Avatar chỉ do PersonDID/OrgDID vận hành (I-CHAR-1 sửa `{Person,Service}`→`{Person,Org}` — CanOwn §22.1 + `can_own()` on-chain vốn đã đúng, I-CHAR-1 là bên sai, đã vá). "Sống→chết" = burn AvatarDID + mint N AssetDID với `derived_from` nối phả hệ (không phải type-transition tại chỗ). Đã sửa xong Math.md (10 chỗ) + Anchorme-Math/Tech/Exec.md + DIDMethod-W3C.md, push nhánh `claude/spec-northstar-2026-07-10`. **Việc tồn đọng riêng (chưa quyết, không nằm trong đợt này):** tách owner/operator cho sinh vật hoang dã không ai đứng tên; uỷ quyền Service ký hộ Org khi mint Avatar hàng loạt (đẩy sang Tech.md).
+
+**Câu hỏi thiết-kế MỞ — Byte-4 `Asset` chỉ physical** (còn treo, KHÔNG còn phụ thuộc byte-9 nữa vì byte-9 đã chốt độc lập): lỗ hổng phân-loại — tài-sản-số thụ-động (file/dataset/media/NFT/VC-schema/model-weights) rơi khe (≠Asset physical, ≠Bot/Agent tự-chủ, ≠Service sản-phẩm, ≠Avatar). Chọn: (a) nới định nghĩa Asset → physical HOẶC digital (thêm `asset_domain: Physical|Digital`, `physical_id`/`location_proof` chuyển Optional — đề xuất 2026-07-10, chưa chốt câu chữ cuối); hay (b) digital = VC/metadata dưới DID khác (out-of-scope, ranh giới hẹp). Byte-value bất biến → hash-safe dù chọn hướng nào; lan tới Math §17 + Aiken `types.ak` + Java `DidPhoenixGenerator`. `AI`→`Agent` (byte-6) đã chốt đổi (issue Long).
+
+### Rebirthme
+
+**Nền đã chạy (173/173 Aiken PASS, 2026-07-08):** ví theo-DID `did_payment` (chi khi Active + controller ký; tài-sản sống qua rotate; địa chỉ bất-biến); đóng-băng theo trạng-thái (Recovering/Migrated/Revoked chặn chi); singleton-anchor I-WALLET-4/5; guardian recovery Init/Cancel/Finalize/UpdateGuardians(≤5) + timelock 3600 slot + collateral 50 ADA (bỏ Shamir); ví Standard + Rotation Account; P-256 low-s (I-SIGN-LOWS); `lampnet.rs` fail-closed (I-VAULT-4); Ed25519 dalek deterministic.
+
+**Chưa có code:** 🔴 `did_subaddr.ak` (L3 unlinkable, chờ chốt [DEP-2]); 🔴 `did_stake.ak` (stake theo-DID). 🟡 I-CURVE-5 chưa enforce builder; kho bí-mật/phả-hệ seed chưa hợp-nhất; export re-key UI chưa cắm mặc-định; guardian nâng-cao (trọng-số/veto/cap) Todo; chứng-thực VeData-Glint/Midnight chờ VeData. ⚪ legacy-migration, on-ramp mandate, pool-ops (KES/VRF) build-ready-Todo.
+
+**CIP-30 connector — nay CÓ CODE, chưa lên sản-xuất (2026-08-15).** Kho `PhoenixKeyDID/Wallet` dựng xong lớp dApp-connector: kết nối ví mở rộng (Lace/Eternl/Typhon/…), xem-bằng-khoá-công-khai, gửi ADA/token, staking, uỷ-quyền dRep, gửi Governance action — 178/178 test PASS, `tsc --noEmit` sạch, 4 ngôn ngữ ngang khoá. Kho `PhoenixKey-Frontend` gắn kho này bằng **submodule** và mở hai đường `/wallet` + `/night` (`bun run build` xanh, 16 route). **Cả hai còn ở PR chưa merge** (Wallet #18, Frontend #19) ⇒ phoenixkey.me **chưa** có đường nào chạm tới ví. Đây là ví **ngoài** (khoá nằm ở tiện-ích mở rộng của người dùng) — KHÔNG phải ví Phoenix theo-DID, và **không** đụng tới blocker khoá-thiết-bị bên dưới.
+
+**Blocker ngoài:** CARP policy-id, stake-state indexer (backend), Merkle LAMP (LAMP), schema anchor mới vào TAADDatum (backend, chờ duyệt), crate KES/VRF (PoC).
+
+**Lộ-trình:** M1 (resolver L1/L2 + wallet API v2 + blob-đơn) → M2 (`limit_meter.ak` + I-CURVE-5) → M3 (`did_stake.ak` + export re-key UI) → M4 (phả-hệ seed + Strata) → M5 (`did_subaddr.ak` + registry-lib mode-2 + pool KES).
+
+**Deprecate (bỏ dùng):** endpoint `/wallet/magic/claim` (MAGIC claim custodial) — sai model, MAGIC là account-in-vault chứ không native trong ví; app phải lấy MAGIC từ vault, không qua endpoint ví.
+
+### Wakeme
+
+**Validator:** `activation_vault.ak`+`activation_logic.ak` — 5 spend redeemer (GenDrip/Reclaim/VestToOwner/ClaimVested/ForfeitPhase2) + 2 mint-gate, datum 9-field, đồng-hồ NGÀY+EPOCH, vest-gated-per-epoch + forfeit-1001-idle-epoch, chống-double-satisfaction; `plutus.json` khớp code; 69 test riêng `activation_logic` PASS; qua red-team nội bộ. Còn: apply-param builder, sửa comment sai đầu file. PR chờ đội on-chain duyệt.
+
+**Backend/Core:** GetLAMP orchestration, anti-idle PHA-1, vest/forfeit PHA-2, ClaimVested, GetMAGIC — chờ backend + Core Enclave. Chưa có evidence `curl`.
+
+**Blocker:** B1 engine Gen đọc-số-dư (MAGIC/CARP-team). B2 Registry dịch-vụ-tiêu-tài-nguyên (`has_counterparty_consume` placeholder). B3 GetLAMP-PersonDID chờ PA2. B4 GreenBack settlement + fee_refill phản-chu-kỳ.
+
+**AbandonPhase1:** không có redeemer on-chain trong thiết-kế hiện tại — thoát-sớm PHA-1 qua anti-idle tự thu-hồi (không có nút chủ-động). **Rủi ro theo dõi:** pot cạn khi nhiều user cùng PHA-2 (R1); wash-rỗng nếu Registry lỏng (R2).
+
+### Feecover
+
+**Spec:** MERGED (#14) — 4 doc chuẩn-hoá. **Code:** ConsumeMAGIC lõi (C-CM-1..5) Done (kế thừa đội ConsumeMAGIC, không chứng-minh Feecover đúng). Layer Feecover (`ServiceFeeSchedule`/`FeecoverGate`/`FeecoverAccrual`/`FeecoverEpochSettle`/quy-đổi-CARP) — 0 dòng, chưa test. `EngageDatum.did_commit` field có, immutable-enforced, MVP nội-dung sentinel rỗng.
+
+**Blocker:** B1 MAGIC-model, B2 CARP policy-id, B3 enforce nội-dung `did_commit` per-DID. **Hở nội-tại nặng nhất:** FG-4 — EpochSettle pseudo-code, 0 validator, dựa provider trung-thực (KHÔNG blocker đội khác — Feecover tự vá). Phụ-thuộc mềm: Resolve API point-in-time (backend).
+
+**Giá 2 thao-tác DID — CHỐT 2026-08-10** (khép một phần D1/D3, `PhoenixKey-Feecover-Math.md §7.2bis`): `did.rotate` = 2 MAGIC **giá cố-định**, `did.transfer` = 10 MAGIC (nhân theo cầu bình-thường), `UpdateGuardians` **miễn phí**. Tỉ-lệ 1:5 giữ nguyên từ bảng ADA cũ (§36) để việc bỏ đường ADA không đồng-thời là một đợt đổi giá ngầm. Hai bất-biến mới: FEECOVER-PRICE-1 (rotate KHÔNG nhân theo cầu — `demand_mult` là một số dùng chung toàn hệ, nên tải của module khác sẽ định giá thao-tác an-ninh của DID, và một đợt lộ khoá hàng loạt tự đẩy giá lên đúng lúc cần rẻ nhất); FEECOVER-PRICE-2 (thiếu MAGIC KHÔNG được chặn Rotate — nếu chặn thì kẻ đã lộ khoá nạn-nhân chỉ cần làm cạn MAGIC của họ là khoá lộ không bao giờ bị xoay).
+
+**Blocker MỚI (chưa từng ghi):** B4 — ConsumeMAGIC **chưa có lớp giá cố-định**; công-thức áp `demand_mult` cho mọi `op_type`, không loại-trừ. Đây là **điều-kiện tiên-quyết** để nối `did.rotate` (đã gửi yêu-cầu sửa hợp-đồng sang MAGIC 2026-08-10). `did.transfer` KHÔNG phụ-thuộc B4, đi trước được. B5 — `op_type` 7/8 chưa được MAGIC cấp; bảng `op_prices` sắp tăng ngặt, trần 16 dòng, hiện dùng 6.
+
+**Điều-kiện wiring (W1-W4):** W1 nối đường MAGIC **cùng đợt** với gỡ đường ADA, không song-song (hai cơ-chế phí cùng gắn một redeemer ⟹ thu kép hoặc bên-nào-rẻ-hơn-thắng tuỳ builder off-chain). W2 committee `PriceParam` phải > 1-of-N trước mạng chính — ngưỡng 1 cho phép một khoá chi UTxO beacon ngay trước tx nạn-nhân ⟹ từ-chối xoay khoá nhắm đúng một người, lặp vô hạn.
+
+**Lộ-trình:** P0 (chốt D1-D6) → P1 (B1/B2/B3/**B4/B5**) → P2 (build + vá FG-4) → P3 (test) → P4 (per-DID) → P5 (production).
+
+### Protectme
+
+Cổng chi-trả `protectme_logic.ak`+`protectme_beacon_logic.ak`+`protectme_payout.ak` (branch `feat/protectme-payout`) — khối duy nhất có code+test đối-kháng sạch (double-satisfaction, cred-collision, ADA-skim, miền-số, cross-bucket đều chặn): **72 test (23 beacon + 14 logic + 35 payout)** (`aiken check` 2026-08-19). Beacon one-shot per claim_id ĐÃ NỐI: `protectme_beacon_logic.ak` (733 dòng) mint-gate được `protectme_payout.ak` gọi trong cùng validator (`:49-53`, own_policy == own_cred) — đóng double-satisfaction TRONG-CÙNG-tx. Phần còn hở: đúc trùng `claim_id` giữa HAI giao-dịch khác nhau — mint-gate không có bộ nhớ liên-giao-dịch nên committee (sai sót off-chain) ký MintClaim hai lần cho cùng claim_id thật vẫn tạo hai escrow độc-lập; mỗi lần trừ đúng `amount` thật từ pot (không tạo giá-trị từ hư-không — solvency giữ), nhưng claimant được trả kép từ pot cộng-đồng (`protectme_beacon_logic.ak:36-45`). Đóng nốt cần uniqueness liên-giao-dịch (Treasury phiếu-duyệt one-shot / SMT claim_id). 2-bucket Treasury + Feecover premium wiring + resolver claim + UI — chưa code (backend/UI). 11 quyết-định PROT-1..11 chờ chốt (🔴 PROT-10 evidence-bar, PROT-11 cohort, PROT-4 ngưỡng SYS/USER). Blocker hạ-tầng: MAGIC-model, CARP policy-id. **NO-GO tới khi uniqueness liên-tx + tất cả quyết-định chốt.**
+
+### Knowme
+
+**Code (verify 2026-07-09):** Mức 1 (tự-khai) + Mức 2 (xuất-trình chọn-lọc) có code+test, demo `/vc`. Evidence: `npx vitest run src/lib/sdvc/` → **20 file / 415 test PASS** (~1.2s). Con-số "135" cũ trong `SD-VC-ALGORITHM-v1.md` là snapshot lỗi-thời. Lớp tài-liệu: nền có code+test (`dossier.ts`/`fingerprint.ts`/`eciesSeal`); tiết-lộ-chọn-lọc-tài-liệu + versioning Strata + re-seal = chưa code. Mức 3 ZK (BBS+): chưa code. Query gateway (VeData): chưa code.
+
+**Blocker:** B1 lib BBS+prover (Mức 3), B2 LampNet gateway (lớp tài-liệu), B3 Glint/Spectra (VeData), B4 StampRecord Strata. **Mốc:** M1 (Mức1+2+`/vc`) chạy; M2-M7 chờ blocker.
+
+**🔴 B5 duy-nhất-người v1 — CHƯA có trên `main` (đo 2026-08-13).** Spec giao Knowme giữ bất-biến "một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID" (`PhoenixKey-Knowme-Math.md` Đ-7, I-KNOW-12..16). Đo trên `PhoenixKey-Frontend`: `src/lib/sdvc/fingerprint.ts`, `dossier.ts` và `UniquenessRegistry` **không tồn tại trên `origin/main`** — chỉ có trên nhánh CHƯA gộp `origin/claude/cccd-uniqueness-v1` (`git ls-tree -r --name-only origin/main | grep -c fingerprint` → `0`). Câu "nền lớp tài-liệu có code+test (`dossier.ts`/`fingerprint.ts`)" ở đoạn trên đo trên nhánh đó, không phải `main`. ⟹ **hôm nay không có gì cưỡng-chế duy-nhất-người**, kể cả ở tầng ứng-dụng. Đây là mặt còn lại của Anchorme B5.
+
+### Easteregg
+
+**Spec:** 4 doc hợp nhất mô hình "mức riêng-tư của ví Phoenix" (không phải ví thứ ba), chốt 2026-07-09. **Code on-chain:** `did_pool.ak` (T1 MST) + `did_subaddr.ak` (T0/L3) — chưa tồn tại. **Off-chain:** Indexer/Accountant, sweep crank, withdraw builder — chưa có. **ZK T2:** verifier Aiken chưa viết; ExUnit 2.842B là đo của Easteregg-ZK bên VeData (độc lập); ceremony chưa chạy. **Test:** 0 test Easteregg. **PoC:** 1 PoC Python trên Preview (3 tx-hash) minh-hoạ ẩn-số-dư + gated-proof, KHÔNG validator, chưa chứng-minh operator-không-rút. **Gap:** G1 (fee-split), G3 (sweep per-pair), G5 (salt-recovery) 🔴 chưa vá; G2/G4 🟡. **NO-GO toàn module**; chỉ GO build+test Preview T1 + T3-mode-1.
+
+### Smartsend
+
+**Vị-trí:** module độc-lập thứ 8 (chốt 2026-07-09), tách từ Rebirthme, dùng chung hạ-tầng ví/guardian/anti-drain. **Build:** `smartsend_escrow.ak` — spec đầy-đủ (SS-1..12 + SSR-4 hợp-nhất), CHƯA code, 0 test.
+
+**Bất-biến đã hợp-nhất (không còn "vá đỏ" treo):** SS-1/SS-5′/SS-12 (value-conservation byte-perfect, `min_ada` tách field, `fee_covered` chỉ audit); SS-7′ (escrow-1-lần, chống double-satisfaction batch); SS-9′ (Accept verify controller-sig qua anchor); SS-11 (`reclaim_deadline`+`ReclaimTimeout`); SS-8/SS-8′ (Freeze trong cửa-sổ-veto; thoát qua guardian-quorum hoặc `freeze_deadline` auto-hoàn); SS-10 (`window ≥ min_window_floor`); SS-2 (veto-race biên); SS-3/SSR-4/SSR-13 (factor Cancel neo anchor-enroll).
+
+**Phụ-thuộc-chặn ngoài:** `limit_meter_vault` (Rebirthme — nay đã build được, xem §0); nền `did_payment`+guardian (173/173 PASS); verifier Glint/Spectra (VeData, Phase 2 — bind `blake2b_256(own_ref ‖ escrow_datum_hash)` SSR-12); guardian ResolveFreeze quorum (chưa build); enroll-set factor trong TAADDatum (Core Anchorme/Validator).
+
+**CẦN CHỐT:** `reclaim_deadline` tương-đối `veto_deadline`; `window` mặc-định + `min_window_floor`; `freeze_deadline`; thứ-tự land vs anti-drain; ưu-tiên Glint sớm hay guardian-factor đủ bản đầu.
+
+### Math (đặc-tả tổng — `PhoenixKey-Math.md`)
+
+Hiện-trạng triển-khai các phần của đặc-tả toán v4.6 (đã tách khỏi Math.md):
+
+| Area | Spec | Hiện trạng |
+|---|---|---|
+| Crypto primitives (HKDF, Ed25519, BLAKE2b, P-256 verify, CIP-1852) | §1, §6, §8 | Implemented (`rust_core`) |
+| DID Document publish (metadata label 6789) | §2 | Implemented — live preprod + preview (PhoenixKey-PoC) |
+| TAAD UTxO state machine + Rotate redeemer | §10 | Validator compiles; tx-builder trên feature branch, chưa merge |
+| Tiered recovery (Tier 1–5) | §11 (module Rebirthme) | Spec-only — chưa có recovery code path |
+| §36 fee architecture (30/70 split, Phoenix Treasury) | §36 | Spec-only — enforcement (fee-receipt minting policy + ExUnits benchmark) chờ Validator Issue #7. Ước tính mem ~150–400, CPU ~80K–200K (+3–12% baseline ~0.17 ADA) |
+
+---

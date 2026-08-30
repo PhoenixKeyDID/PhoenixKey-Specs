@@ -12,7 +12,7 @@ Tài-liệu cùng bộ: [PhoenixKey-Feecover-Vi-Feat.md](./PhoenixKey-Feecover-V
 
 > **Nguồn engine tái-dùng:** `MAGIC/ConsumeMAGIC/{CONTRACT.md, onchain/lib/magiclamp/consume/types.ak, onchain/validators/consume.ak, onchain/lib/magiclamp/consume/pricing.ak}`; `MAGIC/Paymaster/onchain/lib/magiclamp/paymaster/types.ak`.
 > **Nguồn resolve API:** nguồn thiết-kế nội-bộ (không công khai).
-> **Nguồn canonical đơn-vị/peg:** `MAGIC/SPEC/Whitepaper-MagicLamp-Tokenomic-Vi.md` §4/§5. `1 nanogic = 1 byte·ngày`; `1 MAGIC = 1e9 nanogic = 1 GB·ngày`; `1 CARP = 1 MAGIC`.
+> **Đơn-vị/peg (định nghĩa nằm ở đặc-tả tokenomic MagicLamp, không lặp lại ở đây):** `1 nanogic = 1 byte·ngày`; `1 MAGIC = 1e9 nanogic = 1 GB·ngày`; `1 CARP = 1 MAGIC`.
 
 ---
 
@@ -378,7 +378,7 @@ Feecover on-chain (bước 1) KHÔNG chặn bởi blocker-1; chặn bởi 0a (CA
 
 - Chuỗi đóng kín: `Σburns == required(consume.ak) == fee_magic == carp_paid`. Test 1 tx với cả 3 redeemer (BurnBatch, Consume, Accrue) → verify không kẽ under-charge (đối chiếu `consume_two_engage_share_vault_undercharge_fail`).
 - **KHÔNG sửa** file `consume.ak`; import + co-spend trong test harness Feecover.
-- Dùng bản canonical `MAGIC/ConsumeMAGIC` (no-mint, `==`), KHÔNG bản `MAGIC-paymaster/ConsumeMAGIC` (gaming FG-1).
+- Dùng `MAGIC/ConsumeMAGIC` (no-mint, `==`) — `MAGIC-paymaster/ConsumeMAGIC` PHẢI archive trước khi build (gaming FG-1).
 
 ### 8.3 E2E preprod (evidence output thật — sau bước 4)
 
@@ -409,7 +409,7 @@ Feecover on-chain (bước 1) KHÔNG chặn bởi blocker-1; chặn bởi 0a (CA
 **Luật thiết-kế bắt-buộc khi build:**
 - **Settle PHẢI có validator chặt (FG-4):** đội Feecover gánh trách-nhiệm chống-drain KHÔNG mượn được từ ConsumeMAGIC (§4.3 nêu chi-tiết luật).
 - **Ranh-giới với model `fee_treasury.ak` đã deploy (FG-4b/FG-8):** tồn tại `MAGIC/FeeTreasury/onchain/validators/fee_treasury.ak` (FX-fund ADA, operator-cosign, NORMATIVE trỏ tên cũ "PhoenixKey-Fee-Abstraction"). Ranh-giới CARP-settle (Feecover) vs ADA-FX (fee_treasury) chờ maintainer chốt.
-- **2 bản ConsumeMAGIC phân-kỳ (FG-1):** PHẢI dùng bản canonical `MAGIC/ConsumeMAGIC` (no-mint, `==`, có did_commit), KHÔNG dùng bản cũ `MAGIC-paymaster/ConsumeMAGIC` (mint-burn, `≥`). Chốt B1 để đóng-băng bản cũ.
+- **2 bản ConsumeMAGIC phân-kỳ (FG-1):** dùng `MAGIC/ConsumeMAGIC` (no-mint, `==`, có did_commit). `MAGIC-paymaster/ConsumeMAGIC` (mint-burn, `≥`) PHẢI archive trước khi build — xem FG-1. Chốt B1 để đóng-băng bản cũ.
 
 **Ranh-giới cứng (KHÔNG vượt):**
 - KHÔNG sửa `consume.ak` / C-CM-1..5. Feecover co-spend, không nhét logic vào engine MAGIC-team.

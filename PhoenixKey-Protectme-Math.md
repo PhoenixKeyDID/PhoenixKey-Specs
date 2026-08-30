@@ -15,7 +15,7 @@
 >   `lib/phoenixkey/protectme_logic.ak`, `protectme_types.ak`, `validators/protectme_payout.ak`.
 > - Gaming: Nguồn thiết-kế nội-bộ (không công khai) (VG-P1..P10).
 > - Whitepaper §4 (nanogic = byte·ngày), §5 (P\*=1: 1 CARP = 1 MAGIC sức mua, KHÔNG neo fiat).
-> - Math canonical: [PhoenixKey-Math.md](./PhoenixKey-Math.md) (đơn-vị CARP/MAGIC). Curve I-CURVE-4/5: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) + addendum Curve-Routing (CHƯA gộp vào Math.md).
+> - Đơn-vị CARP/MAGIC: **KHÔNG** định nghĩa ở [PhoenixKey-Math.md](./PhoenixKey-Math.md) — xem Whitepaper §4/§5 ở trên. Curve I-CURVE-4/5: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) + addendum Curve-Routing (CHƯA gộp vào Math.md).
 >
 > → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#protectme)
 >
@@ -138,7 +138,7 @@ THẤP so với các định-lý §7. Muốn hình-thức-hoá đầy-đủ, c�
 `attestation` như hai trường dữ-liệu cụ-thể (nguồn: TAAD datum / enclave attestation record —
 xem `PhoenixKey-Anchorme-Math.md`) rồi viết lại $\mathrm{indep}$ như một hàm thuần trên hai
 trường đó thay vì mô-tả bằng lời. Không chứng thực được $\mathrm{indep}$ ⇒ **mặc định $\bot$** (bảo thủ). Đây là chỗ Protectme
-định-giá TRỰC TIẾP I-CURVE-5 ("second-factor phải khác seed"; nguồn canonical: Rebirthme-Math §, addendum Curve-Routing — CHƯA gộp vào `PhoenixKey-Math.md`) thành
+định-giá TRỰC TIẾP I-CURVE-5 ("second-factor phải khác seed"; định-nghĩa ở Rebirthme-Math §, addendum Curve-Routing — CHƯA gộp vào `PhoenixKey-Math.md`) thành
 tham số phí.
 
 ### 2.2 Premium
@@ -159,10 +159,24 @@ $\Rightarrow \mathrm{pot}_{\mathsf{user}} \mathrel{+}= \sum \mathrm{premium\_CAR
 ## 3. Công thức Coverage (loss_eligible) — chống-trùng ví-theo-DID
 
 $$
-\boxed{\ L(\mathrm{did},\mathrm{inc}) = \underbrace{\sum_{\mathrm{tx}\in\text{theft}(\mathrm{inc})} W(\mathrm{tx})}_{\text{net rời ví-theo-DID}} - R_{\mathrm{cancel}} - R_{\mathrm{freeze}} - R_{\mathrm{vault}}\ }
+\boxed{\ L(\mathrm{did},\mathrm{inc}) = \mathrm{Rate}_{\mathrm{CARP/lovelace}}(\mathrm{inc}) \times \underbrace{\sum_{\mathrm{tx}\in\text{theft}(\mathrm{inc})} W(\mathrm{tx})}_{\text{net rời kho, LOVELACE}} - R_{\mathrm{cancel}} - R_{\mathrm{freeze}} - R_{\mathrm{vault}}\ }
 $$
 
-- $W(\mathrm{tx})$ = **net-rời-kho** — TÁI DÙNG ĐÚNG định nghĩa Withdrawal-Limit (đọc chain, không cãi).
+> **Errata đơn-vị (2026-07-12):** $L \in$ CARP (§1.4) nhưng $W(\mathrm{tx})$ **TÁI DÙNG NGUYÊN** định
+> nghĩa Withdrawal-Limit của Rebirthme — `W(tx) ≜ Σ value(i).lovelace` ([PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md)
+> §2.3) — tức LOVELACE, không phải CARP. Bản trước thiếu hẳn bước quy-đổi, cộng thẳng lovelace vào
+> một đại-lượng khai CARP — **sai thứ-nguyên**, ảnh-hưởng Định-lý 1/3 (bảo-toàn giá-trị / solvency).
+> Đã thêm $\mathrm{Rate}_{\mathrm{CARP/lovelace}}(\mathrm{inc})$ làm tường-minh chỗ quy-đổi —
+> **[CẦN CHỐT]** nguồn oracle/tỷ-giá này CHƯA được định nghĩa ở đâu trong bộ spec (không có trong
+> Whitepaper §4/§5, không trong Feecover). Vì $L$ là số **committee off-chain chứng-thực** đưa vào
+> datum (validator không tự tính, xem lưu F3/F6 dưới), quy-đổi này là HƯỚNG DẪN cho committee —
+> nhưng committee KHÔNG THỂ tính đúng nếu không có nguồn tỷ-giá chính-thức. Hai hướng: (a) nếu tài-sản
+> bị đánh cắp LÀ CARP token trực-tiếp (không phải ADA), $W(\mathrm{tx})$ cần định nghĩa LẠI để đếm
+> chuyển-động CARP thay vì `.lovelace` — bỏ hẳn bước quy-đổi; (b) nếu đúng là ADA bị rút thì cần chốt
+> nguồn oracle ADA/CARP tại thời-điểm sự-cố. Chưa tự chọn (a) hay (b) — cần maintainer/đội kinh-tế
+> xác-nhận bản-chất tài-sản được bảo-hiểm trước khi khoá công-thức.
+
+- $W(\mathrm{tx})$ = **net-rời-kho, đơn-vị LOVELACE** — TÁI DÙNG ĐÚNG định nghĩa Withdrawal-Limit (đọc chain, không cãi).
 - $R_{\mathrm{cancel}}$ = phần `PendingLargeWithdrawal` chủ đã Cancel (I-LIMIT-CANCEL).
 - $R_{\mathrm{freeze}}$ = phần bị Freeze chặn kịp (Frozen→safe-address).
 - $R_{\mathrm{vault}}$ = UTxO còn tại `vault_addr(did)` sau rotate/recover (= KHÔNG mất).
@@ -447,7 +461,7 @@ Các mục sau **chính sách/kinh tế**, chưa normative — auditor KHÔNG đ
 - Nguồn thiết-kế nội-bộ (không công khai).
 - Code: `PhoenixKey-Validator` nhánh `feat/protectme-payout` — `lib/phoenixkey/protectme_logic.ak`,
   `protectme_types.ak`, `validators/protectme_payout.ak`.
-- Math canonical đơn-vị: [PhoenixKey-Math.md](./PhoenixKey-Math.md). Curve I-CURVE-4/5: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) + addendum Curve-Routing (CHƯA gộp Math.md).
+- Đơn-vị: [PhoenixKey-Math.md](./PhoenixKey-Math.md). Curve I-CURVE-4/5: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) + addendum Curve-Routing (CHƯA gộp Math.md).
 - Tài-liệu cùng bộ: [PhoenixKey-Protectme-Vi-Feat.md](./PhoenixKey-Protectme-Vi-Feat.md), [PhoenixKey-Protectme-Tech.md](./PhoenixKey-Protectme-Tech.md), [PhoenixKey-Protectme-Exec.md](./PhoenixKey-Protectme-Exec.md).
 
 → Trạng thái & tiến độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#protectme)
