@@ -179,7 +179,7 @@ TAAD_TIMELOCK_T2         = 10 × 432_000  -- ~10 days (Tier 2)
 TAAD_TIMELOCK_T3         = 14 × 432_000  -- ~14 days (Tier 3)
 TIER5_TIMELOCK           = 21 × 432_000  -- ~21 days (Tier 5: weakest)
 
--- ⚠️ [MÂU-THUẪN CHƯA-CHỐT, gắn 2026-07-12 — cần Long/Tuân xác-nhận trước khi
+-- ⚠️ [MÂU-THUẪN CHƯA-CHỐT, gắn 2026-07-12 — cần đội backend và đội on-chain xác-nhận trước khi
 --    sửa số ở đây]: đối-chiếu trực-tiếp `PhoenixKey-Validator` (đọc code
 --    2026-07-12) cho hai điểm LỆCH với các hằng-số phía trên:
 --    (1) MAX_GUARDIAN_COUNT ở đây = 7, nhưng
@@ -199,7 +199,7 @@ TIER5_TIMELOCK           = 21 × 432_000  -- ~21 days (Tier 5: weakest)
 --        test tạm khác giá-trị deploy thật (chưa tìm thấy giá-trị apply-param
 --        lúc deploy trong repo này để xác-nhận), hoặc (c) hai tài-liệu mô-tả
 --        hai cơ-chế khác nhau đã phân-kỳ. KHÔNG tự sửa số ở đây cho tới khi
---        xác-nhận với Long/Tuân giá-trị nào đang thật-sự deploy trên Preview.
+--        xác-nhận với đội backend và đội on-chain giá-trị nào đang thật-sự deploy trên Preview.
 
 -- Backup grace period:
 TIER5_BACKUP_GRACE_SLOTS = 30 × 432_000  -- ~30 days after registration

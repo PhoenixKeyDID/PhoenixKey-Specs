@@ -66,7 +66,7 @@ Nền tài-sản: Ví Phượng-hoàng = **địa-chỉ script Plutus V3 statele
 
 **Tầng 3 — Guardian có anchor danh-tính độc-lập controller + veto** (khép I-CURVE-5):
 - `I-GUARD-ROLEDID`: mỗi `guardian_pkh` là RoleDID/anchor riêng, khoá KHÔNG dẫn-xuất từ Master_KEK/seed của controller (parent-sig kiểu Org/Service). Verify anchor sống tại `InitRecovery`.
-- `I-GUARD-VETO`: `GuardianConfig{weight, role}` thêm vào `TAADDatum` (`schema_version` bump — [CẦN CHỐT-W9], giao Tuân). Role `ATTESTER_ALIVE` có quyền veto. Luật Finalize: `Σweight(APPROVER-signed) >= threshold ∧ không ATTESTER_ALIVE veto ∧ timelock trôi ∧ chủ chưa cancel`.
+- `I-GUARD-VETO`: `GuardianConfig{weight, role}` thêm vào `TAADDatum` (`schema_version` bump — [CẦN CHỐT-W9], giao đội on-chain). Role `ATTESTER_ALIVE` có quyền veto. Luật Finalize: `Σweight(APPROVER-signed) >= threshold ∧ không ATTESTER_ALIVE veto ∧ timelock trôi ∧ chủ chưa cancel`.
 - `I-GUARD-CAP`: không guardian đơn có `weight >= threshold` (chống một guardian tự khôi-phục).
 
 **Tầng 4 — Đổi guardian-set không tức-thời** (đóng lỗ đổi-toàn-bộ-guardian-rồi-InitRecovery-ngay):
@@ -108,7 +108,7 @@ prove_recovery(sigs, G_c, t) → π_rec           -- ∃ ≥t chữ ký guardian
 - `I-PRIV-4` (không-lộ guardian-set khi chủ chọn shield): migration guardian-set public→shielded là **tuỳ-chọn user**, không ép; DID đã ghi guardian public từ trước KHÔNG undo được phần đã public — chỉ shield từ thời-điểm-chuyển trở đi.
 - Tài-sản ở Ví Phượng-hoàng vẫn chi được **chỉ cần Cardano** (script address gated theo controller — không phụ-thuộc Midnight, giữ nguyên §2 mục 1).
 
-**Điều CHƯA chắc (chặn bởi Phase 1 Midnight-Feasibility, KHÔNG code trước khi có báo cáo):** verify chữ-ký (P-256 Secure Enclave hay Ed25519) trong circuit Compact có khả-thi/rẻ; cơ-chế neo-chéo Cardano↔Midnight (bridge/relay-proof/on-chain-verify SNARK — ảnh-hưởng ExUnit); SLA/độ-chín Midnight (mainnet mới). Owner: Tuân + đối-tác Midnight, theo dõi ở [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme).
+**Điều CHƯA chắc (chặn bởi Phase 1 Midnight-Feasibility, KHÔNG code trước khi có báo cáo):** verify chữ-ký (P-256 Secure Enclave hay Ed25519) trong circuit Compact có khả-thi/rẻ; cơ-chế neo-chéo Cardano↔Midnight (bridge/relay-proof/on-chain-verify SNARK — ảnh-hưởng ExUnit); SLA/độ-chín Midnight (mainnet mới). Owner: đội on-chain + đối-tác Midnight, theo dõi ở [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme).
 
 **Ranh giới:** đây KHÔNG thay Tầng 3 (`I-GUARD-ROLEDID`/`I-GUARD-VETO`/`I-GUARD-CAP`) hay FROST (PR-5) — Midnight-shielded là lớp riêng-tư PHỦ LÊN guardian-set đã có, không thay cơ-chế xác-thực/ngưỡng.
 
@@ -118,7 +118,7 @@ prove_recovery(sigs, G_c, t) → π_rec           -- ∃ ≥t chữ ký guardian
 | PR | Nội dung | Tầng | Phụ-thuộc |
 |---|---|---|---|
 | PR-1 | guardian-floor: unique-write + count-distinct + PARAM-FLOOR + threshold-bound + non-empty-guardians; test fail-case on-chain (`[G,G]+min_sigs=2` reject, `timelock=0` reject, `min_sigs=1` reject, empty-guardians-với-`min>0` reject, re-verify `b80b394` không tái-lập) | 1+2 | Không — đóng PoC ngay |
-| PR-2 | `GuardianConfig` schema_version bump + luật Finalize theo weight + `I-GUARD-ROLEDID` | 3 | Schema (Tuân) |
+| PR-2 | `GuardianConfig` schema_version bump + luật Finalize theo weight + `I-GUARD-ROLEDID` | 3 | Schema (đội on-chain) |
 | PR-3 | `UpdateGuardians`-delay (pending + timelock + veto) | 4 | Sau PR-2 |
 | PR-4 | Kinh-tế: SLASH + COOLDOWN + CANCEL-INDEPENDENT + cảnh-báo out-of-band | 5 | Sau PR-2 |
 | PR-5 | FROST-Ed25519 vào `rust_core` (keygen/sign/rotate group-key); self-custody 1-of-1 trước, LampNet t-of-n sau | R1 | Wave riêng |
@@ -309,7 +309,7 @@ Epoch tham chiếu ≈ 432 000 slot (~5 ngày, khớp Cardano epoch). `K=8` cho
 `recovery`: với xác suất một node độc-lập biến-mất/epoch `p≈0.2` (giả định
 bi-quan mạng non-trẻ), `p^K ≈ 2.56·10⁻⁶` — đủ biên cho dữ-liệu sống-còn.
 
-> ⚠ **[OPEN — cần Long xác nhận trước khi chốt]:** wire-format hiện tại của
+> ⚠ **[OPEN — cần đội backend xác nhận trước khi chốt]:** wire-format hiện tại của
 > node LampNet ghi `"redundancy": "2.5"` khi upload — chưa rõ đây là *c=2.5*
 > (over-write hệ số) hay tỷ-lệ `n/k` của lớp erasure-coding phía node
 > (LT-codes `k=50, n=1000`, Math §7.2). Hai lớp — *replication-K ở tầng
@@ -355,7 +355,7 @@ thưởng KHÔNG kéo theo sửa phần network layer ở trên (phân lớp tr�
 
 ---
 
-### 5.7 CIP-30 Lace connector + builder Delegator→LAMP-claim — chi-tiết CORE dev-ready (giao Tuân)
+### 5.7 CIP-30 Lace connector + builder Delegator→LAMP-claim — chi-tiết CORE dev-ready (giao đội on-chain)
 
 > Fold từ `[nội-bộ] PhoenixKey-Delegator-Core-Connector-Builders-Feat.md` (PR CORE, `rust_core`).
 > Tầng: chỉ dựng + ký tx trong `rust_core`, expose FFI `taad_*`; KHÔNG đụng backend endpoint (§6.1) hay
@@ -365,7 +365,7 @@ thưởng KHÔNG kéo theo sửa phần network layer ở trên (phân lớp tr�
 Rust/Dart) → cầu 3 tầng: **JS bridge** (`window.cardano.lace.enable()` → `getUsedAddresses/
 getRewardAddresses/getUtxos/getChangeAddress/getNetworkId/signTx/signData/submitTx`) → **Dart facade**
 `LaceConnector`/`LaceApi` (điều-phối) → **rust_core FFI** `taad_*` (builder + crypto, KHÔNG gọi được
-`window.cardano`). Mobile không có `window.cardano` → dùng CIP-45 pairing (Phase-2, SDK Long); API surface
+`window.cardano`). Mobile không có `window.cardano` → dùng CIP-45 pairing (Phase-2, SDK đội backend); API surface
 Dart giữ nguyên, chỉ đổi transport.
 
 Bảng method (đường ranh watch-only vs trigger-popup):
@@ -494,8 +494,8 @@ SIGNED. `CORE-SIGN-3`: input base-addr seed DID (staking.rs) ⇒ seed ký, SIGNE
 (fee-sponsorship migration / claim mode-lace) ⇒ multi-witness UNSIGNED, mỗi bên ký phần mình,
 `assemble_witness(merge=1)` hợp-nhất.
 
-**Ranh-giới:** CORE (Tuân) chỉ build/ký/FFI trên. KHÔNG thuộc: backend `stake-state`/Grant/`merkle-proof`/
-`claim/submit` (Long, §6.1); Merkle-root + luật ETD/ISPO + shape cuối `BurnSlot`/marker (LAMP). Test bắt-buộc
+**Ranh-giới:** CORE (đội on-chain) chỉ build/ký/FFI trên. KHÔNG thuộc: backend `stake-state`/Grant/`merkle-proof`/
+`claim/submit` (đội backend, §6.1); Merkle-root + luật ETD/ISPO + shape cuối `BurnSlot`/marker (LAMP). Test bắt-buộc
 (unit + Preview e2e) — xem §9.
 
 ---
@@ -517,10 +517,10 @@ SIGNED. `CORE-SIGN-3`: input base-addr seed DID (staking.rs) ⇒ seed ký, SIGNE
 Lưu-ý: `/wallet/magic/claim` → **410 Gone** (MAGIC = account-trong-Vault, không native). `BalanceResponse` field MAGIC = 0 (deprecated).
 → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
 
-### 6.1 Chi-tiết Delegator-Claim offchain (Grant/stake-state/claim/merkle) — dev-ready cho Long
+### 6.1 Chi-tiết Delegator-Claim offchain (Grant/stake-state/claim/merkle) — dev-ready cho đội backend
 
 > Nguồn đầy đủ: `[nội-bộ] PhoenixKey-Delegator-Claim-Offchain-Feat.md`. Mục này fold phần
-> request/response schema + ErrorCode để Long code thẳng, không phải mở file rời. Base path
+> request/response schema + ErrorCode để đội backend code thẳng, không phải mở file rời. Base path
 > `/api/v1`; field JSON snake_case; envelope `DataResponse<T>{code,message,result}` (code 1000
 > = ok); backend KHÔNG giữ khoá, KHÔNG ký thay (bất biến OFF-KEY-1 — chỉ điều-phối + submit CBOR
 > đã-ký).

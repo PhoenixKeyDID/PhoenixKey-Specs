@@ -100,7 +100,7 @@ Test: `test_gather_all_shards_yields_only_ciphertext` · `test_all_machines_no_f
 ## 9. Face-bio: phối MobileCore + SuperApp (interface đã có)
 
 - **PhoenixKey** (em): định nghĩa `knowme.face2fa.{enroll,verify,policy}` + thang LoA + reusable fuzzy extractor + neo device_pkh. Trả lời câu hỏi chặn MobileCore #6(d): **khoá enclave P-256 = wrapper gate sinh-trắc; khoá ký on-chain = Ed25519 `device_pkh` riêng** (P-256 không verify on-chain).
-- **MobileCore Lens** (Long/native): `FaceCapture` = camera + liveness + chất lượng khung. Ship contract `FaceCapture` → mở khoá phần còn lại.
+- **MobileCore Lens** (đội nền tảng di động): `FaceCapture` = camera + liveness + chất lượng khung. Ship contract `FaceCapture` → mở khoá phần còn lại.
 - **SuperApp** (Tùng): màn chụp mặt + step-up UX qua broker `capability:biometric`; KHÔNG chạm template/khoá.
 - Luồng: MobileCore(capture)→FaceCapture→broker→Knowme(verify)→attestation→AND vào F_cold.
 
