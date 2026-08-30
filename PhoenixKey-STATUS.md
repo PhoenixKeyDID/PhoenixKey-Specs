@@ -2,24 +2,88 @@
 
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
-> Cập nhật: 2026-08-20. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy. Đợt 15/08 bổ sung: đọc chip giấy tờ (eMRTD), đầu dò tầm với, CORS tra-tên-công-khai, SDK username — **cả bốn đều là PR chưa merge**, xem mục 4. Riêng eMRTD đã **nối đầu-cuối** trong cùng ngày (PR Core #73, 2 commit thêm) — chỗ đứt còn lại là chưa chạm thẻ thật. Đợt 19/08: Protectme — `protectme_beacon_logic.ak` đã có mã (733 dòng, không còn 0 dòng) và đã nối vào `protectme_payout.ak`; đo lại `aiken check` = 72 bài test (23 beacon + 14 logic + 35 payout); phần hở còn lại là đúc trùng `claim_id` liên-giao-dịch, xem mục 1 + phần Protectme.
+> **Cập nhật: 2026-08-30.** Mọi số dưới đây đo lại từ đầu trên `main` của từng kho, không kế thừa bản trước. Bản 2026-08-12 có **8/9 hash validator đã lỗi thời** và bốn chỗ mô tả sai chiều — xem §7.
 
 ---
 
-## 1. Bảng trạng-thái 8 module
+## 0. Mốc đo — mọi con số trong file này neo vào đây
+
+Bảng này là **cổng**: một khẳng định trong file không neo được vào một dòng ở đây thì nó là suy đoán, không phải hiện trạng.
+
+| Kho | `main` | Kiểm chạy được | Kết quả | CI |
+|---|---|---|---|---|
+| PhoenixKey-Validator | `cf5dceb` | `aiken check` / `aiken build` | **658/658 PASS**, build exit 0, 9 validator / 23 mục blueprint | 🔴 **0 workflow** |
+| PhoenixKey-Database | `99b33e2` | `mvn test` | **668 test**, 0 fail | có |
+| PhoenixKey-Core | `bd8ae3d` | `cargo test` / `flutter test` | **461 passed** (1 ignored) / **296 passed** | có |
+| PhoenixKey-Frontend | `6be695a` | `vitest src/lib/sdvc/` | **425 test PASS** | có |
+| PhoenixKey-SDK | `301fb78` | `jest` | **20/20 PASS** | 🔴 **0 workflow** |
+| Wallet (kho `PhoenixKeyDID/Wallet`) | `e498b00` | test bộ ví | **178/178 PASS** | có |
+| PhoenixKey-Specs | `45fafaf` | — (kho tài liệu) | — | — |
+
+Hai kho **Validator** và **SDK** không có một workflow nào: mọi con số của chúng ở trên là **đo tay tại một thời điểm**, không có gì chặn một commit sau đó làm gãy mà không ai biết. Đây là việc hạ-tầng ưu tiên cao nhất ngoài mã.
+
+### Hash 9 validator — đo lại trên `cf5dceb`, `aiken build` môi trường mặc định
+
+| Validator | Hash (chưa apply-param) |
+|---|---|
+| `did_payment` | `0b3e301b447d1a45eddaa65b1e5c2abce1898859729144e494420f4a` |
+| `did_pool` | `4b4030d7892c86328fd4de54e79f29443a2d965c26343ab6831fabbe` |
+| `did_stake` | `17f80f889e36aa5fdd4969fbc2a7748d343528b74d986a51ed995b29` |
+| `lamp_policy` | `ba0dd83a39a54022f8d07fbcf5079f7f120bf51b9d2016aad7d97e13` |
+| `limit_meter_vault` | `45138d589f2fdb6646b1defb155db398436072d64466e28c4aaad0c0` |
+| `protectme_payout` | `cd4f2c2415256692ba3a726cec062a4a8ab9171f1a7df6913a31c675` |
+| `smartsend` | `5380d67aa35ed5378d64dad05b3c44c9d5902525d6c53cbbab104b91` |
+| `taad` | `b7a582805e935584689268275262f2db269c91e89280b7ff0ec7ea33` |
+| `wakeme_vault` | `84f97191c28df3ce46ad4ae1fdc2cde19ae15fcbb54f2ad402bc39a3` |
+
+⚠ **`wakeme_vault` phụ thuộc môi trường build.** Cùng `cf5dceb`, `aiken build --env preview` cho `04fefb8624bcacdcc843acd97cb308e96288a6f31bc08017f829d9b9` — khác hoàn toàn, vì `[config.preview] ms_per_day = 60000` được mã đọc thật (`wakeme_logic.ak:87,95,100`). ⟹ **mọi phát biểu về hash `wakeme_vault` phải kèm tên môi trường**, không có "hash của wakeme_vault" nói trống.
+
+`plutus.json` có **23 mục** nhưng chỉ **9 script-hash phân biệt** — mỗi validator xuất nhiều handler (mint/spend/withdraw…) dùng chung một hash. Đếm 23 là đếm handler, không phải đếm validator.
+
+---
+
+## 1. Hệ đang đứng ở tầng v1.0, và chưa có mốc chuyển sang v1.1
+
+Đây là điều quan trọng nhất trong toàn bộ file, và nó không nằm ở module nào cả.
+
+**Phương pháp neo DID có HAI TẦNG, và điều đó là chủ đích.** `PhoenixKey-SDK/method.md:144-148` (did:phoenix v1.0, Implementors Draft) đặc tả resolver hai chế độ: TAAD UTxO datum là **v1.1, có thẩm quyền khi tồn tại**; metadata nhãn 6789 là **v1.0 MVP, tầng đang chạy**; trong giai đoạn chuyển tiếp hai neo cùng tồn tại và TAAD thắng nếu có. Vậy nên bản thân metadata-6789 **không phải một sai lệch** — nó là tầng đã chốt.
+
+`PhoenixKey-Database/.../cardano/CardanoServiceImpl.java:70-111` — `publishDocument()` trả tiền cho chính ví phí backend, gắn metadata nhãn 6789, ký bằng ví phí rồi submit không chờ xác nhận. **Không mint state-NFT, không gọi `taad`.** Đường này dùng chung cho cả ba loại DID đang cấp được: PersonDID (`/identity/register`), OrgDID (`/org/create`), AssetDID (`/identity/asset/create`).
+
+Mã tự khai đúng như vậy — `CardanoService.java:9-13`: *"Cơ chế hiện tại (transitional) … Sẽ chuyển sang TAAD UTxO datum khi validator state-NFT xong."*
+
+`PhoenixKey-Validator/deploy/README.md:23` — bản hash TAAD preprod duy nhất từng được chốt trong `deploy/` tự khai **"ĐÃ CHẾT — đừng deploy"** (lý do: `ValidatorParams` đổi 6→7 trường). Tức bản đó lỗi thời *trước khi* deploy.
+
+**Vấn đề không phải v1.0. Vấn đề là ba điều sau.**
+
+1. 🔴 **Tầng v1.1 chưa tồn tại ở phía backend.** `git grep 'GenesisPerson\|GenesisChild\|StateNftRedeemer'` trong mảng Java = **0**. Validator đã build và test xanh, nhưng không có bên nào gọi được nó. PoP-bind, CanOwn, 2-of-2, uniqueness anchor do đó là **thiết kế đã hoàn thiện nhưng chưa được thi hành trên chuỗi**; bất-biến danh tính hôm nay do Postgres giữ.
+
+2. 🔴 **Tầng v1.0 đang sinh ra dữ liệu mà tầng v1.1 sẽ từ chối.** Xem đoạn khuôn `did` ngay dưới. Càng cấp thêm DID theo khuôn cũ thì cái giá của đợt chuyển càng lớn — đây là món nợ **tăng theo thời gian**, không đứng yên.
+
+3. 🔴 **Chưa có mốc chuyển.** Đợt redeploy mang tên PA-1 là chỗ v1.0 → v1.1 xảy ra, nhưng nó đang chờ bốn việc chưa chốt: schema `TAADDatum`, nâng `taad_did.rs` từ 10 lên 15 trường, chọn `uniqueness_bootstrap_seed`, xử hai UTxO Preview còn lại — cộng thêm khuôn `did` (`PhoenixKey-Validator` #78, OPEN từ 2026-08-12, hỏi thẳng *"bao giờ luồng thật chuyển sang đúc anchor qua `state_nft_logic`"*).
+
+Nói gọn: nguyên tắc **an ninh trước trải nghiệm, quyền phải ở ledger** không bị v1.0 vi phạm — nó bị vi phạm nếu hệ **dừng lại ở v1.0 mà không có ngày chuyển**.
+
+**Điều kiện tiên quyết bị bỏ quên — khuôn `did` lệch.** Backend/app/frontend sinh did theo khuôn `base32(slot)+hex` (`DidPhoenixGenerator.java:43,102`, `taad_did.rs:129-167`). `pop_bind.ak:20-30` đòi khuôn tự-chứng (POSIX-ms thập phân + `controller_pkh` trong tiền-ảnh). Bản Java theo khuôn mới **có mã nhưng đang tắt**: `application.yml:171 pop-bind-encoder-enabled: false`. ⟹ **mọi DID cấp hôm nay không mint được anchor dưới validator hiện hành.** Và vì `N(did) = blake2b_256(did)` là apply-param của `did_payment`, đổi khuôn = đổi địa chỉ ví của mọi DID ⟹ việc này phải đi qua cổng THỜI-CHÍNH, không vá lẻ. Theo dõi ở `PhoenixKey-Validator` #78.
+
+---
+
+## 2. Bảng trạng-thái 8 module
 
 | Module | Nền đã chạy được | Blocker chính | Production |
 |---|---|---|---|
-| **Anchorme** | validator `taad` Design-2 + **PC** (uniqueness anchor, đã nối) + **PoP-bind** (did tự chứng, đã nối) — CID-1 ĐÃ ĐÓNG cả same- và cross-entity; resolver W3C; register metadata-6789 | DeviceDID; resolve-by-hash; **B5 duy-nhất-người mức NGƯỜI (chưa có gì cưỡng-chế)** | GO custody cho lỗ CID-1 (đóng 2026-08-12); NO-GO tổng-thể vẫn treo ở DeviceDID + resolve-by-hash + B5 |
-| **Rebirthme** | ví theo-DID `did_payment`, đóng-băng theo trạng-thái, guardian recovery ngưỡng+timelock, P-256 low-s, `lampnet.rs`; **`limit_meter_vault` + `did_stake` nay build được** (hash `f3be6d6d…` / `eb535cc1…`) | `did_subaddr` chưa có; **khoá thiết bị (yếu-tố-2 chi tiêu) chưa tồn tại trong mã app** | NO-GO ví-giá-trị-lớn tới khi khoá thiết bị land |
-| **Wakeme** | validator `wakeme_vault` build được (hash `8655974a…`); backend `buildGetLamp`/`submitGetLamp` là hiện thực thật | B1 engine Gen đọc-số-dư, B2 Registry consume-gate, B3 PA2 cho GetLAMP-PersonDID; **3 biến môi trường `ACTIVATION_*` rỗng ⇒ mọi lời gọi trả `501`** | NO-GO tới khi Registry + PA2 land |
-| **Feecover** | ConsumeMAGIC lõi (kế thừa) | Layer Feecover 0 dòng; B1 MAGIC-model, B2 CARP policy-id, B3 did_commit per-DID; FG-4 EpochSettle tự-vá | NO-GO tới khi B1+B2+B3 + FG-4 |
-| **Protectme** | cổng chi-trả `protectme_logic`+`protectme_beacon_logic`+`protectme_payout` (72 bài test đối-kháng sạch: 23 beacon + 14 logic + 35 payout, branch `feat/protectme-payout`); hash `b1f90fca…` → **`cd4f2c24…` sau PR Validator #88**, chưa merge | Beacon one-shot per claim_id đã nối (`protectme_beacon_logic.ak` 733 dòng, mint gọi từ `protectme_payout.ak:49-53`) — đóng double-satisfaction trong-cùng-tx; ~~còn hở LIÊN-tx: 2 MintClaim khác tx cho cùng claim_id thật vẫn tạo 2 escrow độc-lập~~ **ĐÃ VÁ** (PR Validator #88, chưa merge): `claim_id` nay do SỔ CÁI sinh — `claim_id_bound_to_spent_input` ép `claim_id == blake2b_256(cbor.serialise(outref))` của một input thật, nên duy nhất theo cấu trúc, không cần SMT và không đẻ tranh chấp UTxO. → phá giao diện off-chain: builder phải sinh claim_id từ UTxO bucket sắp tiêu; escrow kiểu `"claim-0001"` bị từ chối; 2-bucket + resolver + UI chưa có; 11 quyết-định PROT-1..11 | NO-GO tới khi uniqueness liên-tx + blocker + quyết-định |
-| **Knowme** | Mức 1+2 SD-VC có code+test, demo `/vc` (20 file / 415 test PASS) | B1 lib BBS (Mức 3), B2 LampNet gateway (lớp tài-liệu), B4 StampRecord; **B5 duy-nhất-người v1 chưa có trên `main`** | M1 chạy; Mức 3/tài-liệu chờ blocker; duy-nhất-người chưa cưỡng-chế |
-| **Easteregg** | 1 PoC Python off-chain trên Preview (3 tx-hash); **`did_pool` nay build được** (hash `9ba97ba4…`) | `did_subaddr.ak` chưa có; ZK Tầng 2 verifier chưa viết; G1/G3/G5 chưa vá | NO-GO; chỉ GO build+test Preview T1 + T3-mode-1 |
-| **Smartsend** | spec đầy đủ SS-1..12; **validator `smartsend` nay build được** (hash `9ed1b56f…` → **`e5656fbf…` sau PR Validator #88**, chưa merge) | verifier Glint/Spectra (Phase 2); SS-11 vừa khôi phục điều kiện `amount ≥ large_threshold` (PR #23) | NO-GO; money-critical, review trước code |
+| **Anchorme** | `taad` Design-2 + PC (uniqueness anchor) + PoP-bind, đã nối và test xanh; resolver W3C; register metadata-6789 (tầng v1.0) | tầng v1.1 chưa có bên gọi; khuôn `did` lệch (#78); DeviceDID; resolve-by-hash | NO-GO — chặn ở đợt PA-1 (§1), không ở CID-1 |
+| **Rebirthme** | ví theo-DID `did_payment`, đóng-băng theo trạng-thái, guardian recovery ngưỡng+timelock, P-256 low-s, `limit_meter_vault` + `did_stake` build được | tầng **Dart** của khoá thiết bị chưa có (xem §3); `did_subaddr.ak` chưa tồn tại trên `main` | NO-GO ví-giá-trị-lớn |
+| **Wakeme** | `wakeme_vault`/`wakeme_logic` merge, test xanh; backend có **hiện thực thật** (`ActivationVaultServiceImpl` `@Primary` + preflight + tx-builder + chọn pot UTxO) | 3 biến `activation-vault-cbor-hex`/`pot-address`/`keeper-pkh` còn rỗng (`application.yml:142-144`) ⟹ trả 501 — **chặn ở deploy, không ở mã**; app không có màn hình Wakeme; **không có mắt nối sang Gen MAGIC** | NO-GO |
+| **Feecover** | ConsumeMAGIC lõi (kế thừa) | **0 validator Feecover tồn tại**; CARP chưa có policy-id thật; hai đầu tiêu thụ chưa cắm vào | NO-GO |
+| **Protectme** | `protectme_logic` + `protectme_payout` + **`protectme_beacon_logic` (889 dòng, 26 test, ĐÃ NỐI)** — 75 test trên `main` | 2-bucket Treasury + resolver claim + UI chưa code; 11 quyết-định PROT-1..11 | NO-GO — nhưng blocker beacon **đã gỡ** |
+| **Knowme** | Mức 1+2 SD-VC có code+test, demo `/vc` — 425 test PASS | lib BBS (Mức 3); LampNet gateway; StampRecord | M1 chạy |
+| **Easteregg** | `did_pool` build được | `did_subaddr.ak` chưa tồn tại; ZK Tầng 2 verifier chưa viết; 0 test Easteregg | NO-GO |
+| **Smartsend** | validator `smartsend` build được | verifier Glint/Spectra (Phase 2); phụ thuộc nền ví + guardian | NO-GO; money-critical |
 
-### 1b. AssetDID + phả hệ nông sản (mới 2026-08-20)
+---
+
+### 2b. AssetDID + phả hệ nông sản (mới 2026-08-20)
 
 Không phải module thứ 9 — là một năng lực cắt ngang Anchorme, dựng cho truy xuất nguồn gốc nông sản (OriLifeTrace).
 
@@ -72,27 +136,171 @@ Không phải module thứ 9 — là một năng lực cắt ngang Anchorme, d�
 
 ---
 
-## 2. Ma-trận blocker xuyên-module (ai gỡ)
+---
 
-| Blocker | Chặn module | Đội gỡ | Ghi chú |
+## 3. Ma-trận blocker xuyên-module
+
+| Blocker | Chặn | Đội gỡ | Trạng thái đo được |
 |---|---|---|---|
-| **B1 — MAGIC engine đọc-số-dư** | Wakeme, Feecover, Protectme | MAGIC team | Model chốt = account-in-vault (không native); còn spell-out engine reference-input, không spend/đốt LAMP |
-| **B2 — CARP policy-id/asset-name/decimals** | Feecover, Protectme, Rebirthme, Wakeme | CARP team | preprod + mainnet; test đang dùng hằng giả |
-| **B3 — Registry consume-gate + `did_commit` per-DID** | Wakeme, Feecover | MAGIC team + backend | `has_counterparty_consume` còn placeholder; `did_commit` field có, nội-dung sentinel rỗng |
-| ~~PA2 — UniquenessThread hai-validator~~ **LOẠI VĨNH VIỄN**, thay bằng **PC** — ✅ **đã land + đã nối** 2026-08-10 | — | — | PA2-hai-validator vô-nghiệm fixed-point hash (mỗi script bake hash của script kia). PC gộp một multi-purpose validator, `anchor_policy ≡ thread_policy ≡ own_policy`. K=32 (không phải 256 — bootstrap nguyên-tử K=256 ≈ 34 KB, vượt trần tx 16 KB). Đặc-tả §5.7ter |
-| ~~PA5-a — entity-gate: viết xong nhưng chưa nối~~ **CHỐT KHÔNG NỐI** — ✅ **gỡ 2026-08-12** | — | — | PoP-bind (đã land + nối) cam-kết `entity_type` vào tiền-ảnh `did` ngay lúc mint (`pop_bind.inner_hash`); một cổng đọc lại `entity_type` lúc chi chỉ kiểm lại thứ tên-anchor apply-param đã ép sẵn — không đóng thêm bề-mặt nào, đổi lại 4-5 script-hash không cần thiết (`PhoenixKey-Validator` PR #73). Hàm `anchor_controller_ok_entities` giữ deprecated làm test đối-kháng |
-| ~~`limit_meter.ak` — anti-drain~~ **GỠ 2026-08-08** | — | — | `lib/phoenixkey/limit_meter.ak` + validator `limit_meter_vault` (hash `f3be6d6d…`) build được trên `main`; nằm trong 577/577 test PASS |
-| 🔴 **Khoá thiết bị — yếu-tố-2 khi chi từ ví Phoenix** | Rebirthme (ví Phoenix), Anchorme (datum genesis) | app + on-chain | Aiken đã ép 2-of-2 (mệnh-đề (e) `list.has(tx.extra_signatories, anchor.device_pkh)` trong `auth_logic.anchor_controller_ok`), nhưng phía app **chưa tồn tại**: grep `device_pkh`/`deviceKey` trong `rust_core/src` và `lib/` = 0. Thiếu cả sinh khoá, lưu trữ, API ký, và đưa `device_pkh` vào datum. Phải Ed25519/secp256k1 — P-256 không verify được on-chain |
-| 🔴 **CBOR `did_payment` đang dùng là bản CŨ 1-chữ-ký** | Rebirthme, Anchorme | on-chain + app + backend | CBOR trong `rust_core/assets/` và vector test backend khớp byte-for-byte bản build 25-06, **trước** khi thêm 2-of-2 ⇒ mọi địa chỉ Phoenix đã dẫn ứng với validator chỉ cần 1 chữ ký seed. Phải re-pin cùng lượt: asset CBOR + 3 vector `AikenPhoenixCustodyDeriverTest` + env `DID_PAYMENT_CBOR_HEX` |
-| **DeviceDID `Op_create_device`** | LampNet node, Knowme device, Rada | on-chain + backend | + hw_cert verify endpoint |
-| **FG-4 — Feecover EpochSettle validator** | Feecover | đội Feecover | Pseudo-code, 0 validator, dựa provider trung-thực — tự vá khi build |
-| **B4 — Math `⊑` + type-code canonical** | delegation PersonDID, author-DID phi-nhân | Math/maintainer | Chốt vào Math v4.7; bảng-byte code làm canonical |
+| 🔴 **Đường đúc không qua validator** (§1) | TẤT CẢ | on-chain + backend | `CardanoServiceImpl.java:70-111`. Chưa có phương án chốt (xem §6) |
+| 🔴 **Khuôn `did` lệch** | Anchorme, Rebirthme | on-chain + backend + app | `application.yml:171` đang `false`; Validator #78 |
+| 🔴 **Khoá thiết bị — tầng Dart** | Rebirthme (ví Phoenix) | app | Rust **đã xong**: `device_key.rs` 893 dòng, `device_pkh` 67 lần / 4 tệp, và **đã xuất FFI C** 4 hàm (`lib.rs:955,996,1039,1060`). Tầng Dart: `git grep taad_device_key -- lib` = **0**. Chỗ đứt là *binding Dart*, không phải mã lõi |
+| 🔴 **Lỗ đang NGỦ: cổng ví gác bằng cấu hình, không gác bằng sự thật trên chuỗi** | Rebirthme | backend + app | DID sinh theo khuôn cũ suy ra một địa chỉ mà anchor tương ứng **không bao giờ tồn tại**. Hôm nay chưa mất gì vì bộ suy địa chỉ trả rỗng — nhưng nó rỗng vì **thiếu cấu hình**, không vì thiếu mã: bộ suy thật đã là thành phần chính đang chạy, chỉ đứng im khi hai giá trị cấu hình chưa đặt. Nghĩa là cổng này lật được bằng cấu hình, không cần một dòng mã nào và không qua một lượt duyệt nào — trong khi tác vụ rót ví cho người dùng cũ đã sẵn sàng. Cổng phải kiểm **anchor có tồn tại trên chuỗi không**, không kiểm biến cấu hình có rỗng không. Kèm theo: bản CBOR đang ghim là bản cũ, thiếu vế khoá thiết bị, nên phải ghim lại cùng lượt với vector kiểm thử phía backend |
+| 🔴 **Đúc LAMP bằng OrgDID — BẤT KHẢ với token đang sống, không phải "chưa nối"** (đo 2026-08-18) | mục tiêu "OrgDID đúc LAMP" | chủ nhân (quyết định kinh tế) | Bản LAMP đang sống trên mainnet là policy `55d3e01bb6c469e02665e4b6573ce65bbaf7a50ad2024e247eb180f0`, **8 tham số**, WHO-gate = **một pkh nướng cứng** + `extra_signatories` — **không đọc registry, không đọc DID, không reference input nào** (`LAMP/Genesis/offchain/src/deployed.ts:75`). Bản registry-gate **12 tham số** (`Genesis/onchain/validators/lamp_mint.ak`, main `44ccd79`) mới đúng nghĩa "đúc qua OrgDID" nhưng **chưa deploy ở bất kỳ mạng nào** và deploy nó = **policy-id khác = một token KHÁC**. SupplyState đã bootstrap thật trên mainnet (tx `db0610c2…`, 1 triệu LAMP) nhưng dưới policy 8-tham-số. ⇒ không có đường vá; chỉ có đường ra token mới |
+| 🔴 **Một lời gọi công khai khoá vĩnh viễn đường khôi phục-bằng-24-từ của người khác** | khôi phục thiết bị | backend | TAAD pubkey được publish công khai làm `#controller-key` (`W3CDocumentBuilder.java:158-168`, `/identifiers/**` công khai). `POST /identity/register` công khai và **không kiểm sở hữu** `taadPublicKeyHex` — javadoc `IdentityRegisterRequest` ghi thẳng, kèm kết luận "không ảnh hưởng user khác". Cột cố ý **không UNIQUE** (`V38`). `ResolveByControllerService` fail-closed 404 khi `matches.size() > 1`. Ghép lại: đọc khoá của nạn nhân rồi ghi vào bản ghi của mình ⇒ nạn nhân cầm đúng 24 từ vẫn nhận 404 vĩnh viễn. Vá tối thiểu: UNIQUE theo khuôn `V36`. Vá gốc: challenge ký bằng chính TAAD_Key. Database Issue #213 |
+| 🟡 **Vai `manager`/`viewer` không được cưỡng chế ở đâu** — *bản vá đã có, chờ gộp* | đa thiết bị (§5) | backend | **Trên `main` lỗ vẫn nguyên:** `SessionServiceImpl.java:167-168` lập phiên không xét vai; chỉ **hai** tệp trong `src/main/java` đọc tới vai; `AuthenticatedUser` chỉ mang DID ⟹ phiên lập bằng khoá `viewer` gọi được đúng những gì phiên khoá chủ gọi được. **Bản vá: PR #215** (6 commit, 875/875 test, 6 ca trên Postgres thật) — vai vào phiên, cưỡng chế ở một chỗ (`AuthRequiredInterceptor`), ba đường vòng đời thiết bị, và bịt sáu đường vòng tự soi ra được (xem §8). Blocker này chỉ được xoá khỏi bảng **sau khi #215 gộp**. Database Issue #211 |
+| 🟡 **`op-seq`: mã nói công khai · cổng trả 401 · `API.md` nói đã bị bác** | app khôi phục mốc chống phát lại | backend | `GET /identity/{did}/op-seq` tồn tại với javadoc lập luận nó **phải** công khai, nhưng không có trong `PUBLIC_GET` ⇒ trả 401 cho đúng client nó phục vụ; `API.md:741-755` vẫn ghi đề xuất này ĐÃ BỊ BÁC. Không ca kiểm nào chốt hướng nào. Có ứng dụng ngoài đang giữ PR treo chờ. Database Issue #210 |
+| 🔴 **ServiceDID / AgentDID / DeviceDID = 0 dòng backend** | Anchorme, LampNet, Knowme | backend | `types.ak` đã đủ 5 loại + ma trận `can_own` (validator sẵn 100%); `grep DidType.SERVICE\|AGENT\|DEVICE` trong `src/main/java` = **0**. `DeviceController.java` là push-token FCM, **không phải** DeviceDID |
+| 🔴 **Khoá phiên đứt ở HAI chỗ độc lập** | khoá phiên (§5) | backend | (a) `/auth/token/exchange` nhận `sessionToken` trong BODY nhưng không có trong `PUBLIC_POST` (`AuthRequiredInterceptor.java:108-118`) ⟹ đo thực địa trả `401 {"code":1304}`, không bao giờ chạm `TokenExchangeService`. (b) Không API nào ghi được `service[] type=SsoRedirect` lên DID Document ⟹ dù mở (a) thì vẫn chưa đăng ký được website nào. Gỡ một chỗ không đủ |
+| 🔴 **B1 — MAGIC engine đọc-số-dư** | Wakeme, Feecover, Protectme | MAGIC team | Model = account-in-vault (không native) |
+| 🔴 **B2 — CARP policy-id thật** | Feecover, Protectme, Rebirthme, Wakeme | CARP team | Đang để all-zero fail-closed; test dùng hằng giả |
+| 🔴 **FROST vs VSS — hai bên xây hai nguyên thuỷ khác nhau** | phân tán seed (§5) | PhoenixKey + LampNet | Chốt là FROST-sign; bản đã build là VSS/Shamir. **FROST không có hiện thực ở nhánh nào**: quét toàn bộ lịch sử Core/Validator/Database, chuỗi `FROST` chỉ xuất hiện trong tên một tài liệu thiết kế được trích ở chú thích (`commitment_tree.ak:5`, `pa2_smt.ak:5`); mọi kết quả còn lại là `Blockfrost`. `seed_envelope.rs` 1284 dòng đã merge nhưng **0 hàm xuất FFI** ⟹ Dart không gọi tới được |
+| 🟡 `GenesisChild` 1 chữ ký | Anchorme | on-chain | `state_nft_logic.ak:198` đòi 1 chữ ký, trong khi mọi đường CHI là 2-of-2 (`auth_logic.ak:137,143`) |
+| 🟡 `app_token` là bearer thuần | khoá phiên | backend + SDK | `PhoenixKey-SDK/INTEGRATION.md:113` tuyên bố đã có DPoP — **tài liệu nói quá mã** |
+| ~~PA2 UniquenessThread~~ | — | — | ✅ loại vĩnh viễn, thay bằng PC (đã land + nối) |
+| ~~PA5-a entity-gate~~ | — | — | ✅ chốt không nối — `entity_type` đã cam-kết ở tầng mint (`pop_bind.inner_hash`) |
+| ~~`limit_meter.ak` anti-drain~~ | — | — | ✅ build được trên `main`, nằm trong 658/658 |
+| ~~`protectme_beacon.ak` 0 dòng~~ | — | — | ✅ **gỡ 2026-08-28** — `protectme_beacon_logic.ak` 889 dòng / 26 test, đã nối tại `protectme_payout.ak:54` |
 
 ---
 
-## 3. Chi tiết từng module
+## 4. Hai lỗ hổng ở tầng nghiệp vụ cần chủ kho vá
 
-## Anchorme
+Hai lỗ dưới đây **không** phải lỗ mật mã và **không** chặn build — chúng nằm ở luật nghiệp vụ, và đều có chung một hình dạng: *ai đến trước được, không ai kiểm quyền, không có đường đòi lại*.
+
+**(a) Đăng ký AssetDID theo `physicalIdHash` — thiếu bước chứng minh quyền trên vật.** Endpoint **có** xác thực: `/identity/asset/create` không nằm trong `PUBLIC_POST` (`AuthRequiredInterceptor.java:108-118`) nên đòi phiên hợp lệ, và `IdentityController.java:265-271` còn đòi chữ ký owner trên challenge chứa `physicalIdHash`. Cái thiếu hẹp hơn nhưng vẫn nghiêm trọng: **không có bước nào chứng minh người ký thật sự sở hữu vật đó.** `AssetServiceImpl.java:98` nhận first-claim-wins trên `physicalIdHash` với UNIQUE ở `V14__add_asset_dids.sql:20` ⟹ một DID đã đăng ký bất kỳ vẫn gắn được định danh cho một vật của người khác, và chủ thật chỉ nhận 409, không có đường đòi lại. **Cần:** một cách chứng minh quyền trước khi ghi + một luật chuyển giao khi có tranh chấp. Đây là quyết-định nghiệp-vụ, không phải vá kỹ-thuật.
+
+**(b) Registry dấu giấy-tờ — client tự khai, và đường ghi ĐANG MỞ.** `FingerprintRegistryService.java` (344 dòng, migration V35/V37/V40/V41) chưa được nối vào `/identity/register`, và app Flutter chưa gọi. Nhưng nó **không hề đóng**: `KnowmeFingerprintController.java:35,57` đã wire `POST /identity/fingerprint/register`, và `GET /identity/fingerprint/status` nằm trong `PUBLIC_GET` (`AuthRequiredInterceptor.java:94`) nên tra được không cần xác thực (đo thực địa: trả 400 vì tham số, không phải 401).
+
+⟹ Lỗ "client tự khai số giấy tờ, ghi rồi không bao giờ xoá" **đang mở ở dạng gọi thẳng**, không phải đang chờ được nối. `V37__..._intent.sql:11` ghi *"Đừng nối theo cách nào trước khi chốt"* — lời cảnh báo đúng, nhưng nó chỉ chặn đường nối tự động, không chặn đường gọi trực tiếp. **Cần:** một cơ chế chứng minh quyền trên giấy tờ trước khi ghi, và trong lúc chờ thì đóng hoặc hạn chế đường ghi trực tiếp.
+
+Ngoài ra `person_did` cố ý **không** UNIQUE ⟹ bất-biến thực tế hôm nay là **"1 giấy-tờ → 1 DID"**, không phải "1 người → 1 DID". Một người khai cả CCCD lẫn hộ chiếu vẫn ra 2 DID.
+
+---
+
+## 5. Đo hiện trạng năng lực đầu-cuối (2026-08-28)
+
+Mục 2–4 tổ chức theo module. Mục này tổ chức theo **việc người dùng làm được**, vì một module xanh không có nghĩa người dùng bấm được.
+
+| Người dùng làm được gì | Hiện trạng | Chỗ đứt |
+|---|---|---|
+| Tạo ví **Standard** và chi tiền | **ĐƯỢC** | đường chi duy nhất đang chạy — không phụ thuộc anchor |
+| Tạo ví **Phoenix**, nhận tiền | **CHƯA BẬT** | Không phải hỏng — là chưa mở. `AikenPhoenixCustodyDeriver` **đã là bean chính** (`@Component @Primary`) và trả rỗng chỉ vì hai biến `did-payment-cbor-hex` và `taad-anchor-policy` còn rỗng (`:119,126`) — đặt hai biến đó là bật, không cần sửa mã; app hiện đúng dòng *"Chờ TAAD deploy trên PreProd"* (`wallet_screen.dart:813`); `send_screen.dart` không có tham chiếu nào tới địa chỉ ví Phoenix |
+| **Chi tiền từ ví Phoenix** (2 yếu tố) | **KHÔNG** | Rust + FFI đã xong; **binding Dart chưa viết** ⟹ app không gọi được |
+| **Một người một DID** | **KHÔNG** | Cổng duy nhất là `existsByPublicKeyHex` (`IdentityServiceImpl.java:107-113`) ⟹ thực chất **một MÁY một DID**. Registry giấy-tờ chưa nối vào `/identity/register` nhưng đường ghi trực tiếp đã mở và chưa an toàn (§4b). Mất máy = tạo DID mới = chính nguồn sinh trùng |
+| **Khôi phục trên máy thứ hai ra đúng DID cũ** | **ĐƯỢC, phải TRA** | `did` gấp 32 byte ngẫu nhiên **và** một mốc thời gian trên chuỗi vào tiền-ảnh ⇒ không suy lại được từ seed. Cửa tra theo khoá điều khiển đã có: `POST /identity/resolve-by-controller` (Database PR #171, 2026-08-12) |
+| **Người thứ hai tạo DID riêng trên máy người trước** | **KHÔNG** (đã vá, chờ gộp) | Backend và validator vốn không ràng buộc duy nhất theo thiết bị; chặn nằm toàn bộ ở ứng dụng. Core PR #56 vá, CI xanh, chưa gộp |
+| Tạo **OrgDID** | **ĐƯỢC** | nhưng chỉ là giao dịch metadata (§1) |
+| Tạo **AssetDID** | **ĐƯỢC** | ⚠ không kiểm quyền sở hữu (§4a) |
+| Tạo **ServiceDID / AgentDID / DeviceDID** | **KHÔNG** | 0 dòng backend; validator đã sẵn sàng |
+| **Phân tán bộ seed trên LampNet** | **KHÔNG** | Backup đang chạy là **một blob tới một CID**, khoá dẫn từ Master_KEK (`derive_x25519_static_from_kek`, `lampnet.rs:149`) ⟹ ai có 24 từ là mở được. Không k-of-n. Nguyên liệu để sửa **đã có sẵn cùng crate** — `seed_envelope::generate_k_env()` (`lampnet.rs:141-143` xác nhận), còn thiếu là nối + di trú blob v1. Và hai bên đang xây hai nguyên thuỷ khác nhau (§3) |
+| **Cấp khoá phiên** cho app/website | **KHÔNG** | `/auth/token/exchange` trả 401 vì thiếu 1 dòng whitelist (§3); và không API nào ghi được `service[] type=SsoRedirect` lên DID Document ⟹ chưa đăng ký được website nào |
+| Ứng dụng **bên thứ ba** đăng nhập bằng PhoenixKey | **KHÔNG** | cả hai chỗ đứt ở §3 đều phải gỡ; thêm nữa chưa có màn hình đồng ý cấp quyền |
+| **Nhận LAMP** từ ETD / Airdrop / SRCL | **KHÔNG**, cả ba | không có đường `POST claim` nào ở phía PhoenixKey |
+| Đăng nhập web PhoenixKey bằng QR | **ĐƯỢC** | đo thực địa 2026-08-28: `POST /auth/session/init` → 200; `GET /api/v1/.well-known/jwks.json` → 200, `kid=phoenixkey-ed25519-1` |
+| **Wakeme / mượn 1001 LAMP** | **KHÔNG** | mã backend có thật và là bean được chọn (`ActivationVaultServiceImpl.java:40-99`), nhưng 3 biến môi trường vault còn rỗng ⟹ `NOT_YET_IMPLEMENTED`; app không có màn hình Wakeme; pot 1.001 tỷ LAMP chỉ có trong tài liệu, chưa có bằng chứng deploy |
+| **Gen MAGIC / Consume MAGIC** qua Wakeme | **KHÔNG** | `grep wakeme` trong toàn bộ validator của kho MAGIC = **0**. MAGIC dùng vault riêng ⟹ **không có mắt nối** giữa hai bên |
+| **Feecover trả hộ phí** cho AladinWork / OriLife | **KHÔNG** | 0 validator Feecover; AladinWork chạy `phoenixkey.mock:true`; OriLife có đường phí RIÊNG bằng LAMP, `grep feecover` trong OriLifeTrace = **0**. Thêm nữa, phần "một ví đứng ra trả hộ phí mạng" **chưa được thiết kế ở tài liệu nào** — Feecover Tech §10 chỉ định tuyến CARP |
+| Xem **danh sách người bảo trợ** | **KHÔNG** | không có `GET /guardians`; `/add`+`/remove` chỉ trả về SỐ LƯỢNG — mà đây là màn hình bắt buộc trong luồng khôi phục |
+| **Từ chối** một yêu cầu ký | **KHÔNG** | không có `POST /sign/{id}/reject`; chỉ `approve`/`cancel`, dù enum trạng thái đã có sẵn `"rejected"` |
+
+### Tài liệu công khai đang nói quá mã
+
+`PhoenixKey-DIDMethod-W3C.md` — bản đã đăng ký ở `w3c/did-extensions` — mô tả mỗi DID được neo **một-đối-một bằng một NFT singleton trên Cardano** (dòng 5), và §6.2 ghi *"The authoritative state is always the on-chain TAADDatum"*. `grep 6789` trong tệp đó = **0**.
+
+Nhưng **100% DID đang sống là metadata-6789**. Bản đăng ký công khai mô tả tầng v1.1 như thể nó là tầng duy nhất.
+
+Nặng thêm: hai đặc tả công khai của cùng một phương pháp nói hai điều khác nhau — `PhoenixKey-SDK/method.md:61-64` gọi TAAD là "v1.1 (target)" và metadata-6789 là "v1.0 live today", còn `PhoenixKey-DIDMethod-W3C.md` chỉ có một bản. Người ngoài đọc bản W3C rồi viết resolver theo nó sẽ không giải được DID nào đang tồn tại.
+
+Chiều NGƯỢC lại cũng có, và nó nguy hơn vì không ai đi kiểm chiều đó: `PhoenixKey-DIDMethod-W3C.md` §5.1/§5.3 ghi `"service": []` và *"resolver publishes an empty `service` array when none is registered"*. Mã thì luôn publish `#cardano-wallet` mang **địa chỉ ví thật** (`W3CDocumentBuilder.java:81-89`, gọi vô điều kiện từ `ResolverServiceImpl`), và `/identifiers/**` là đường công khai. Nghĩa là **công bố một chuỗi DID = công bố địa chỉ ví = công bố toàn bộ lịch sử giao dịch của người đó**. Một nhà bên ngoài đọc đặc tả rồi kết luận đây là lựa chọn "còn treo, chưa bật" — nó đã bật từ lâu. Đặc tả đã sửa cùng lượt này. Phần lượt phân giải **hiện tại** có nên tiếp tục trả ví hay không là quyết-định của chủ dự án, không phải bản vá kỹ thuật — xem §6. Lượt phân giải theo mốc quá khứ đã thôi trả `service[]` (Database PR #214).
+
+Và `PhoenixKey-Anchorme-Tech.md:355` — schema trả về của resolver chỉ có `"resolved_from": "onchain-cache | metadata-6789"`, **không có giá trị nào cho TAAD UTxO datum**. Tức schema hiện tại không diễn đạt nổi tầng đích.
+
+### Lệch spec ↔ mã đang sống
+
+| Chỗ | Spec ghi | Mã chạy | Bên nào đúng |
+|---|---|---|---|
+| Công thức D của Wakeme | `min(1001, ⌊pot×1001/10⁹⌋)` (`Wakeme-Exec.md:17`) | **validator KHÔNG ép công thức này.** `wakeme_logic.ak:811-818` chỉ ép `1 ≤ d_unit ≤ oil_per_lamp` và `conditional_lamp == 1001·d_unit`; `d_unit` là trường datum do builder khai (`:52-53`). Tỷ lệ theo số dư pot nằm hoàn toàn off-chain, tin builder | spec đúng nhưng **chưa được thi hành** — `Wakeme-Exec.md:19` tự ghi việc chốt-cứng với validator để ở PA-1. Ngoài ra bản CŨ `/10⁶` còn sống trong tài liệu và mã Database (vd `ActivationVaultController.java:40`, `ActivationVaultDtos.java:44`) |
+| Đơn vị thời gian Wakeme | `vest_start_slot` | `vest_start_ms` (`wakeme_logic.ak:43,131,192-212`) | **mã đúng** — Plutus `validity_range` trả POSIXTime (ms), không lộ slot ⟹ sửa spec |
+| DPoP trong SDK | "đã có" (`INTEGRATION.md:91`) | bearer thuần | **mã đúng**, tài liệu nói quá |
+
+---
+
+## 6. Quyết-định đang chặn tiến độ (không phải việc dev)
+
+Những việc dưới đây **không** thiếu người làm — chúng thiếu một lựa chọn được chốt. Liệt kê ở đây để không ai chờ nhầm.
+
+1. **Ngày cho đợt PA-1** — mốc v1.0 → v1.1. Bốn việc chặn nó đều là quyết định, không phải việc thiếu người: chốt schema `TAADDatum`, nâng `taad_did.rs` 10 → 15 trường, chọn `uniqueness_bootstrap_seed`, xử hai UTxO Preview còn lại.
+2. **Khuôn `did`** — bật `pop-bind-encoder`, và di trú các DID đã cấp theo khuôn cũ thế nào: giữ song song, cấp lại, hay đóng băng (Validator #78).
+2b. **Ai trả min-ADA cho anchor.** Quy tắc đã chốt là *PersonDID không tính phí, không khoá ADA* — đó chính là lý do tầng v1.0 bỏ đường khoá ADA. Nhưng mỗi anchor TAAD là một UTxO, nên nó **phải** khoá min-ADA. Tiền đó lấy lại được (`GenesisBurn` cho phép đốt thuần, `state_nft_logic.ak:35`; burn theo vòng đời do TAAD spend validator gác), nhưng chỉ khi DID chấm dứt — còn suốt đời DID thì nó nằm đó. Chưa ai chốt ví nào ứng khoản này cho hàng triệu PersonDID, và ứng rồi thì thu về theo đường nào.
+3. **Luật đòi lại AssetDID** khi bị đăng ký nhầm/chiếm chỗ (§4a).
+4. **Điều kiện được ghi vào registry giấy-tờ** (§4b).
+5. **FROST hay VSS** cho phân tán seed — hiện có hai nguyên thuỷ song song, phải chọn một trước khi xây tiếp.
+6. **`GenesisChild` có nâng lên 2-of-2 không** — nếu có thì đổi hash, đi cổng THỜI-CHÍNH.
+7. **Lượt phân giải hiện tại có tiếp tục trả địa chỉ ví không.** Hôm nay `GET /identifiers/{did}` công khai trả `#cardano-wallet` mang địa chỉ ví thật ⇒ ai biết chuỗi DID là biết ví và toàn bộ lịch sử giao dịch. Đây là hợp đồng công khai đang có bên tích hợp dùng, nên siết nó **không** phải bản vá kỹ thuật: hoặc giữ (và ghi rõ vào tài liệu tích hợp rằng công bố DID = công bố ví), hoặc cho chính chủ tự bật/tắt, hoặc bỏ hẳn khỏi tài liệu công khai và cấp qua đường có xác thực. Lượt phân giải theo mốc quá khứ đã thôi trả (Database PR #214) — phần còn lại chờ chốt.
+8. **Paymaster giữ hay bỏ** — treo từ 2026-08-12; phần "trả hộ phí mạng" của Feecover phụ thuộc câu trả lời.
+
+---
+
+## 7. Những khẳng định của bản trước đã bị bác
+
+Ghi lại để không ai dựng lập luận trên nền cũ:
+
+- **"9 hash validator"** của bản 2026-08-12 — **8 trong 9 đã đổi**, không phải cả 9. `taad` từ `5ac17898…` sang `b7a58280…`, `did_payment` từ `bac16cec…` sang `0b3e301b…`. Ngoại lệ đáng giữ: **`lamp_policy` vẫn là `ba0dd83a…`, không đổi qua hai lần đo.** Riêng `wakeme_vault` thì **không so được** — giá trị cũ `8655974a…` không ghi kèm môi trường build, mà hash này phụ thuộc môi trường (§0).
+- **"577/577 test"** → nay **658/658**.
+- **"`grep device_pkh` trong `rust_core/src` = 0"** — SAI kể từ 2026-08-13. `device_key.rs` 893 dòng, đã xuất FFI. Phần còn đúng: tầng **Dart** vẫn = 0.
+- **"`protectme_beacon.ak` 0 dòng, chặn-merge"** — SAI. 889 dòng, 26 test, đã nối.
+- **"CID-1 đã đóng ⟹ một người một DID"** — SAI. `pop_bind.ak:73-77` tự ghi phạm vi: *không* đóng 1-người-1-DID ở mức người.
+- **"duy-nhất-người không phụ thuộc bí mật nào"** — đúng cho trường hợp **lộ**, sai cho trường hợp **mất**: `FingerprintRegistryService.java:74-101` ghi rõ mất pepper cũ là mất khả năng nhận ra người cũ.
+- **"`activation_logic.ak` 69 test"** — tệp đó không còn tồn tại; Wakeme nay là `wakeme_logic.ak`.
+- **"Nút Claim MAGIC trong app gọi endpoint luôn trả 410"** — phía app **đã sạch**: `git grep 'magic/claim\|claimMagic' -- lib` trên `bd8ae3d` = **0**. Endpoint `/wallet/magic/claim` vẫn còn ở backend nhưng là bia mộ có chủ đích: `@Deprecated(forRemoval=true)`, thông báo chỉ thẳng sang `/wallet/{did}/all`. Không còn là lỗi người dùng gặp.
+- **"đường đúc DID đi sai thiết kế"** — cách nói đó SAI, và bản nháp của chính tài liệu này từng dùng nó. Hai tầng neo là chủ đích, có đặc tả (`PhoenixKey-SDK/method.md:144-148`) và có quyết định gốc (`PhoenixKey-Database` #18, đóng 2026-06-02 — thứ bị bỏ khi đó là một UTxO 5 ADA đậu datum thô không validator nào gác, **không phải** validator `taad`). Cái sai thật là hệ **dừng ở v1.0 mà chưa có ngày chuyển**, và tầng v1.0 đang tích nợ cho đợt chuyển đó.
+- **"ví Phoenix đang khoá vốn"** — cũng SAI. Ví Phoenix **chưa bật**: deriver thật đã là bean chính nhưng trả rỗng vì hai biến môi trường còn rỗng, app hiện dòng chờ hạ tầng, `send_screen.dart` không có đường chi. Rủi ro thật là **bật cổng trước khi có anchor** (§3), không phải tiền đang kẹt.
+
+---
+
+## 8. Nhật-ký bằng chứng
+
+| Ngày | Kho | Bằng chứng |
+|---|---|---|
+| 2026-08-28 | Validator `cf5dceb` | `aiken check` **658/658 PASS**; `aiken build` exit 0; 9 hash ở §0; `wakeme_vault` khác nhau giữa env mặc định và `--env preview` |
+| 2026-08-28 | Validator `cf5dceb` | `protectme_beacon_logic.ak` 889 dòng / 26 test, nối tại `protectme_payout.ak:54`; Protectme tổng **75 test** |
+| 2026-08-28 | Database `99b33e2` | **668 test**, 0 fail; 41 tệp migration, cao nhất V42; `DidType.SERVICE\|AGENT\|DEVICE` = 0 |
+| 2026-08-28 | Database (chạy thật) | `POST /api/v1/auth/token/exchange` → **`401 {"code":1304}`** — chặn bởi whitelist, không phải bởi logic |
+| 2026-08-28 | Core `bd8ae3d` | `cargo test` **461 passed / 1 ignored**; `flutter test` **296 passed**; `device_key.rs` 893 dòng; 4 hàm FFI ở `lib.rs`; `git grep taad_device_key -- lib` = **0** |
+| 2026-08-28 | Core `bd8ae3d` | `seed_envelope.rs` 1284 dòng, `grep 'seed_envelope::' lib.rs` = **0** ⟹ chưa xuất FFI |
+| 2026-08-28 | Frontend `6be695a` | SD-VC **425 test PASS** |
+| 2026-08-28 | SDK `301fb78` / Validator | `ls .github/workflows` = **0** ở cả hai kho |
+| 2026-08-28 | Wallet `e498b00` | **178/178 PASS** |
+| 2026-08-28 | Validator `cf5dceb` | `did_payment.ak:55` → `auth_logic.anchor_controller_ok`; `auth_logic.ak:130-131` mở bằng `expect Some(anchor) = find_anchor_datum(tx.reference_inputs,…)`, `:135` `is_active(anchor.status)` ⟹ không anchor thì không chi được |
+| 2026-08-28 | Validator `cf5dceb` | `wakeme_logic.ak:811-818` chỉ ép `d_unit ≥ 1`, `d_unit ≤ oil_per_lamp`, `conditional_lamp == 1001·d_unit` — không có mệnh đề nào buộc `d_unit` theo số dư pot |
+| 2026-08-28 | Database `99b33e2` | `PUBLIC_POST` (`AuthRequiredInterceptor.java:108-118`) gồm 9 đường, **không** có `/identity/asset/create` và **không** có `/auth/token/exchange` |
+| 2026-08-28 | Database (chạy thật) | `GET /api/v1/identity/fingerprint/status` → **400** (tham số sai), không phải 401 ⟹ đường tra công khai thật sự mở |
+| 2026-08-28 | Database `99b33e2` | `ActivationVaultServiceImpl` mang `@Service @Primary`; `buildGetLamp` gọi `blockfrost.getCurrentSlot()` → `preflight.run()` → `txBuilder.buildUnsignedTx()`. 501 đến từ 3 biến rỗng ở `application.yml:142-144` |
+| 2026-08-28 | Core `bd8ae3d` | `git grep 'magic/claim\|claimMagic' -- lib` = **0** — app không còn gọi endpoint 410 |
+| 2026-08-28 | Core + Validator + Database | quét `git grep -i frost` trên toàn bộ `git rev-list --all`: mọi kết quả là `Blockfrost`, trừ chuỗi `FROST` trong tên tài liệu thiết kế ở chú thích `commitment_tree.ak:5` / `pa2_smt.ak:5`. Không có hiện thực |
+| 2026-08-30 | Frontend `22a606b` | Đã gỡ đường tự đúc phiên ở phía trình duyệt (`login/page.tsx`: JWT `alg:"none"` dựng bằng JS rồi `setSession`, kèm auto-bypass qua `?dev=`). Cổng CI cũ grep trong `.next` nên **luôn xanh**; thay bằng cổng quét mã nguồn. Đo lại: lint 0 lỗi, typecheck 0, test **425/425**, build exit 0. PR #23 |
+| 2026-08-30 | SDK `f1d3bf0` | `verifier.ts` trước đây chỉ đọc `public_key_hex` và **bỏ qua `status`** ⟹ chữ ký ký bằng khoá đã thu hồi vẫn `valid:true`. Đã trả về bản ghi đủ trường, từ chối `key_revoked`, thêm 5 ca kiểm ký bằng khoá P-256 thật. `npm test` **26/26**, typecheck 0, build 0; phiên bản 0.3.0 → 0.3.1. PR #17 |
+| 2026-08-30 | Database `9a27e9d` | `@Operation` của `GET /identity/{did}/pubkey` ghi *"Trả Hardware public key active"* nhưng cài đặt gọi `findLatestOwnerByUserDidAnyStatus` — trả cả khoá đã thu hồi. Đây là **nguồn gốc** của lỗi SDK ở dòng trên: người tích hợp làm đúng theo hợp đồng đã công bố. Đã sửa javadoc + `@Operation` + `API.md`. `./mvnw -o compile` exit 0. PR #212 |
+| 2026-08-30 | Database `99b33e2` | `SessionServiceImpl.java:167-168` gọi `existsByUserDidAndPublicKeyHexAndStatus(did, pubkey, "active")` — ba tham số, **không có vai**. `git grep -l 'key_role\|keyRole' src/main/java` = 2 tệp (`KeyServiceImpl`, `IdentityServiceImpl`), `AuthenticatedUser` chỉ mang DID ⟹ vai `manager`/`viewer` không cưỡng chế ở đâu. Issue #211 |
+| 2026-08-30 | Database `99b33e2` | `W3CDocumentBuilder.java:158-168` publish TAAD pubkey làm `#controller-key`; `IdentityRegisterRequest` javadoc ghi rõ backend không verify quyền sở hữu `taadPublicKeyHex`; `V38__taad_keys_pubkey_index.sql` cố ý **không** UNIQUE; `ResolveByControllerService` ném 404 khi `matches.size() > 1` ⟹ ba quyết định đúng-riêng-lẻ ghép thành đường khoá vĩnh viễn khôi phục của người khác. Issue #213 |
+| 2026-08-30 | Database `43093c7` (nhánh, chưa gộp) | Đăng nhập nhiều thiết bị / nhiều app: vai khoá vào phiên (`key_id`+`key_role`), cưỡng chế tại **một** chỗ `AuthRequiredInterceptor`, ba đường `GET|POST /keys/devices/**`, vai đi theo `app_token` ở `/auth/token/exchange` (không nâng vai). `./mvnw -o test` **875/875**, 0 fail. PR #215 |
+| 2026-08-30 | Database `43093c7` | Tham số ma trận đi vòng cả bảng quyền — đo bằng MockMvc: `POST /keys/devices;x=1/abc/revoke` được Spring định tuyến vào đúng controller (`200`) trong khi `EndpointRolePolicy.requiredRole()` đọc ra `VIEWER`. `getRequestURI()` giữ `;k=v`, bộ định tuyến thì gỡ — hai cách đọc một chuỗi. Vá bằng hai lớp độc lập (chuẩn hoá đường thô + đối chiếu `BEST_MATCHING_PATTERN_ATTRIBUTE`, lấy mức cao hơn) |
+| 2026-08-30 | Database `43093c7` (Postgres thật) | `AuthorizedKeyReauthorizePostgresTest` **6/6** qua Testcontainers: dựng lại được lỗi trước V48 (thu hồi rồi cấp lại cùng thiết bị → vi phạm `uq_did_pubkey` = HTTP 500), chứng minh V48 cho cấp lại (2 dòng: 1 lịch sử + 1 hiệu lực, `key_id` mới nên token cũ không sống lại), và đo riêng index mới có hiệu lực chứ không ăn theo V27. Lỗi này ở **schema**, không ở Java — mọi test mock repository đều xanh với nó |
+| 2026-08-30 | Database `43093c7` | Kiểm phủ bằng cách gỡ cổng rồi đếm test đỏ: gỡ hai lớp chống tham số ma trận → **5/9** đỏ; gỡ lọc ký tự vô hình trong tên thiết bị → **13/28** đỏ; gỡ chuyển vai sang `app_token` → **4/4** đỏ; gỡ cổng vai ở bước dựng yêu cầu ký → **2/7** đỏ; gỡ tập đóng `intent.type` → **1/7** đỏ |
+| 2026-08-30 | SDK `fdd28f5` (nhánh, chưa gộp) | `KeyRole` + `keyRoleFromClaim` (fail-safe: thiếu/rỗng/lạ → `viewer`, không bao giờ `owner`) + `AppTokenVerifier` qua JWKS + `DeviceModule`. `npm test` **51/51**, `tsc --noEmit` 0, build ra đủ CJS+ESM+`.d.ts`. `npm run lint` **không chạy được** — `eslint` thiếu trong `devDependencies`, lỗi có sẵn trên `main`. Phiên bản 0.3.0 → 0.4.0. PR #18 |
+| 2026-08-30 | SDK — thứ tự gộp | PR #18 tách từ `main` nên **chưa có** bản vá của PR #17; hai nhánh đụng `package.json`, `src/types.ts`, `src/verifier.ts`, `README.md`, và số phiên bản xung đột chắc chắn (#17: 0.3.0→0.3.1; #18: 0.3.0→0.4.0). Gộp #17 trước |
+
+---
+_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._
+
+---
+
+## 9. Chi tiết từng module và bảng đặc-tả toán
+
+> Phần này giữ lại từ bản trước để không mất chi tiết theo module. Số đo tổng ở §0–§5 mới hơn; chỗ nào lệch thì §0–§5 đúng.
+
+### Anchorme
 
 **Test bắt-buộc:** module danh-tính (`taad_logic` + `state_nft_logic` + `attack_tests`) phủ GenesisPerson/GenesisChild/can_own/Rotate/Cancel/Finalize/Deactivate + regression Bug#3. Số test toàn-repo Validator = 173/173 PASS (2026-07-08).
 
@@ -121,11 +329,11 @@ Trạng-thái đo được trên `main` của kho Validator:
 
 **Câu hỏi thiết-kế MỞ — Byte-4 `Asset` chỉ physical** (còn treo, KHÔNG còn phụ thuộc byte-9 nữa vì byte-9 đã chốt độc lập): lỗ hổng phân-loại — tài-sản-số thụ-động (file/dataset/media/NFT/VC-schema/model-weights) rơi khe (≠Asset physical, ≠Bot/Agent tự-chủ, ≠Service sản-phẩm, ≠Avatar). Chọn: (a) nới định nghĩa Asset → physical HOẶC digital (thêm `asset_domain: Physical|Digital`, `physical_id`/`location_proof` chuyển Optional — đề xuất 2026-07-10, chưa chốt câu chữ cuối); hay (b) digital = VC/metadata dưới DID khác (out-of-scope, ranh giới hẹp). Byte-value bất biến → hash-safe dù chọn hướng nào; lan tới Math §17 + Aiken `types.ak` + Java `DidPhoenixGenerator`. `AI`→`Agent` (byte-6) đã chốt đổi (issue Long).
 
-## Rebirthme
+### Rebirthme
 
 **Nền đã chạy (173/173 Aiken PASS, 2026-07-08):** ví theo-DID `did_payment` (chi khi Active + controller ký; tài-sản sống qua rotate; địa chỉ bất-biến); đóng-băng theo trạng-thái (Recovering/Migrated/Revoked chặn chi); singleton-anchor I-WALLET-4/5; guardian recovery Init/Cancel/Finalize/UpdateGuardians(≤5) + timelock 3600 slot + collateral 50 ADA (bỏ Shamir); ví Standard + Rotation Account; P-256 low-s (I-SIGN-LOWS); `lampnet.rs` fail-closed (I-VAULT-4); Ed25519 dalek deterministic.
 
-**Chưa có code:** 🔴 `limit_meter.ak` anti-drain — KHÔNG tồn tại (I-CURVE-4 load-bearing, hở HIGH, ưu-tiên M2); 🔴 `did_subaddr.ak` (L3 unlinkable, chờ chốt [DEP-2]); 🔴 `did_stake.ak` (stake theo-DID). 🟡 I-CURVE-5 chưa enforce builder; kho bí-mật/phả-hệ seed chưa hợp-nhất; export re-key UI chưa cắm mặc-định; guardian nâng-cao (trọng-số/veto/cap) Todo; chứng-thực VeData-Glint/Midnight chờ VeData. ⚪ legacy-migration, on-ramp mandate, pool-ops (KES/VRF) build-ready-Todo.
+**Chưa có code:** 🔴 `did_subaddr.ak` (L3 unlinkable, chờ chốt [DEP-2]); 🔴 `did_stake.ak` (stake theo-DID). 🟡 I-CURVE-5 chưa enforce builder; kho bí-mật/phả-hệ seed chưa hợp-nhất; export re-key UI chưa cắm mặc-định; guardian nâng-cao (trọng-số/veto/cap) Todo; chứng-thực VeData-Glint/Midnight chờ VeData. ⚪ legacy-migration, on-ramp mandate, pool-ops (KES/VRF) build-ready-Todo.
 
 **CIP-30 connector — nay CÓ CODE, chưa lên sản-xuất (2026-08-15).** Kho `PhoenixKeyDID/Wallet` dựng xong lớp dApp-connector: kết nối ví mở rộng (Lace/Eternl/Typhon/…), xem-bằng-khoá-công-khai, gửi ADA/token, staking, uỷ-quyền dRep, gửi Governance action — 178/178 test PASS, `tsc --noEmit` sạch, 4 ngôn ngữ ngang khoá. Kho `PhoenixKey-Frontend` gắn kho này bằng **submodule** và mở hai đường `/wallet` + `/night` (`bun run build` xanh, 16 route). **Cả hai còn ở PR chưa merge** (Wallet #18, Frontend #19) ⇒ phoenixkey.me **chưa** có đường nào chạm tới ví. Đây là ví **ngoài** (khoá nằm ở tiện-ích mở rộng của người dùng) — KHÔNG phải ví Phoenix theo-DID, và **không** đụng tới blocker khoá-thiết-bị bên dưới.
 
@@ -135,7 +343,7 @@ Trạng-thái đo được trên `main` của kho Validator:
 
 **Deprecate (bỏ dùng):** endpoint `/wallet/magic/claim` (MAGIC claim custodial) — sai model, MAGIC là account-in-vault chứ không native trong ví; app phải lấy MAGIC từ vault, không qua endpoint ví.
 
-## Wakeme
+### Wakeme
 
 **Validator:** `activation_vault.ak`+`activation_logic.ak` — 5 spend redeemer (GenDrip/Reclaim/VestToOwner/ClaimVested/ForfeitPhase2) + 2 mint-gate, datum 9-field, đồng-hồ NGÀY+EPOCH, vest-gated-per-epoch + forfeit-1001-idle-epoch, chống-double-satisfaction; `plutus.json` khớp code; 69 test riêng `activation_logic` PASS; qua red-team nội bộ. Còn: apply-param builder, sửa comment sai đầu file. PR chờ đội on-chain duyệt.
 
@@ -145,7 +353,7 @@ Trạng-thái đo được trên `main` của kho Validator:
 
 **AbandonPhase1:** không có redeemer on-chain trong thiết-kế hiện tại — thoát-sớm PHA-1 qua anti-idle tự thu-hồi (không có nút chủ-động). **Rủi ro theo dõi:** pot cạn khi nhiều user cùng PHA-2 (R1); wash-rỗng nếu Registry lỏng (R2).
 
-## Feecover
+### Feecover
 
 **Spec:** MERGED (#14) — 4 doc chuẩn-hoá. **Code:** ConsumeMAGIC lõi (C-CM-1..5) Done (kế thừa đội ConsumeMAGIC, không chứng-minh Feecover đúng). Layer Feecover (`ServiceFeeSchedule`/`FeecoverGate`/`FeecoverAccrual`/`FeecoverEpochSettle`/quy-đổi-CARP) — 0 dòng, chưa test. `EngageDatum.did_commit` field có, immutable-enforced, MVP nội-dung sentinel rỗng.
 
@@ -159,11 +367,11 @@ Trạng-thái đo được trên `main` của kho Validator:
 
 **Lộ-trình:** P0 (chốt D1-D6) → P1 (B1/B2/B3/**B4/B5**) → P2 (build + vá FG-4) → P3 (test) → P4 (per-DID) → P5 (production).
 
-## Protectme
+### Protectme
 
 Cổng chi-trả `protectme_logic.ak`+`protectme_beacon_logic.ak`+`protectme_payout.ak` (branch `feat/protectme-payout`) — khối duy nhất có code+test đối-kháng sạch (double-satisfaction, cred-collision, ADA-skim, miền-số, cross-bucket đều chặn): **72 test (23 beacon + 14 logic + 35 payout)** (`aiken check` 2026-08-19). Beacon one-shot per claim_id ĐÃ NỐI: `protectme_beacon_logic.ak` (733 dòng) mint-gate được `protectme_payout.ak` gọi trong cùng validator (`:49-53`, own_policy == own_cred) — đóng double-satisfaction TRONG-CÙNG-tx. Phần còn hở: đúc trùng `claim_id` giữa HAI giao-dịch khác nhau — mint-gate không có bộ nhớ liên-giao-dịch nên committee (sai sót off-chain) ký MintClaim hai lần cho cùng claim_id thật vẫn tạo hai escrow độc-lập; mỗi lần trừ đúng `amount` thật từ pot (không tạo giá-trị từ hư-không — solvency giữ), nhưng claimant được trả kép từ pot cộng-đồng (`protectme_beacon_logic.ak:36-45`). Đóng nốt cần uniqueness liên-giao-dịch (Treasury phiếu-duyệt one-shot / SMT claim_id). 2-bucket Treasury + Feecover premium wiring + resolver claim + UI — chưa code (backend/UI). 11 quyết-định PROT-1..11 chờ chốt (🔴 PROT-10 evidence-bar, PROT-11 cohort, PROT-4 ngưỡng SYS/USER). Blocker hạ-tầng: MAGIC-model, CARP policy-id. **NO-GO tới khi uniqueness liên-tx + tất cả quyết-định chốt.**
 
-## Knowme
+### Knowme
 
 **Code (verify 2026-07-09):** Mức 1 (tự-khai) + Mức 2 (xuất-trình chọn-lọc) có code+test, demo `/vc`. Evidence: `npx vitest run src/lib/sdvc/` → **20 file / 415 test PASS** (~1.2s). Con-số "135" cũ trong `SD-VC-ALGORITHM-v1.md` là snapshot lỗi-thời. Lớp tài-liệu: nền có code+test (`dossier.ts`/`fingerprint.ts`/`eciesSeal`); tiết-lộ-chọn-lọc-tài-liệu + versioning Strata + re-seal = chưa code. Mức 3 ZK (BBS+): chưa code. Query gateway (VeData): chưa code.
 
@@ -171,21 +379,21 @@ Cổng chi-trả `protectme_logic.ak`+`protectme_beacon_logic.ak`+`protectme_pay
 
 **🔴 B5 duy-nhất-người v1 — CHƯA có trên `main` (đo 2026-08-13).** Spec giao Knowme giữ bất-biến "một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID" (`PhoenixKey-Knowme-Math.md` Đ-7, I-KNOW-12..16). Đo trên `PhoenixKey-Frontend`: `src/lib/sdvc/fingerprint.ts`, `dossier.ts` và `UniquenessRegistry` **không tồn tại trên `origin/main`** — chỉ có trên nhánh CHƯA gộp `origin/claude/cccd-uniqueness-v1` (`git ls-tree -r --name-only origin/main | grep -c fingerprint` → `0`). Câu "nền lớp tài-liệu có code+test (`dossier.ts`/`fingerprint.ts`)" ở đoạn trên đo trên nhánh đó, không phải `main`. ⟹ **hôm nay không có gì cưỡng-chế duy-nhất-người**, kể cả ở tầng ứng-dụng. Đây là mặt còn lại của Anchorme B5.
 
-## Easteregg
+### Easteregg
 
 **Spec:** 4 doc hợp nhất mô hình "mức riêng-tư của ví Phoenix" (không phải ví thứ ba), chốt 2026-07-09. **Code on-chain:** `did_pool.ak` (T1 MST) + `did_subaddr.ak` (T0/L3) — chưa tồn tại. **Off-chain:** Indexer/Accountant, sweep crank, withdraw builder — chưa có. **ZK T2:** verifier Aiken chưa viết; ExUnit 2.842B là đo của Easteregg-ZK bên VeData (độc lập); ceremony chưa chạy. **Test:** 0 test Easteregg. **PoC:** 1 PoC Python trên Preview (3 tx-hash) minh-hoạ ẩn-số-dư + gated-proof, KHÔNG validator, chưa chứng-minh operator-không-rút. **Gap:** G1 (fee-split), G3 (sweep per-pair), G5 (salt-recovery) 🔴 chưa vá; G2/G4 🟡. **NO-GO toàn module**; chỉ GO build+test Preview T1 + T3-mode-1.
 
-## Smartsend
+### Smartsend
 
 **Vị-trí:** module độc-lập thứ 8 (chốt 2026-07-09), tách từ Rebirthme, dùng chung hạ-tầng ví/guardian/anti-drain. **Build:** `smartsend_escrow.ak` — spec đầy-đủ (SS-1..12 + SSR-4 hợp-nhất), CHƯA code, 0 test.
 
 **Bất-biến đã hợp-nhất (không còn "vá đỏ" treo):** SS-1/SS-5′/SS-12 (value-conservation byte-perfect, `min_ada` tách field, `fee_covered` chỉ audit); SS-7′ (escrow-1-lần, chống double-satisfaction batch); SS-9′ (Accept verify controller-sig qua anchor); SS-11 (`reclaim_deadline`+`ReclaimTimeout`); SS-8/SS-8′ (Freeze trong cửa-sổ-veto; thoát qua guardian-quorum hoặc `freeze_deadline` auto-hoàn); SS-10 (`window ≥ min_window_floor`); SS-2 (veto-race biên); SS-3/SSR-4/SSR-13 (factor Cancel neo anchor-enroll).
 
-**Phụ-thuộc-chặn ngoài:** `limit_meter.ak` (Rebirthme, hở HIGH); nền `did_payment`+guardian (173/173 PASS); verifier Glint/Spectra (VeData, Phase 2 — bind `blake2b_256(own_ref ‖ escrow_datum_hash)` SSR-12); guardian ResolveFreeze quorum (chưa build); enroll-set factor trong TAADDatum (Core Anchorme/Validator).
+**Phụ-thuộc-chặn ngoài:** `limit_meter_vault` (Rebirthme — nay đã build được, xem §0); nền `did_payment`+guardian (173/173 PASS); verifier Glint/Spectra (VeData, Phase 2 — bind `blake2b_256(own_ref ‖ escrow_datum_hash)` SSR-12); guardian ResolveFreeze quorum (chưa build); enroll-set factor trong TAADDatum (Core Anchorme/Validator).
 
 **CẦN CHỐT:** `reclaim_deadline` tương-đối `veto_deadline`; `window` mặc-định + `min_window_floor`; `freeze_deadline`; thứ-tự land vs anti-drain; ưu-tiên Glint sớm hay guardian-factor đủ bản đầu.
 
-## Math (đặc-tả tổng — `PhoenixKey-Math.md`)
+### Math (đặc-tả tổng — `PhoenixKey-Math.md`)
 
 Hiện-trạng triển-khai các phần của đặc-tả toán v4.6 (đã tách khỏi Math.md):
 
@@ -198,59 +406,3 @@ Hiện-trạng triển-khai các phần của đặc-tả toán v4.6 (đã tách
 | §36 fee architecture (30/70 split, Phoenix Treasury) | §36 | Spec-only — enforcement (fee-receipt minting policy + ExUnits benchmark) chờ Validator Issue #7. Ước tính mem ~150–400, CPU ~80K–200K (+3–12% baseline ~0.17 ADA) |
 
 ---
-
-## 4. Nhật-ký bằng chứng
-
-| Ngày | Module | Bằng chứng |
-|---|---|---|
-| 2026-07-08 | Anchorme/Rebirthme | Validator `aiken check` 173/173 PASS |
-| 2026-07-08 | Wakeme | `activation_logic` 69 test PASS, qua red-team nội bộ |
-| 2026-07-09 | Protectme | 39 test đối-kháng (14 logic + 25 validator), branch `feat/protectme-payout` |
-| 2026-07-09 | Knowme | SD-VC `vitest` 20 file / 415 test PASS |
-| 2026-07-09 | Feecover | Spec MERGED #14; layer Feecover 0 dòng (grep xác nhận) |
-| 2026-07-09 | Easteregg | 1 PoC Python trên Preview (3 tx-hash), 0 validator/test |
-| 2026-08-08 | Validator (toàn bộ) | `aiken check` **577/577 PASS**, `aiken build` exit 0, **9 validator** ra blueprint: `did_payment` `bac16cec…` · `did_pool` `9ba97ba4…` · `did_stake` `eb535cc1…` · `lamp_policy` `ba0dd83a…` · `limit_meter_vault` `f3be6d6d…` · `protectme_payout` `b1f90fca…` · `smartsend` `9ed1b56f…` · `taad` `5ac17898…` · `wakeme_vault` `8655974a…` (hash chưa-apply-param) |
-| 2026-08-08 | Đăng nhập web | Gọi thật máy chủ đang chạy: `POST /auth/session/init` → 200; `GET /api/v1/.well-known/jwks.json` → 200, `kid=phoenixkey-ed25519-1`; `POST /auth/token/exchange` tồn tại (403 với token giả). ⚠ `/.well-known/jwks.json` ở **gốc miền → 404** |
-| 2026-08-08 | Backend | `Tests run: 393, Failures: 0, Errors: 0, Skipped: 0` (CI run `31252652916`); `DidOpWatermarkUpsertPostgresTest` chạy trên Postgres thật 10,37s / 6 test / Skipped 0 |
-| 2026-08-08 | Tài liệu | 67 endpoint có mã / 64 có tài liệu → nay 67/67 (PR Database #132); thêm 4 sequence diagram + đặc tả 5 màn hình (PR Specs #24) |
-| 2026-08-15 | Wallet (CIP-30) | `vitest run`: **14 file / 178 test PASS**; `tsc --noEmit` sạch; `check:locales` → "Locale parity OK — 4 languages × 2 namespaces". Vá 3 lỗi treo-kết-nối CIP-30 (`enable()` không bao giờ settle, đổi mạng giữa chừng, submit không chắc chắn) + 4 điểm hội-đồng chỉ ra (cổng xác-nhận tự tắt không báo, DoS liệt-kê ví qua getter ném lỗi, QR rơi về hex, mạo-danh token). Kho `PhoenixKeyDID/Wallet` PR #18 — **chưa merge** |
-| 2026-08-15 | Frontend | `bun run typecheck` sạch; `bun run build` → `Compiled successfully`, 16 route có `○ /wallet` + `○ /night`; chạy thật `localhost:3000` dựng đủ 3 chế độ, đổi tiếng Việt đúng, console 0 lỗi. Gắn `Wallet` bằng submodule. PR Frontend #19 — **chưa merge, chưa deploy** |
-| 2026-08-15 | Core (đọc chip giấy tờ) | eMRTD theo ICAO Doc 9303, **đã nối đầu-cuối**: `rust_core/src/emrtd/` + `emrtd/reader.rs` (chọn file · cắt khối · status word) + `emrtd/session.rs` (phiên `poll ⇄ submit`) + 5 hàm `taad_emrtd_*` ở `lib.rs` + `lib/bridge/emrtd_reader.dart` (vòng bơm). Đo: `cargo test` **431 pass / 0 fail / 1 ignored** (bộ lọc `emrtd`: **127**), `flutter test` **244 pass / 0 fail**. Cầu NFC gốc: Kotlin 217 dòng + Swift 276 dòng + Dart `EmrtdNfcTransport` 123 dòng. PR Core **#73 — chưa merge** (2 commit `a1daf61` + `962dd42`). Callback-FFI **bất khả thi** (callback C không `await` được MethodChannel) ⇒ đảo chiều: Rust chạy giao thức trên luồng riêng, dừng chờ mỗi APDU. ⚠ Còn đúng một chỗ đứt: **chưa chạm thẻ thật** — mọi số là vector chuẩn ICAO + thẻ giả lập |
-| 2026-08-15 | Core | Đầu dò tầm với trả BA trạng thái (có / mất / **chưa biết**) thay vì hai. CI **4/4 pass** (`rust_core` 1m50s · Flutter 1m13s). PR Core **#74 — chưa merge** |
-| 2026-08-15 | Database | CORS mở theo **ĐƯỜNG** cho `/identity/by-username/**` (`allowedOrigins("*")` + `allowCredentials(false)`, đăng ký TRƯỚC `/**`) — thay vì thêm origin vào mapping `/**` vốn mang `allowCredentials(true)` cho **mọi** đường, tức là cấp cho một trang web quyền gọi toàn bộ API kèm chứng thực người dùng. Thêm `WebConfigCorsTest` 4 test gác thứ-tự đăng-ký; kho trước đó **0 test CORS**. CI `Build + test` **pass 1m5s**. PR **#187 — chưa merge**. Kèm issue **#188** (kiểm đặt-được-tên phải biết NGƯỜI GỌI, vì chính chủ lấy lại tên cũ thì được) + **#189** (chiều ngược DID→tên — chờ chốt chính sách) |
-| 2026-08-15 | SDK | `resolveByUsername` + `lookupUsername` (nuốt theo **mã** `user_not_found`, không theo `status === 404`). `tsc --noEmit` sạch; `jest` **29/29 PASS** (9 test mới). PR SDK **#15 — chưa merge**. ⚠ kho SDK **không có CI nào** (`git ls-tree` = 0 workflow) và `npm run lint` hỏng sẵn trên main (không có tệp cấu hình eslint, eslint 10 đã bỏ `.eslintrc`) ⇒ số đo trên là chạy tay, không có máy nào chạy lại |
-
----
-
-## 5. Đo hiện trạng năng lực đầu-cuối (2026-08-08, bổ-sung 2026-08-15)
-
-Mục 1–3 tổ chức theo module. Mục này tổ chức theo **việc người dùng làm được**, vì một module xanh không có nghĩa người dùng bấm được.
-
-| Người dùng làm được gì | Hiện trạng | Chỗ đứt |
-|---|---|---|
-| Tạo ví **Standard** và chi tiền | **ĐƯỢC** | — (đường chi duy nhất đang chạy) |
-| Tạo ví **Phoenix**, nhận tiền | **ĐƯỢC** | ⚠ địa chỉ đang dẫn ứng với CBOR bản cũ 1-chữ-ký (xem blocker mục 2) |
-| **Chi tiền từ ví Phoenix** | **KHÔNG** | khoá thiết bị chưa tồn tại trong mã; không có hàm dựng+ký giao dịch 2-chữ-ký ở cả app lẫn backend |
-| Nối **ví ngoài** (Lace/Eternl/Typhon) vào web, gửi ADA/token, staking, uỷ-quyền dRep, gửi Governance action | **CÓ CODE, CHƯA LÊN WEB** (2026-08-15) | code + test xong ở `Wallet` (178/178) và điểm-gắn xong ở `Frontend`; nhưng PR #18/#19 **chưa merge** và **chưa deploy** ⇒ phoenixkey.me hôm nay trả trang không-tìm-thấy cho `/wallet` |
-| **Tạo bộ seed mới** (ví base + enterprise) hoặc **khôi phục bộ khoá cũ** ngay trên web | **KHÔNG — và là cố ý** | web là **cửa sổ**, điện thoại là **két**: không trang nào của kho `Wallet`/`Frontend` được phép hỏi cụm từ khôi phục (`Wallet/README.md:39-45`, `Frontend/README.md:3`). Sinh/khôi phục seed nằm ở app Core (`rust_core`). Muốn có trên web thì phải đổi thiết kế, không phải thêm màn hình |
-| Bấm **Wakeme / GetLAMP** | **KHÔNG** | 3 biến `ACTIVATION_*` rỗng ⇒ `501`; pot chưa có LAMP; giao diện web hiện trỏ luồng cũ đã ngừng dùng |
-| **ScheduleGen / InstantGen** | **KHÔNG** | 0 dòng mã; và đang bị cấm nối tới khi MAGIC pha-2 chỉ-đọc xong (`PhoenixKey-Wakeme-Tech.md:239`) |
-| **Chạm thẻ CCCD / hộ chiếu vào điện thoại để tự lấy số định danh** (khỏi gõ tay) | **CÓ CODE ĐẦU-CUỐI, CHƯA THỬ THẺ THẬT** (2026-08-15) | Chip **có** trả số định danh trong DG1 (MRZ) — không phải gõ tay. Đường đi đã liền từ ăng-ten NFC tới lõi giao thức: `emrtd/reader.rs` + `emrtd/session.rs` + 5 hàm `taad_emrtd_*` + `lib/bridge/emrtd_reader.dart` (PR Core #73, `cargo test` 431 pass · `flutter test` 244 pass). Chỗ đứt còn lại là **thực địa**: chưa lần nào chạm thẻ thật, mọi số là vector chuẩn ICAO + thẻ giả lập. Quyết-định thiết-kế trước đây treo (callback FFI hay Rust gọi thẳng Kotlin/Swift) đã tự đóng: **cả hai bất khả thi** vì callback C không `await` được MethodChannel ⇒ đảo chiều, host hỏi `poll` rồi `submit`. ⚠ Khoá mở BAC dựng từ **số giấy tờ + ngày sinh + ngày hết hạn** (Doc 9303-11 Appendix D.2, có test vector TD1 trong `mrz.rs:533`) ⇒ vẫn cần **một lần** quét OCR hoặc nhập tay ba trường đó ở mặt có MRZ trước khi chạm chip. Riêng hành vi thật của CCCD Việt Nam **chưa đo trên thẻ thật** — mọi số ở đây là test vector ICAO, không phải phép thử thực địa |
-| Đăng nhập web PhoenixKey bằng QR | **ĐƯỢC** | — |
-| Web **bên ngoài** tra **tên người dùng → DID** | **CÓ CODE, CHƯA MERGE** (2026-08-15) | Database PR #187 (CORS theo đường) + SDK PR #15. Hôm nay trình duyệt ở miền khác `phoenixkey.me` vẫn bị CORS chặn ⇒ ProofChat phải vòng qua máy chủ riêng |
-| Ứng dụng **bên thứ ba** đăng nhập | **KHÔNG** | không có đường GHI `service[]` kiểu `SsoRedirect`; danh sách nạp-trước đang bị chú thích tắt; SDK chưa phát hành; chưa có màn hình đồng ý cấp quyền |
-| Tạo **OrgDID** | **ĐƯỢC** | — |
-| Đúc LAMP vào kho **qua OrgDID** | **KHÔNG** | endpoint ở 2 nhánh chưa merge |
-| **Vô hiệu hoá bộ seed** sau khi đúc | **KHÔNG** | validator quyền-GHI registry chưa merge (LAMP PR #20); phía off-chain đã viết xong và đang chờ nó |
-| **Nhận LAMP** từ ETD / Airdrop / SRCL | **KHÔNG**, cả ba | không có đường `POST claim` nào; SRCL còn 3 lỗ mở; phía PhoenixKey chưa có dòng nào (grep = 0) |
-| Xem **danh sách người bảo trợ** của mình | **KHÔNG** | không có `GET /guardians`; `/add`+`/remove` chỉ trả về SỐ LƯỢNG. Đây là màn hình bắt buộc trong luồng khôi phục |
-| **Từ chối** một yêu cầu ký | **KHÔNG** | không có `POST /sign/{id}/reject`; chỉ `approve`/`cancel`, dù enum trạng thái đã có sẵn `"rejected"` |
-
-### Ba chỗ đang TRÊN ứng dụng mà hỏng
-
-- Nút "Claim MAGIC" (`wallet_screen.dart:618`) gọi endpoint **luôn trả 410 Gone** (`WalletController.java:79-82`).
-- `GetLampPanel.tsx` tên là GetLAMP nhưng gọi luồng VND cũ đã ngừng dùng, không gọi `/activation/getlamp/build`.
-- Số dư MAGIC hiển thị **luôn 0**: `WalletV2ServiceImpl.java:182-183` gán cứng `0`.
-
----
-_Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._

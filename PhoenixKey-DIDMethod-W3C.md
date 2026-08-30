@@ -148,7 +148,13 @@ Resolving a `did:phoenix` identifier produces a W3C-conformant DID Document deri
   "capabilityInvocation": [
     "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#controller-key"
   ],
-  "service": []
+  "service": [
+    {
+      "id": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#cardano-wallet",
+      "type": "CardanoWallet",
+      "serviceEndpoint": "addr_test1..."
+    }
+  ]
 }
 ```
 
@@ -165,7 +171,11 @@ Resolving a `did:phoenix` identifier produces a W3C-conformant DID Document deri
 
 ### 5.3 Service endpoints
 
-`service` entries, when present, are populated from off-chain registry data associated with the DID (not part of the on-chain TAAD datum in the current version). The resolver publishes an empty `service` array when none is registered.
+`service` entries are populated from off-chain registry data associated with the DID (not part of the on-chain TAAD datum in the current version). The resolver publishes an empty `service` array when none is registered.
+
+**`#cardano-wallet`.** When a DID has a registered wallet address, the resolver publishes it as a `CardanoWallet` service entry whose `serviceEndpoint` is the bech32 address itself. This entry is emitted on **every current resolution**, and resolution requires no authentication — so anyone holding a DID string can obtain the corresponding on-chain address, and from it the complete public transaction history of that address. Implementers and deployers must treat "publishing a DID string" as equivalent to "publishing the wallet address behind it". This is the concrete form of the general warning in §8 that `did:phoenix` provides no ledger-level confidentiality.
+
+**Point-in-time resolution omits `service`.** A resolution carrying `versionTime` returns verification relationships only — no `service` array — because signature verification over a historical document needs keys, not endpoints, and `service` is optional under DID Core 1.0 §5.4. Without this carve-out, a controller who revoked every key could still not remove their address from public lookup: the current resolution would report the DID deactivated while a resolution at any past instant still reconstructed the full document, address included. Relying parties that need the address must resolve without `versionTime`.
 
 ---
 
