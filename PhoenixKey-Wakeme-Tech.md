@@ -282,7 +282,7 @@ quote (FX buffer) → checkout (VietQR/gateway) → poll tới CARP_DELIVERED
 
 Prefix `/api/v1`, body snake_case, `DataResponse<T>{code,message,result}` (`code=1000`=OK). Mẫu **build-unsigned → Enclave witness → submit**. Đơn-vị: trả cả `_lamp` + `_oildrop` (×10⁶); MAGIC theo `nanogic = MAGIC×10⁹`.
 
-> **⚠ BREAKING — đổi namespace `/activation/*` → `/wakeme/*`** (chốt 2026-07-31). SuperApp/SDK/Frontend đã mock `/activation/*` → PHẢI điều-phối đổi đồng-thời (issue Long/Tuân + inbox SuperApp/Thư). **Tên path dưới là ĐỀ-XUẤT — chốt với backend trước khi hard-code.**
+> **⚠ BREAKING — đổi namespace `/activation/*` → `/wakeme/*`** (chốt 2026-07-31). SuperApp/SDK/Frontend đã mock `/activation/*` → PHẢI điều-phối đổi đồng-thời (issue cho đội backend và đội on-chain + inbox SuperApp/Thư). **Tên path dưới là ĐỀ-XUẤT — chốt với backend trước khi hard-code.**
 
 | # | Method | Path | Redeemer/tx | Auth | Chặn bởi |
 |---|---|---|---|---|---|

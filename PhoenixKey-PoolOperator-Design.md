@@ -1,6 +1,6 @@
 # PhoenixKey — Tab Pool (vận hành stake pool trên điện thoại) — Thiết kế DRAFT
 
-> **Loại:** Design / Math (Tech-leaning). **Ngày:** 2026-07-14. **Trạng thái:** DRAFT chờ anh + Long + Tuân duyệt.
+> **Loại:** Design / Math (Tech-leaning). **Ngày:** 2026-07-14. **Trạng thái:** DRAFT chờ chủ dự án, đội backend và đội on-chain duyệt.
 > **Nguồn Feat:** [PhoenixKey-Wallet-Staking-Governance-Vi-Feat.md](./PhoenixKey-Wallet-Staking-Governance-Vi-Feat.md) §2.3 (điểm `[CẦN CHỐT]`).
 > **Dùng cho:** SRCL đợt 1 — pool GST do GreenSun vận hành ([LAMP/SPEC/SRCL-Spec-Vi.md](../../LAMP/SPEC/SRCL-Spec-Vi.md) §5).
 > Tài liệu này CHỐT ranh giới bảo mật đã bỏ ngỏ ở bản Feat, và định nghĩa phần rust_core + UI cần xây.

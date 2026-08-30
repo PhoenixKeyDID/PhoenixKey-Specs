@@ -1,6 +1,6 @@
 # PhoenixKey Wallet API v2 — DEV-READY (Feat)
 
-> **PHÂN LOẠI: OFFCHAIN → PR giao Long.**
+> **PHÂN LOẠI: OFFCHAIN → PR giao đội backend.**
 > **Dependency ngoài: CARP policy-id + asset-name (đội CARP — CHƯA có giá trị, chờ xác nhận canonical).**
 >
 > Refine cho Issue `PhoenixKey-Database#41`. Nguồn đối chiếu code thật:
@@ -8,7 +8,7 @@
 > `IdentityServiceImpl.java` + `AuthorizedKeyRepository.java`, `phoenix_address.rs`,
 > `PhoenixKey-Math §8` (CIP-1852), và bản đính chính SuperApp
 > `[nội-bộ] SuperApp-Reply-wallet-api.md`.
-> PhoenixKey chốt interface; Long ước lượng thời gian + build backend.
+> PhoenixKey chốt interface; đội backend ước lượng thời gian + build backend.
 
 ---
 
@@ -68,7 +68,7 @@ phoenixkey:
 
 > **⚠️ External dependency — đội CARP:** `carp-policy-id` + `carp-asset-name-hex`
 > **CHƯA có giá trị canonical.** CARP là sản phẩm repo riêng, PhoenixKey chưa track policy.
-> Long build code + config sẵn key rỗng; **khi rỗng → `balanceCarp = 0`** (không throw, không query nhầm).
+> đội backend build code + config sẵn key rỗng; **khi rỗng → `balanceCarp = 0`** (không throw, không query nhầm).
 > Chỉ khi đội CARP xác nhận policy-id/asset-name mới điền vào → CARP xuất hiện tự động.
 
 ### §1.2 Đổi `BlockfrostHttpClient`
@@ -131,7 +131,7 @@ Body:
 > **Bảng lưu (gợi ý migration `V13__wallet_standard_addresses.sql`):**
 > `wallet_standard_address(user_did, fixed_address, active_address NULLABLE,
 > stake_address NULLABLE, updated_at)` — unique theo `user_did` (1 Standard-set/DID);
-> hoặc `(user_did, fixed_address)` nếu sau này cho nhiều account. Long chốt theo schema hiện có.
+> hoặc `(user_did, fixed_address)` nếu sau này cho nhiều account. đội backend chốt theo schema hiện có.
 
 ### §2.3 Query endpoint
 
@@ -192,7 +192,7 @@ Quy tắc:
 - Số dư chưa có → `0`; app tự render "—". Interface chốt 1 lần.
 
 > **Lưu ý kiến trúc (shielded custody, PhoenixKey-Specs PR#3):** ví Phoenix sắp có chế độ ẩn số dư
-> — Phase sau đọc qua viewing-key/pool thay vì đọc thẳng địa chỉ. Long **tách lớp đọc số dư Phoenix**
+> — Phase sau đọc qua viewing-key/pool thay vì đọc thẳng địa chỉ. đội backend **tách lớp đọc số dư Phoenix**
 > (1 interface `PhoenixBalanceReader`) để đổi nguồn sau không phải sửa endpoint.
 
 ---
@@ -253,7 +253,7 @@ public record BalanceResponse(
 - Nhưng nếu deployment thực còn dùng bản **trước khi thêm `LIMIT 1`** (hoặc `getOwnerKey` khác gọi
   `findBy...` không LIMIT), Spring Data ném `IncorrectResultSizeDataAccessException` → HTTP 500.
 
-**Việc Long (offchain, cùng PR này hoặc PR kề):**
+**Việc đội backend (offchain, cùng PR này hoặc PR kề):**
 1. **Grep toàn bộ** truy vấn owner-key: `grep -rn "key_role = 'owner'" src/` — đảm bảo MỌI query
    đọc-đơn owner-key đều có `AND status='active' … ORDER BY created_at DESC, id DESC LIMIT 1`
    và trả `Optional`, không có biến thể trả single-throw.
@@ -294,13 +294,13 @@ Chạy trên preprod (Blockfrost preprod key). Ghi output thật vào PR.
 
 | Mục | Trạng thái | Giao | Chặn bởi |
 |---|---|---|---|
-| §1 `balanceCarp` (config + client + response) | 🔴 thêm | Long | **CARP policy-id/asset-name (đội CARP)** |
-| §2 API ví Standard (register + query) | 🔴 mới | Long | — |
-| §3 Endpoint gộp `/wallet/{did}/all` | 🔴 mới | Long | vault-read cho `magic` (Phase — tạm trả 0) |
-| §4 Deprecate MAGIC (`BalanceResponse` + `/magic/claim`) | 🟡 sửa | Long | phối hợp SuperApp migrate |
-| §5 Bug `/identity/{did}/pubkey` 500 (recover) | 🔴 sửa | Long | — (offchain thuần) |
+| §1 `balanceCarp` (config + client + response) | 🔴 thêm | đội backend | **CARP policy-id/asset-name (đội CARP)** |
+| §2 API ví Standard (register + query) | 🔴 mới | đội backend | — |
+| §3 Endpoint gộp `/wallet/{did}/all` | 🔴 mới | đội backend | vault-read cho `magic` (Phase — tạm trả 0) |
+| §4 Deprecate MAGIC (`BalanceResponse` + `/magic/claim`) | 🟡 sửa | đội backend | phối hợp SuperApp migrate |
+| §5 Bug `/identity/{did}/pubkey` 500 (recover) | 🔴 sửa | đội backend | — (offchain thuần) |
 
-**Interface do PhoenixKey chốt. Long ước lượng thời gian + build. Không đụng onchain/validator.**
+**Interface do PhoenixKey chốt. đội backend ước lượng thời gian + build. Không đụng onchain/validator.**
 
 ---
 _Tài liệu này đã được bảo vệ. Bản quyền © GreenSun Tech Inc. Sáng chế tạm thời USPTO — GS-PHOENIXKEY-01: Application No. 64/031,291._
