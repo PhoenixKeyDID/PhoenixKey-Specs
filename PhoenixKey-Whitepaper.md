@@ -23,7 +23,9 @@ Hôm nay, danh tính số và tài sản số của bạn có ba chỗ vướng 
 2. **Khôi phục khi mất máy gần như không thể.** Ví truyền thống không phân biệt được "bạn" với "chiếc chìa khoá" — mất chìa là mất người.
 3. **Phí và trải nghiệm quá phức tạp cho người bình thường.** Phải tự giữ ADA làm "xăng", tự hiểu tỷ giá, tự tính đủ số dư chưa — trước khi làm được việc đơn giản nhất.
 
-**PhoenixKey giải quyết cả ba bằng một ý tưởng gốc: danh tính của bạn sinh ra từ chính vân tay bạn, khoá trong con chip bảo mật sẵn có trong điện thoại** — giống hệt cách Face ID / vân tay đang mở khoá máy bạn mỗi ngày, không phải một tờ giấy có thể mất.
+**PhoenixKey giải quyết cả ba bằng một ý tưởng gốc: danh tính của bạn nằm trong một chiếc chìa do chính con chip bảo mật sẵn có trong điện thoại sinh ra và giữ luôn bên trong, và vân tay bạn là cái mở chiếc chìa đó** — giống hệt cách Face ID / vân tay đang mở khoá máy bạn mỗi ngày, không phải một tờ giấy có thể mất.
+
+> Nói cho chính xác, vì chỗ này hay bị hiểu nhầm: chìa khoá **không** được tính ra từ vân tay. Con chip sinh nó **ngẫu nhiên** và không cho nó rời khỏi chip; vân tay chỉ là cái **mở cổng** cho bạn dùng. Hệ quả thực tế: chiếc chìa gắn với **cái máy** — nó bảo đảm mỗi máy chỉ tạo được một danh tính, chứ **không** bảo đảm mỗi người chỉ có một danh tính. Việc "một người một danh tính" là chuyện của module Knowme và dựa vào **giấy tờ tuỳ thân**, không dựa vào vân tay — xem mục 4.
 
 Từ danh tính này, một chiếc ví tự động được tạo ra và đi theo bạn suốt đời.
 
@@ -41,7 +43,7 @@ Mọi lớp phía trên — gửi tiền an toàn, kích hoạt dịch vụ, tr�
 
 Ngay dưới đây là một sơ đồ 8 module với tên tiếng Anh. Trước khi nhìn nó, chỉ cần nắm 4 hình ảnh đời thường này là đủ:
 
-- **Vân tay = chìa khoá.** Con chip bảo mật trong điện thoại giữ chìa, không tờ giấy nào giữ.
+- **Vân tay = cách mở chìa.** Chìa nằm trong con chip bảo mật của điện thoại, không tờ giấy nào giữ; vân tay là cái mở cho bạn dùng chìa đó.
 - **Ví Phượng-hoàng = cái ví.** Nó gắn với danh tính bạn, không gắn với chiếc điện thoại — nên mất máy vẫn còn ví.
 - **Người-bảo-chứng = người thân giữ hộ chìa dự phòng.** Họ giúp bạn khôi phục khi mất máy, nhưng KHÔNG bao giờ giữ tiền của bạn.
 - **LAMP / MAGIC = tiền nạp ban đầu và tiền tiêu hằng ngày.** Giống một gói khởi tạo (LAMP) mỗi ngày sinh ra một ít tiền tiêu dịch vụ (MAGIC).
@@ -54,7 +56,7 @@ Ngay dưới đây là một sơ đồ 8 module với tên tiếng Anh. Trước
 | Chuỗi / on-chain / trên chuỗi | "Chuỗi" = cuốn sổ cái công khai của mạng Cardano, mọi người giữ một bản sao giống hệt nhau, không ai một mình sửa được. "On-chain" (trên chuỗi) = dữ liệu/hành động được ghi thẳng vào cuốn sổ đó, thay vì nằm trên máy chủ riêng của một công ty |
 | Validator | Một đoạn hợp đồng thông minh (chương trình) chạy ngay trên chuỗi, tự động kiểm tra luật cho mỗi giao dịch — không người/công ty nào sửa tay được sau khi đã đăng ký; ví dụ `did_payment`, `taad_logic` là tên các validator của PhoenixKey |
 | Đúc (mint) | Hành động tạo ra lần đầu một token/danh tính trên chuỗi — giống bước "đóng dấu công chứng lần đầu", sau đó vật đó tồn tại vĩnh viễn trên sổ cho tới khi bị đốt/thu hồi theo đúng luật |
-| Secure Enclave | Con chip khoá vân tay có sẵn trong điện thoại |
+| Secure Enclave | Con chip bảo mật có sẵn trong điện thoại. Nó **tự sinh** chìa khoá và giữ luôn bên trong (chìa không ra ngoài được); vân tay/khuôn mặt là cái **mở cổng** cho bạn dùng chìa, không phải cái sinh ra chìa |
 | Người-bảo-chứng | Người thân/bạn bè giữ hộ một phần quyền khôi phục — không giữ tiền bạn |
 | LAMP | Khoản "vốn mồi" được cấp lúc mới bắt đầu |
 | MAGIC | Tiền tiêu dùng hằng ngày, sinh ra dần từ LAMP |
@@ -125,7 +127,7 @@ flowchart LR
 
 **Đọc sơ đồ:** một vòng đời điển hình — tạo danh tính bằng vân tay, có ví ngay, dùng ví (gửi/nhận, kích hoạt dịch vụ), và nếu chẳng may mất máy thì khôi phục qua người-bảo-chứng mà **không mất tài sản, không cần nhớ 24 từ**.
 
-> **Trạng thái hôm nay:** bước 1–3 (tạo danh tính, có ví, gửi/nhận) đã chạy trên validator (173/173 test PASS); bước 4 (Nhận LAMP) và phần bảo vệ chống rút-sạch trong bước 5 (khôi phục khi khoá đã lộ) đang trong lộ trình xây — xem chi tiết tại [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
+> **Trạng thái hôm nay:** bước 1–3 (tạo danh tính, có ví, gửi/nhận) đã chạy trên validator (638/638 test PASS); bước 4 (Nhận LAMP) và phần bảo vệ chống rút-sạch trong bước 5 (khôi phục khi khoá đã lộ) đang trong lộ trình xây — xem chi tiết tại [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
 
 ### Điều kiện để khôi phục hoạt động
 
@@ -160,7 +162,7 @@ Xem sau: [Tính năng chi tiết](./PhoenixKey-Anchorme-Vi-Feat.md) · Toán/b�
 **Là gì:** ví mà tài sản gắn với DANH TÍNH của bạn, không gắn với chìa khoá — địa chỉ ví bất biến suốt đời, mất máy vẫn khôi phục xong tiêu tiếp.
 Nó giải quyết ba chỗ đau chí mạng của ví crypto truyền thống: mất seed là mất sạch vĩnh viễn, lộ seed là mất sạch tức thì, và đổi khoá thường làm chết luôn địa chỉ cũ. Rebirthme lật ngược cả ba:
 
-- **Khôi phục qua người-bảo-chứng** (họ KHÔNG giữ mảnh bí mật của bạn) và **địa chỉ không đổi dù bạn xoay khoá bao nhiêu lần** — hai điểm này đã có trên validator (173/173 test PASS).
+- **Khôi phục qua người-bảo-chứng** (họ KHÔNG giữ mảnh bí mật của bạn) và **địa chỉ không đổi dù bạn xoay khoá bao nhiêu lần** — hai điểm này đã có trên validator (638/638 test PASS).
 - **Một "van" chống rút-sạch khi khoá lộ** — đây là hạng mục ưu tiên cao nhất đang xây (xem [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md)). *Ví dụ:* nếu chìa khoá của bạn chẳng may bị lộ và có kẻ cố rút sạch trong một lần, "van" này giống cầu dao tự động ngắt khi phát hiện dòng điện bất thường — nó tự động chặn hoặc làm chậm giao dịch bất thường, cho bạn kịp thời gian phản ứng, thay vì mất hết trong một cú bấm. Tới khi van này xong, với ví giữ giá-trị lớn hãy bật **Đóng-băng ngay khi nghi lộ khoá**.
 
 Xem sau: [Tính năng chi tiết](./PhoenixKey-Rebirthme-Vi-Feat.md) · Toán/bất biến: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) (mục §4.B nói về van chống rút-sạch, và chứng minh mức thiệt hại tối đa — mức trần đó chỉ đúng KHI van đang bật)
@@ -213,6 +215,8 @@ Xem sau: [Tính năng chi tiết](./PhoenixKey-Protectme-Vi-Feat.md) · Toán/b�
 ### Knowme — Kho giấy tờ của bạn, bạn giữ chìa
 **Là gì:** kho danh tính tự chủ — bạn tự khai giấy tờ (họ tên, CCCD, mã số thuế...), và khi ai đó hỏi thì chỉ đưa đúng trường họ cần, phần còn lại vẫn khoá kín.
 Nó giải quyết việc KYC tập trung truyền thống bắt bạn nộp trọn bộ hồ sơ cho mỗi nơi, tạo ra nhiều kho dữ liệu dễ rò rỉ. Với Knowme, dữ liệu nằm ở máy bạn, chìa khoá trong tay bạn — tiết lộ chọn lọc từng trường, tái dùng một hồ sơ ở nhiều nơi mà không phải xin lại giấy tờ.
+
+Knowme cũng là nơi giữ ràng buộc **"một người một danh tính"**, và nó neo vào **giấy tờ tuỳ thân**, không neo vào vân tay: một giấy tờ tuỳ thân chỉ gắn được cho nhiều nhất một danh tính Cá nhân; đăng ký thứ hai bằng cùng giấy tờ đó bị từ chối. Nói thẳng giới hạn: cách này **không** chặn được người có hai giấy tờ hợp lệ khác nhau, và nó là bản v1 — các lớp bổ sung ở tầng người vẫn đang xây, xem [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
 Xem sau: [Tính năng chi tiết](./PhoenixKey-Knowme-Vi-Feat.md) · Toán/bất biến: [PhoenixKey-Knowme-Math.md](./PhoenixKey-Knowme-Math.md)
 
 ### Easteregg — Lớp trải nghiệm / quyền riêng tư mở rộng
@@ -253,7 +257,7 @@ Nói ngắn: **Whitepaper → Feat → (Math / Tech / Exec)** — càng đi sâu
 
 ## 5b. Ranh giới hiện tại — cái gì đã chạy, cái gì đang xây
 
-PhoenixKey là kim chỉ nam thiết kế đích. Hôm nay: khung danh tính + ví đã chạy trên validator (173/173 test PASS), nhưng danh tính **Cá nhân** (khác Tổ chức/Dịch vụ) và lớp **chống-rút-sạch** của ví đang trong giai đoạn đóng nốt — đây là hai hạng mục bảo mật ưu tiên cao nhất. Xem tiến độ theo từng module tại [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
+PhoenixKey là kim chỉ nam thiết kế đích. Hôm nay: khung danh tính + ví đã chạy trên validator (638/638 test PASS), nhưng danh tính **Cá nhân** (khác Tổ chức/Dịch vụ) và lớp **chống-rút-sạch** của ví đang trong giai đoạn đóng nốt — đây là hai hạng mục bảo mật ưu tiên cao nhất. Xem tiến độ theo từng module tại [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md).
 
 ---
 

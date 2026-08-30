@@ -77,9 +77,8 @@ Hai loại người cần tính năng này:
    riêng biệt ("đây là vault_sss", header `X-LampNet-DataClass: vault`) đã tự
    tố cáo *DID này có tài sản đáng rải mảnh bảo vệ* — trước khi kẻ tấn công
    giải được gì. Giả trang media (ảnh/audio nguỵ trang) là lớp đắt nhất nhưng
-   giá trị cận biên thấp vì payload upload **đã** là ciphertext mù — hội đồng
-   3 agent (2026-07-13) kết luận lỗ thật nằm ở **metadata**, không ở tầng
-   payload.
+   giá trị cận biên thấp vì payload upload **đã** là ciphertext mù — rà soát
+   2026-07-13 kết luận lỗ thật nằm ở **metadata**, không ở tầng payload.
 2. **Cho user hoài nghi niềm tin.** Kể cả nếu metadata sạch, nhiều user vẫn
    không muốn seed của họ đi qua một pipeline họ không tự chọn từng bước. Câu
    trả lời không phải "thuyết phục họ tin" mà là **cho họ nút bấm tự chọn**,
@@ -140,7 +139,7 @@ Với `secret` là 256-bit entropy gần như ngẫu nhiên tuyệt đối, mỗ
 ngẫu nhiên bất kỳ (tính chất perfect-secrecy của Shamir SSS — §7). Nghĩa là
 mảnh tự nó đã "vô hình" trong biển dữ liệu ngẫu nhiên. Cái làm lộ nó KHÔNG phải
 nội dung mảnh mà là **cách hệ thống gắn nhãn nó khi upload/lưu trữ** — đúng
-điểm hội đồng chỉ ra. ⟹ Ưu tiên #1 là dọn metadata (§4.1), KHÔNG phải mua thêm
+điểm rà soát chỉ ra. ⟹ Ưu tiên #1 là dọn metadata (§4.1), KHÔNG phải mua thêm
 lớp giả trang đắt đỏ.
 
 ---
@@ -222,7 +221,7 @@ tick xác nhận đã đọc:
 ### 4.1 Metadata không được tự khai
 
 **Hiện trạng đã xác nhận trong code** (`Enclave/rust_core/src/lampnet.rs:297`,
-`PhoenixKey-Core` và mọi worktree cùng branch):
+kho `PhoenixKey-Core`):
 
 ```rust
 "multipart": {
@@ -274,8 +273,8 @@ phụ thuộc `HW_UID`. Máy nào biết DID cũng tính ra đúng một `Manife
 > **Khuyến nghị ngoài phạm vi trực tiếp tài liệu này nhưng LIÊN QUAN chặt:**
 > lỗ `HW_UID` ở `derive_locator()` là lỗ **tổng quát**, ảnh hưởng toàn bộ
 > pipeline LampNet (không riêng tính năng này). Vá cho manifest ở đây không
-> thay thế việc vá gốc. Báo riêng cho Core/Long — KHÔNG thuộc phạm vi Claude
-> tự sửa (ranh giới backend/Core).
+> thay thế việc vá gốc. Việc vá gốc thuộc đội Core/backend, ngoài phạm vi
+> tài liệu này.
 
 ### 4.3 Vì sao khoá mã hoá manifest KHÔNG được là Master_KEK
 
@@ -528,7 +527,7 @@ thuần Rust, đã có sẵn trong hệ sinh thái `rust_core`) · `hkdf` · `ar
 AEAD hiện có (`aes-gcm`, khớp `lampnet.rs`).
 
 **Mã tham chiếu (đã đọc, dùng làm bằng chứng cho §4):**
-`Enclave/rust_core/src/lampnet.rs` (mọi worktree cùng branch + `PhoenixKey-Core`)
+`Enclave/rust_core/src/lampnet.rs` (kho `PhoenixKey-Core`)
 — `derive_locator()` dòng 144–160, `data_class="bulk"` hard-code dòng 297,
 comment `TODO(cid-anchoring)` dòng 72–75.
 

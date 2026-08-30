@@ -3,7 +3,7 @@
 > **Module:** Rebirthme (slug `Rebirthme`). **Loại doc:** Kỹ-thuật cho implementer (đội on-chain / đội backend / Core rust_core). **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** kỹ-sư triển-khai. HOW: kiến-trúc, datum/redeemer CBOR, điều-kiện tx, luồng e2e, API, ranh-giới giao-việc, thứ-tự deploy, test.
 >
-> **Ranh giới (MECE):** module CHI + địa-chỉ + anti-drain + kho bí-mật/phả-hệ + stake theo-DID + connector + di-cư + pool-ops. **Smartsend** (gửi-có-bảo-vệ) nay là module độc-lập — xem [PhoenixKey-Smartsend-Tech.md](./PhoenixKey-Smartsend-Tech.md); module này chỉ cung-cấp hạ-tầng nạp-nguồn/guardian/anti-drain mà Smartsend tái-dùng. **TAAD state-machine (genesis/rotate/recovery-mechanics)** thuộc Core Anchorme — chỉ dẫn-chiếu. Xem [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) cho bất-biến, `PhoenixKey-Math.md` §10/§11 cho TAAD.
+> **Ranh giới (không chồng lấn, không bỏ sót):** module CHI + địa-chỉ + anti-drain + kho bí-mật/phả-hệ + stake theo-DID + connector + di-cư + pool-ops. **Smartsend** (gửi-có-bảo-vệ) nay là module độc-lập — xem [PhoenixKey-Smartsend-Tech.md](./PhoenixKey-Smartsend-Tech.md); module này chỉ cung-cấp hạ-tầng nạp-nguồn/guardian/anti-drain mà Smartsend tái-dùng. **TAAD state-machine (genesis/rotate/recovery-mechanics)** thuộc Core Anchorme — chỉ dẫn-chiếu. Xem [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) cho bất-biến, `PhoenixKey-Math.md` §10/§11 cho TAAD.
 > → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
 
 ---
@@ -92,7 +92,7 @@ Nền tài-sản: Ví Phượng-hoàng = **địa-chỉ script Plutus V3 statele
 
 ## 2.B Khôi-phục riêng-tư qua Midnight — vai bổ-sung [DRAFT, chưa duyệt, KHÔNG chặn Tầng 1-6]
 
-> Nguồn: `spec-proposals/PhoenixKey-Midnight-Privacy-Feat-DRAFT.md` — **DRAFT đề xuất, chưa duyệt**, mọi chi-tiết Midnight đánh dấu `[GIẢ-ĐỊNH]` chờ Phase 1 PoC kiểm-chứng. Ghi ở đây để không lạc-trôi khỏi module Rebirthme (guardian recovery là trọng-tâm); KHÔNG phải cam-kết kỹ-thuật, KHÔNG đổi thiết-kế Tầng 1-6 ở trên.
+> Nguồn: `[nội-bộ] PhoenixKey-Midnight-Privacy-Feat-DRAFT.md` — **DRAFT đề xuất, chưa duyệt**, mọi chi-tiết Midnight đánh dấu `[GIẢ-ĐỊNH]` chờ Phase 1 PoC kiểm-chứng. Ghi ở đây để không lạc-trôi khỏi module Rebirthme (guardian recovery là trọng-tâm); KHÔNG phải cam-kết kỹ-thuật, KHÔNG đổi thiết-kế Tầng 1-6 ở trên.
 
 **Vấn đề:** hiện `TAADDatum.guardians` (pkh guardian) ghi **PUBLIC** trên metadata-6789 (Cardano). Lộ guardian-set = lộ mạng thân-nhân, tạo bề-mặt tấn-công có chủ-đích lên đúng người đó (đe doạ/hối-lộ guardian). Rủi-ro hiện tại THẤP (MVP chưa gắn PII khác), đây là kế-hoạch phòng-ngừa.
 
@@ -130,7 +130,7 @@ Mọi thay-đổi validator: grep toàn-bộ callers+tests+`rust_core encode_taa
 
 ## 2.C Multi-address: 3 loại địa-chỉ Ví Phượng-hoàng (L1/L2/L3) [DEP-1 `did_stake` / DEP-2 `did_subaddr`]
 
-> Nguồn: `spec-proposals/PhoenixKey-MultiAddress-Wallet-Feat.md`. Ba loại địa-chỉ anh Aladin chốt — tái-dùng `did_payment` cho cả ba, chỉ khác (a) stake credential đính kèm, (b) chính-sách publish + cách sinh/nhóm địa-chỉ. `did_stake`/`did_subaddr` đã xuất-hiện ở sơ-đồ §1 và bảng ranh-giới §7/§8 — mục này bổ-sung construction/invariant chi-tiết còn thiếu (I-ADDR-*).
+> Nguồn: `[nội-bộ] PhoenixKey-MultiAddress-Wallet-Feat.md`. Ba loại địa-chỉ đã chốt — tái-dùng `did_payment` cho cả ba, chỉ khác (a) stake credential đính kèm, (b) chính-sách publish + cách sinh/nhóm địa-chỉ. `did_stake`/`did_subaddr` đã xuất-hiện ở sơ-đồ §1 và bảng ranh-giới §7/§8 — mục này bổ-sung construction/invariant chi-tiết còn thiếu (I-ADDR-*).
 
 **Bảng M.1 — canonical:**
 
@@ -270,7 +270,7 @@ PhoenixKey enable() Lace (watch-only) → `getRewardAddresses/getUtxos` → `taa
 ### 5.5 Xoay KES pool
 Nhắc lịch (75%/90% tuổi KES) → 1 chạm biometric → sinh KES period-now → ký op-cert mới (counter+1) → re-distribute LampNet TRƯỚC → xuất artefact node (KES+VRF+op-cert, KHÔNG cold).
 
-### 5.6 LampNet — mạng lưu trữ phân tán (network layer) [PROPOSAL, chờ Long/anh Aladin duyệt]
+### 5.6 LampNet — mạng lưu trữ phân tán (network layer) [PROPOSAL, chờ maintainer duyệt]
 
 > Nội dung mục này lấp khoảng-trống "LampNet Network Specification" (Out-of-scope,
 > `PhoenixKey-Math.md` dòng 48). §5.1–5.3 ở trên mô tả *client thấy gì* (ECIES →
@@ -357,7 +357,7 @@ thưởng KHÔNG kéo theo sửa phần network layer ở trên (phân lớp tr�
 
 ### 5.7 CIP-30 Lace connector + builder Delegator→LAMP-claim — chi-tiết CORE dev-ready (giao Tuân)
 
-> Fold từ `spec-proposals/PhoenixKey-Delegator-Core-Connector-Builders-Feat.md` (PR CORE, `rust_core`).
+> Fold từ `[nội-bộ] PhoenixKey-Delegator-Core-Connector-Builders-Feat.md` (PR CORE, `rust_core`).
 > Tầng: chỉ dựng + ký tx trong `rust_core`, expose FFI `taad_*`; KHÔNG đụng backend endpoint (§6.1) hay
 > Merkle-root/ISPO (LAMP). §5.4 ở trên là tóm-tắt luồng; mục này là interface CBOR/FFI + bảng ai-ký cụ-thể.
 
@@ -519,7 +519,7 @@ Lưu-ý: `/wallet/magic/claim` → **410 Gone** (MAGIC = account-trong-Vault, kh
 
 ### 6.1 Chi-tiết Delegator-Claim offchain (Grant/stake-state/claim/merkle) — dev-ready cho Long
 
-> Nguồn đầy đủ: `spec-proposals/PhoenixKey-Delegator-Claim-Offchain-Feat.md`. Mục này fold phần
+> Nguồn đầy đủ: `[nội-bộ] PhoenixKey-Delegator-Claim-Offchain-Feat.md`. Mục này fold phần
 > request/response schema + ErrorCode để Long code thẳng, không phải mở file rời. Base path
 > `/api/v1`; field JSON snake_case; envelope `DataResponse<T>{code,message,result}` (code 1000
 > = ok); backend KHÔNG giữ khoá, KHÔNG ký thay (bất biến OFF-KEY-1 — chỉ điều-phối + submit CBOR
@@ -745,7 +745,7 @@ khai); `GET /identity/{did}/stake-status` → owner; `POST /claim/submit` → ow
 
 ## 10. Khung màn UI (Core Flutter) + bảng bridge-method — dẫn-chiếu UI-Spec
 
-> Nguồn: `spec-proposals/PhoenixKey-UI-Spec-Backup-Recovery-Lifecycle.md` (23 mục đầy-đủ cho
+> Nguồn: `[nội-bộ] PhoenixKey-UI-Spec-Backup-Recovery-Lifecycle.md` (23 mục đầy-đủ cho
 > team UI `PhoenixKey-Core`). §7 bảng ranh-giới ở trên tóm 1 dòng "màn Guardian/Khôi-phục/Kho/
 > Hạn-mức/Phả-hệ" — mục này fold khung màn + bảng bridge-method để implementer biết UI gọi
 > builder nào, không cần mở file rời. Nguyên-tắc thiết-kế UI nguồn (không lặp lại chi-tiết ở

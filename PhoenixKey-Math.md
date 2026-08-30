@@ -14,7 +14,7 @@
 | **Review** | v4.2: Gemon (MIT Math), Serat (Security); v4.4–4.5: Sambo (BA MIT Sloan), Tuân (Validator Engineer) |
 | **Fixes over v4.4** | **[Bug]** salt_pw₁ circular dependency removed — all salts now on-chain, protection by Argon2id memory-hardness; **[Bug]** `secondary_wallet_enrolled:𝔹` → `secondary_wallets:List<SecondaryWallet>` with pkh commitment; **[Bug]** Email upgraded from knowledge factor to possession factor via EmailOracle OTP (VeData-pattern); **[Bug]** Cancel Option A removed from §11.7 — knowledge factors cannot distinguish owner from attacker; **[Design]** I-RECOVERY-4 grace period (30-day backup_deadline, restricted scope, not hard block); **[Design]** I-RECOVERY-5 recursive orphan edge case; **[Editorial]** Argon2id m unit MiB; HIBP k-anonymity reference; I-TIER5-PW-5 removed |
 | **Added in v4.6** | **[New]** §36 Transaction Fee Architecture — per-operation PhoenixKey fee with 30/70 split: 30% to Cardano Treasury via Conway-era native treasury-donation (tx body field 20), 70% to Phoenix Treasury (Plutus V3 script, OrgDID m-of-n). **Fees are on-chain adjustable parameters** (`FeeParams` reference UTxO) updatable by **DAO governance vote OR an algorithmic module** — no script-hash rebake. **PersonDID create fee = 0 at launch** (user-acquisition incentive; zero-fee ops skip the fee mechanism, like `Deactivate`). I-FEE-1/2 enforced on-chain by a fee-receipt minting policy (Aiken stdlib v2 `treasury_donation` accessor). Theorem 36.1 fee accountability. **[Reconcile §29]** §29 clarified as PhoenixKey-side DID-mapping layer; reward math is canonical MAGIC AppEconomics v2.1 (`computeW` 5-factor + 30% cap), DID-agnostic — legacy v1.0-SA `holder_share_bps` superseded. |
-| **Pending v4.7 (this patch)** | **[Bug, Errata CID-6]** §3.3 (new): defines capability subsumption `⊑` — a preorder where `c ⊑ Full_Authority` for all `c`, backward-compatible with plain set-⊆. §4.4 `DelegationToken_valid` and §23 `Op_delegate`/sub-delegation switched from `⊆` to `⊑`: previously a PersonDID (`scope={Full_Authority}` per C-SCOPE-3) could not delegate *any* concrete capability, since `{Read_DID(Asset)} ⊆ {Full_Authority}` is False under plain set membership — blocking all PersonDID-issued delegation through §4.4/§23 while §4.2 `Authority` already handled `Full_Authority` via an ad-hoc disjunct (internal inconsistency). Scope of this patch is deliberately narrow: only §1.1 (notation), §3.3 (new), §4.4, §23, and TV-6 changed. §3.2/§4.2/§19/§20 and all proofs referencing set-⊆ properties (cascade scope, Theorem 27.1) are **not** touched by this patch — **[CẦN CHỐT]** whether/how those should also move to `⊑` is a separate follow-up (see `spec-proposals/ServiceDID-SelfService-and-Delegation-DRAFT.md` §3.3 for the wider proposal this patch was extracted from). **Formal version-number bump (title/header) intentionally deferred** — this patch touches 2 sections; maintainer should decide whether to bump to v4.7 now or bundle with a larger release. |
+| **Pending v4.7 (this patch)** | **[Bug, Errata CID-6]** §3.3 (new): defines capability subsumption `⊑` — a preorder where `c ⊑ Full_Authority` for all `c`, backward-compatible with plain set-⊆. §4.4 `DelegationToken_valid` and §23 `Op_delegate`/sub-delegation switched from `⊆` to `⊑`: previously a PersonDID (`scope={Full_Authority}` per C-SCOPE-3) could not delegate *any* concrete capability, since `{Read_DID(Asset)} ⊆ {Full_Authority}` is False under plain set membership — blocking all PersonDID-issued delegation through §4.4/§23 while §4.2 `Authority` already handled `Full_Authority` via an ad-hoc disjunct (internal inconsistency). Scope of this patch is deliberately narrow: only §1.1 (notation), §3.3 (new), §4.4, §23, and TV-6 changed. §3.2/§4.2/§19/§20 and all proofs referencing set-⊆ properties (cascade scope, Theorem 27.1) are **not** touched by this patch — **[CẦN CHỐT]** whether/how those should also move to `⊑` is a separate follow-up (see `[internal] ServiceDID-SelfService-and-Delegation-DRAFT.md` §3.3 for the wider proposal this patch was extracted from). **Formal version-number bump (title/header) intentionally deferred** — this patch touches 2 sections; maintainer should decide whether to bump to v4.7 now or bundle with a larger release. |
 
 ---
 
@@ -1607,7 +1607,7 @@ I-TIER5-CANCEL-3 [N]: Cancel Option A (knowledge factors as cancel proof)
 ## §12 PersonDID — Root of Trust [N]
 
 ```
--- Relationship to TAADDatum: PersonDID is the canonical conceptual entity.
+-- Relationship to TAADDatum: PersonDID is the conceptual entity that `TAADDatum` encodes on-chain (§2).
 -- TAADDatum (§10.1) is its on-chain Plutus datum. All PersonDID state lives in TAADDatum.
 -- Fields marked with (*) are stored in TAADDatum on-chain; others are off-chain (LampNet).
 
@@ -2243,7 +2243,7 @@ C-DEPTH: ∀ did: depth(did) ≤ MAX_DELEGATION_DEPTH = 10
 
 ### §22.3 Taxonomy Rationale — Bot vs Agent vs "Robot"; loại còn thiếu [I]
 
-*(đề xuất `spec-proposals/PhoenixKey-Spec-Addendum-v4.7-DRAFT.md` §C, chưa chốt version bump)*
+*(đề xuất `[internal] PhoenixKey-Spec-Addendum-v4.7-DRAFT.md` §C, chưa chốt version bump)*
 
 Làm rõ vì sao §18 BotDID và §19 AgentDID tách riêng, vì sao KHÔNG có
 "RobotDID", và đánh giá các ứng viên loại-DID-mới hay gặp. Bảng CanOwn (§22.1)
@@ -2313,7 +2313,7 @@ Op_delegate(from, to, cap, valid_until, sub_del, s) → DelegationToken:
 
 ### §23.1 DID Authorization Registry — ACL on-chain, pull-model [N]
 
-*(đề xuất `spec-proposals/PhoenixKey-Spec-Addendum-v4.7-DRAFT.md` §A, chưa chốt version bump)*
+*(đề xuất `[internal] PhoenixKey-Spec-Addendum-v4.7-DRAFT.md` §A, chưa chốt version bump)*
 
 §3 định nghĩa `Capability` (từ vựng quyền) và §23 `DelegationToken` (uỷ quyền
 dạng **token bearer, push** — người giữ xuất trình). Cả hai KHÔNG mô tả một
@@ -2592,7 +2592,7 @@ The on-chain state post-erasure is `TombstoneRecord = {record_id = H(content_r),
 
 ## §29 AppTokenEconomics Integration [N]
 
-> **Reconciliation with MAGIC AppEconomics v2.1 (canonical).** The reward
+> **Reconciliation with MAGIC AppEconomics v2.1.** The reward
 > COMPUTATION engine is **MagicLampNetwork/MAGIC AppEconomics v2.1**:
 > `computeW = V_d × Φ_util × Φ_users × Φ_dispute × κ_tier × Φ_age`, with
 > iterative distribution capped at `MAX_SINGLE_APP_REWARD_BPS` (30%). That

@@ -3,7 +3,7 @@
 > **Module:** Rebirthme (slug `Rebirthme`). **Loại doc:** Toán hình-thức cho auditor. **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** auditor / kiểm-toán mật-mã + kinh-tế. Định-nghĩa hình-thức, bất-biến, mệnh-đề-ép từng thao-tác, đối-chiếu dòng code thật.
 >
-> **Ranh giới (MECE):** module này đặc-tả **cổng CHI của Ví Phượng-hoàng** (`did_payment`), **địa-chỉ đa-tầng**, **hạn-mức anti-drain**, **kho bí-mật / phả-hệ seed**, **vệ-sinh nonce ký**, **stake theo-DID**. **Smartsend** (gửi-có-bảo-vệ) nay là module độc-lập — xem [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md); module này CHỈ cung-cấp hạ-tầng tái-dùng (cổng chi, guardian, anti-drain). Cơ-chế **state-machine TAAD** (Genesis/Rotate/Init·Cancel·Finalize·Recovery/UpdateGuardians/Transfer/Deactivate) **thuộc Core Anchorme** — ở đây CHỈ dẫn-chiếu, không định-nghĩa lại. Xem `PhoenixKey-Anchorme-Math.md` + `PhoenixKey-Math.md` §10 (TAAD), §11 (recovery), §6 (key hierarchy), §7 (LampNet), §33 (emergency vault).
+> **Ranh giới (không chồng lấn, không bỏ sót):** module này đặc-tả **cổng CHI của Ví Phượng-hoàng** (`did_payment`), **địa-chỉ đa-tầng**, **hạn-mức anti-drain**, **kho bí-mật / phả-hệ seed**, **vệ-sinh nonce ký**, **stake theo-DID**. **Smartsend** (gửi-có-bảo-vệ) nay là module độc-lập — xem [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md); module này CHỈ cung-cấp hạ-tầng tái-dùng (cổng chi, guardian, anti-drain). Cơ-chế **state-machine TAAD** (Genesis/Rotate/Init·Cancel·Finalize·Recovery/UpdateGuardians/Transfer/Deactivate) **thuộc Core Anchorme** — ở đây CHỈ dẫn-chiếu, không định-nghĩa lại. Xem `PhoenixKey-Anchorme-Math.md` + `PhoenixKey-Math.md` §10 (TAAD), §11 (recovery), §6 (key hierarchy), §7 (LampNet), §33 (emergency vault).
 > → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#rebirthme)
 >
 > **Mã bất-biến:** MOD = `WALLET`. Bất-biến mới của module = `I-WALLET-n`. Các bất-biến gốc từ nguồn giữ NGUYÊN mã (I-LIMIT-*, I-LIN-*, I-VAULT-*, I-CURVE-4/5, I-ADDR-*, I-SIGN-*, I-DIDSTAKE-*, I-GUARD-*) và ghi rõ nguồn. (**SS-*** của Smartsend nay ở module riêng `PhoenixKey-Smartsend-Math.md`.) Bất-biến tái-dùng từ `PhoenixKey-Math.md` ghi rõ §.
@@ -382,7 +382,7 @@ validator tệ nhất chỉ là sai định-tuyến reward một chu-kỳ, và a
 > công-thức CKDpub derivation watch-only (`acct_xvk` → payment/stake/DRep pub, M2),
 > bảng ánh-xạ method→khoá/Grant (§B.3), pseudocode `authorize(session,op,tx)` (§B.4)
 > và `verify_session`/`verify_login` (§B.5), CIP-45 pairing (§A.4) — ở
-> `PhoenixKey-Connector-CIP30-Feat-Math.md` (MECE: file này không định-nghĩa lại).
+> `PhoenixKey-Connector-CIP30-Feat-Math.md` (file này không định-nghĩa lại).
 
 | Mã | Mô tả | Neo / ghi-chú |
 |---|---|---|
@@ -576,7 +576,7 @@ Không thoả (1) hoặc (2) ⟹ thiệt-hại tối-đa = **toàn-bộ kho** kh
 - **[CẦN CHỐT-W3]** `vault_index_anchor` + `recovery_anchor` vào `TAADDatum` (schema thuộc Specs/Validator — đội backend). [OPEN-V2 Secret-Vault].
 - **[CẦN CHỐT-W4]** Smartsend (nay module riêng): 5 vá 🔴 + phụ-thuộc anti-drain — treo ở `PhoenixKey-Smartsend-Math.md §9`.
 - **[CẦN CHỐT-W5]** `did_subaddr.ak` (L3 unlinkable) — dependency onchain MỚI [DEP-2], chờ maintainer chốt.
-- **[CẦN CHỐT-W6]** R1 vs R2 khoá kho: chốt R2 (VaultKEK cách-ly) canonical cho kho, R1 cho `recovery_anchor` [OPEN-V1].
+- **[CẦN CHỐT-W6]** R1 vs R2 khoá kho: đề-xuất R2 (VaultKEK cách-ly) cho kho, R1 cho `recovery_anchor` [OPEN-V1, chưa chốt].
 - **[CẦN CHỐT-W7]** Bước bucket B + sàn FLOOR_BYTES (đề xuất 4 KiB / 64 KiB) [OPEN-V4].
 - **[CẦN CHỐT-W8]** Enforce I-CURVE-5 ở builder: guardian/secondary Ed25519 phải khác gốc seed (chưa thấy enforce).
 - **[CẦN CHỐT-W9]** GuardianConfig (trọng-số/vai) vào `TAADDatum` cần `schema_version` + headroom (Feat §1) — thuộc Core Anchorme/Validator; module này dẫn-chiếu.
@@ -607,7 +607,7 @@ Không thoả (1) hoặc (2) ⟹ thiệt-hại tối-đa = **toàn-bộ kho** kh
 ## Nguồn
 
 Nguồn thiết-kế nội-bộ (không công khai).
-Math canonical (dẫn-chiếu, KHÔNG sửa): `PhoenixKey-Math.md` §6, §7, §9, §10, §11, §33;
+Dẫn-chiếu (KHÔNG sửa lại ở đây): `PhoenixKey-Math.md` §6, §7, §9, §10, §11, §33;
 `PhoenixKey-Connector-CIP30-Feat-Math.md` (§4.L — cơ-chế CIP-30/CIP-45 đầy-đủ).
 Code: `PhoenixKey-Validator/validators/did_payment.ak`, `lib/phoenixkey/{auth_logic,taad_logic}.ak`; `rust_core/src/{lampnet,crypto,sign}.rs`.
 
