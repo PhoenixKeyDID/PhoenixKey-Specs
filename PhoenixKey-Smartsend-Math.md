@@ -22,7 +22,7 @@
 | `veto_deadline` | mốc hết cửa-sổ-veto = `open_slot + window` |
 | `reclaim_deadline` | mốc quá-hạn cho ReclaimTimeout (SSR-7) |
 | `freeze_deadline` | mốc quá-hạn thoát-Freeze (SSR-6) — sau mốc này không resolve → auto-hoàn sender |
-| `window` | độ dài cửa-sổ-veto, `∈ {24,48,72}h` hoặc 2-bên-thoả, ép sàn `min_window` (SSR-10) |
+| `window` | độ dài cửa-sổ-veto, `∈ {24,48,72}h` hoặc 2-bên-thoả, ép sàn `min_window_floor` (SSR-10) |
 | `large_threshold` | ngưỡng "khoản lớn" đòi `receiver_consent` |
 | `unlock_policy` | chính-sách huỷ: `factors_required` + tập factor + verifier |
 | `min_ada` | lovelace ký-quỹ tối-thiểu ghi lúc Open, tách khỏi `amount` (SSR-2) |
@@ -36,7 +36,7 @@
 ### 2.1 Cổng chi nguồn (dẫn-chiếu — KHÔNG định-nghĩa lại)
 Nguồn nạp vào hòm đến từ Ví Phượng-hoàng: chi qua `did_payment` mode-1 ⟺ `anchor_controller_ok` (DID Active + controller hiện-tại ký). Định-nghĩa đầy-đủ: [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) §2.1, `auth_logic.ak:37-52`, `did_payment.ak:40-50`. Module này giả-định cổng đó đúng và chỉ đặc-tả logic hòm.
 
-### 2.2 Ba đường thoát một escrow-UTxO
+### 2.2 Bốn đường thoát một escrow-UTxO
 ```
 SmartSendSpend_ok(tx, d, now) ⟺
     Cancel_ok(tx, d, now)            -- về sender
@@ -53,7 +53,7 @@ Finalize_ok(tx,d,now) ⟺ now ≥ d.veto_deadline
 Freeze_ok(tx,d,now)   ⟺ now < d.veto_deadline                       -- SS-8 (Freeze chỉ trong cửa-sổ, sau đó vô-nghĩa)
                        ∧ guardian_sig hợp-lệ (neo anchor) ∧ escrow → treo (frozen := true)
 ResolveFreeze_ok(tx,d,now) ⟺ d.frozen == true
-                       ∧ ( guardian_quorum_ok(tx, anchor)                              -- m-of-n anchor.guardians, KHÔNG 1 guardian
+                       ∧ ( guardian_quorum_ok(tx, anchor)                              -- TỔNG TRỌNG-SỐ ≥ threshold (I-GUARD-WEIGHT, KHÔNG đếm m-of-n) — xem [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md) §4.I
                          ∨ now ≥ d.freeze_deadline )                                   -- SSR-6 auto-hoàn timeout
                        ∧ Σ outputs(→sender, d.asset) == d.amount ∧ Σ outputs(→sender, lovelace) == d.min_ada
 ReclaimTimeout_ok(tx,d,now) ⟺ now ≥ d.reclaim_deadline
@@ -105,7 +105,7 @@ Module KHÔNG đặc-tả tokenomics LAMP/MAGIC/CARP (thuộc MagicLamp) — ch�
 | **SS-6** | `independent_of_seed` ⇒ mọi factor Cancel KHÁC gốc khoá-gửi (guardian/ZK-context/thiết-bị-2). Chống-trộm. |
 | **SS-7′** | Escrow-UTxO spent đúng 1 lần; `list.count(inputs ∈ Script(smartsend)) == 1` (vá SSR-1, mẫu `activation_vault.ak:106-110`) — MVP không gộp batch nhiều escrow trong 1 tx. |
 | **SS-8** | `Freeze` (guardian-sig neo anchor) → `frozen := true`, chặn `Finalize`; chỉ dùng được **trong cửa-sổ** (`now < veto_deadline`) — sau đó Freeze vô-nghĩa vì đã tới hạn Finalize (SSR-6). |
-| **SS-8′** | State-machine Freeze: `Open → {Cancelled, Finalized, Frozen}`; `Frozen → {Cancelled(guardian-quorum m-of-n anchor.guardians), Cancelled(now≥freeze_deadline, auto-hoàn sender)}` — KHÔNG `Finalized` từ `Frozen` (SSR-6). Guardian-quorum, KHÔNG 1 guardian đơn-lẻ, để tránh grief. |
+| **SS-8′** | State-machine Freeze: `Open → {Cancelled, Finalized, Frozen}`; `Frozen → {Cancelled(guardian-quorum: Σ trọng-số APPROVER ≥ threshold trên `anchor.guardians`), Cancelled(now≥freeze_deadline, auto-hoàn sender)}` — KHÔNG `Finalized` từ `Frozen` (SSR-6). Guardian-quorum, KHÔNG 1 guardian đơn-lẻ, để tránh grief (I-GUARD-CAP ép không guardian nào có trọng-số ≥ threshold). |
 | **SS-9′** | `Accept` chỉ set `receiver_consent` (`false→true`); **mọi field khác datum byte-perfect bất-biến** (chặn đổi lén `unlock_policy`/`large_threshold`/`veto_deadline`, SSR-14); verify controller-sig của `receiver_commit` qua anchor (vá SSR-3), không chạm value. |
 | **SS-10** | `open_slot` hữu-hạn (lower-bound), ép `tx_lo(Open) ≤ open_slot ≤ tx_hi(Open)` (SSR-11, chặn khai-man quá-khứ); `veto_deadline = open_slot + window`; `window ≥ min_window_floor` **sàn cứng on-chain** kể cả khi "2-bên-thoả" (SSR-10) — nới rộng được, KHÔNG rút ngắn dưới sàn. |
 | **SS-11** | (vá SSR-7) `now ≥ reclaim_deadline ∧ receiver_consent == false` → `ReclaimTimeout` hoàn về sender byte-perfect (chống kẹt vĩnh-viễn, đóng deadlock khoản-lớn-không-Accept). |
@@ -125,13 +125,13 @@ Module KHÔNG đặc-tả tokenomics LAMP/MAGIC/CARP (thuộc MagicLamp) — ch�
 
 ## 5. Mệnh-đề-ép từng thao-tác
 
-Năm đường thoát 1 escrow-UTxO (SS-7′ đếm input==1):
+Sáu thao-tác trên 1 escrow-UTxO (SS-7′ đếm input==1) — **4 đường THOÁT thật sự** (đóng hòm: Cancel/Finalize/ResolveFreeze/ReclaimTimeout) + **2 thao-tác KHÔNG đóng hòm** (Freeze chỉ treo cờ; Accept chỉ đổi cờ consent):
 - **Cancel** — SS-2 (`now<deadline`, cận-trên) ∧ SS-3/SSR-4 (đa-yếu-tố neo anchor-enroll, distinct FactorKind, SS-6 khác gốc) ∧ SS-1/SS-12 (→sender byte-perfect, `amount+min_ada`).
 - **Finalize** — SS-2 (`now≥deadline`, cận-dưới) ∧ SS-4 (consent nếu ≥ large_threshold, trừ đích ngoài-Phoenix) ∧ SS-5′/SS-12 (→receiver byte-perfect, `amount+min_ada`).
-- **Freeze** — SS-8 (`now<deadline` ∧ guardian-sig neo anchor) → `frozen:=true`.
-- **ResolveFreeze** — SS-8′ (guardian-quorum m-of-n HOẶC `now≥freeze_deadline`) → hoàn sender byte-perfect.
-- **ReclaimTimeout** — SS-11 (`now≥reclaim_deadline ∧ ¬consent`) → sender byte-perfect.
-- **Accept** — SS-9′ (verify controller-sig `receiver_commit` qua anchor, chỉ set cờ, mọi field khác bất-biến).
+- **Freeze** — SS-8 (`now<deadline` ∧ guardian-sig neo anchor) → `frozen:=true`. **KHÔNG đóng hòm.**
+- **ResolveFreeze** — SS-8′ (guardian-quorum TỔNG TRỌNG-SỐ ≥ threshold, I-GUARD-WEIGHT — KHÔNG đếm m-of-n — HOẶC `now≥freeze_deadline`) → hoàn sender byte-perfect.
+- **ReclaimTimeout** — SS-11 (`now≥reclaim_deadline ∧ ¬consent ∧ amount≥large_threshold` — CHỈ khoản lớn, xem §2.2) → sender byte-perfect.
+- **Accept** — SS-9′ (verify controller-sig `receiver_commit` qua anchor, chỉ set cờ, mọi field khác bất-biến). **KHÔNG đóng hòm.**
 
 Định-lý T-SS-1..3 (§7) với 3 tiền-đề (§6).
 
