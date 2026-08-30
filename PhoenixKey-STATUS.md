@@ -2,7 +2,7 @@
 
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
-> Cập nhật: 2026-08-12. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy.
+> Cập nhật: 2026-08-13. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy. Đợt 2026-08-13: gỡ khẳng định sai "sinh-trắc Secure Enclave đủ chống trùng người" khỏi bộ spec (8 chỗ / 6 file) và ghi lại đúng mức rủi-ro duy-nhất-người (Anchorme B5 + Knowme B5).
 
 ---
 
@@ -10,12 +10,12 @@
 
 | Module | Nền đã chạy được | Blocker chính | Production |
 |---|---|---|---|
-| **Anchorme** | validator `taad` Design-2 + **PC** (uniqueness anchor, đã nối) + **PoP-bind** (did tự chứng, đã nối) — CID-1 ĐÃ ĐÓNG cả same- và cross-entity; resolver W3C; register metadata-6789 | DeviceDID; resolve-by-hash | GO custody cho lỗ CID-1 (đóng 2026-08-12); NO-GO tổng-thể vẫn treo ở DeviceDID + resolve-by-hash |
+| **Anchorme** | validator `taad` Design-2 + **PC** (uniqueness anchor, đã nối) + **PoP-bind** (did tự chứng, đã nối) — CID-1 ĐÃ ĐÓNG cả same- và cross-entity; resolver W3C; register metadata-6789 | DeviceDID; resolve-by-hash; **B5 duy-nhất-người mức NGƯỜI (chưa có gì cưỡng-chế)** | GO custody cho lỗ CID-1 (đóng 2026-08-12); NO-GO tổng-thể vẫn treo ở DeviceDID + resolve-by-hash + B5 |
 | **Rebirthme** | ví theo-DID `did_payment`, đóng-băng theo trạng-thái, guardian recovery ngưỡng+timelock, P-256 low-s, `lampnet.rs`; **`limit_meter_vault` + `did_stake` nay build được** (hash `f3be6d6d…` / `eb535cc1…`) | `did_subaddr` chưa có; **khoá thiết bị (yếu-tố-2 chi tiêu) chưa tồn tại trong mã app** | NO-GO ví-giá-trị-lớn tới khi khoá thiết bị land |
 | **Wakeme** | validator `wakeme_vault` build được (hash `8655974a…`); backend `buildGetLamp`/`submitGetLamp` là hiện thực thật | B1 engine Gen đọc-số-dư, B2 Registry consume-gate, B3 PA2 cho GetLAMP-PersonDID; **3 biến môi trường `ACTIVATION_*` rỗng ⇒ mọi lời gọi trả `501`** | NO-GO tới khi Registry + PA2 land |
 | **Feecover** | ConsumeMAGIC lõi (kế thừa) | Layer Feecover 0 dòng; B1 MAGIC-model, B2 CARP policy-id, B3 did_commit per-DID; FG-4 EpochSettle tự-vá | NO-GO tới khi B1+B2+B3 + FG-4 |
 | **Protectme** | cổng chi-trả `protectme_logic`+`protectme_payout` (39 test đối-kháng sạch, branch `feat/protectme-payout`) | 🔴 `protectme_beacon.ak` one-shot 0 dòng (chặn-merge); 2-bucket + resolver + UI chưa có; 11 quyết-định PROT-1..11 | NO-GO tới khi beacon + blocker + quyết-định |
-| **Knowme** | Mức 1+2 SD-VC có code+test, demo `/vc` (20 file / 415 test PASS) | B1 lib BBS (Mức 3), B2 LampNet gateway (lớp tài-liệu), B4 StampRecord | M1 chạy; Mức 3/tài-liệu chờ blocker |
+| **Knowme** | Mức 1+2 SD-VC có code+test, demo `/vc` (20 file / 415 test PASS) | B1 lib BBS (Mức 3), B2 LampNet gateway (lớp tài-liệu), B4 StampRecord; **B5 duy-nhất-người v1 chưa có trên `main`** | M1 chạy; Mức 3/tài-liệu chờ blocker; duy-nhất-người chưa cưỡng-chế |
 | **Easteregg** | 1 PoC Python off-chain trên Preview (3 tx-hash); **`did_pool` nay build được** (hash `9ba97ba4…`) | `did_subaddr.ak` chưa có; ZK Tầng 2 verifier chưa viết; G1/G3/G5 chưa vá | NO-GO; chỉ GO build+test Preview T1 + T3-mode-1 |
 | **Smartsend** | spec đầy đủ SS-1..12; **validator `smartsend` nay build được** (hash `9ed1b56f…`) | verifier Glint/Spectra (Phase 2); SS-11 vừa khôi phục điều kiện `amount ≥ large_threshold` (PR #23) | NO-GO; money-critical, review trước code |
 
@@ -60,7 +60,9 @@ Trạng-thái đo được trên `main` của kho Validator:
 
 ⟹ **Same-entity VÀ cross-entity collision ĐÃ ĐÓNG cùng một cơ-chế** (PoP-bind), không phải hai cơ-chế riêng. Không còn việc "nối" nào treo cho CID-1. Chi-tiết đầy-đủ + rủi-ro-còn-lại (thiếu bộ test giả-mạo chuyên-trách, không phải một đường tấn-công): `PhoenixKey-Anchorme-Math.md` §8 (T-3) / §9 (CID-1).
 
-**Blocker mở (không còn CID-1):** B2 resolve-by-hash + point-in-time V16 (backend). B3 DeviceDID `Op_create_device` (on-chain) + hw_cert endpoint (backend). B4 Full_Authority `⊑` + type-code canonical (Math v4.7).
+**Blocker mở (không còn CID-1):** B2 resolve-by-hash + point-in-time V16 (backend). B3 DeviceDID `Op_create_device` (on-chain) + hw_cert endpoint (backend). B4 Full_Authority `⊑` + type-code canonical (Math v4.7). **B5 duy-nhất-người ở mức NGƯỜI — chưa có gì cưỡng-chế** (mới ghi 2026-08-13, xem dưới).
+
+**🔴 B5 — một người vẫn tạo được nhiều PersonDID (Anchorme-Exec R8).** CID-1 đóng nghĩa là *không đúc được anchor thứ hai cho CÙNG một did-string*; nó KHÔNG có nghĩa *một người chỉ tạo được một did-string*. Một người dùng N thiết-bị vẫn đúc được N PersonDID đều hợp-lệ, không cơ-chế nào on-chain chặn. Khoá sinh trong Secure Enclave chỉ gác **mỗi thiết-bị một danh-tính** (mẫu sinh-trắc không rời máy, không có bảng đối-chiếu chéo) — **trước 2026-08-13 bộ spec ghi nhầm rằng sinh-trắc đã đủ chống trùng người, nay đã gỡ ở 8 chỗ**. Ràng-buộc một-người-một-danh-tính v1 thiết-kế nằm ở **Knowme** (neo giấy-tờ tuỳ-thân) — trạng-thái code xem mục Knowme dưới; các lớp person-level còn lại + cổng chặn production xem `PhoenixKey-Wakeme-Exec.md` §7.
 
 **Bug live đã biết:** GET `/identity/{did}/pubkey` trả 500 với user đã qua recovery (consumer: backend bên thứ 3 OriLife/AladinWork) — cần Long vá.
 
@@ -113,6 +115,8 @@ Cổng chi-trả `protectme_logic.ak`+`protectme_payout.ak` (branch `feat/protec
 **Code (verify 2026-07-09):** Mức 1 (tự-khai) + Mức 2 (xuất-trình chọn-lọc) có code+test, demo `/vc`. Evidence: `npx vitest run src/lib/sdvc/` → **20 file / 415 test PASS** (~1.2s). Con-số "135" cũ trong `SD-VC-ALGORITHM-v1.md` là snapshot lỗi-thời. Lớp tài-liệu: nền có code+test (`dossier.ts`/`fingerprint.ts`/`eciesSeal`); tiết-lộ-chọn-lọc-tài-liệu + versioning Strata + re-seal = chưa code. Mức 3 ZK (BBS+): chưa code. Query gateway (VeData): chưa code.
 
 **Blocker:** B1 lib BBS+prover (Mức 3), B2 LampNet gateway (lớp tài-liệu), B3 Glint/Spectra (VeData), B4 StampRecord Strata. **Mốc:** M1 (Mức1+2+`/vc`) chạy; M2-M7 chờ blocker.
+
+**🔴 B5 duy-nhất-người v1 — CHƯA có trên `main` (đo 2026-08-13).** Spec giao Knowme giữ bất-biến "một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID" (`PhoenixKey-Knowme-Math.md` Đ-7, I-KNOW-12..16). Đo trên `PhoenixKey-Frontend`: `src/lib/sdvc/fingerprint.ts`, `dossier.ts` và `UniquenessRegistry` **không tồn tại trên `origin/main`** — chỉ có trên nhánh CHƯA gộp `origin/claude/cccd-uniqueness-v1` (`git ls-tree -r --name-only origin/main | grep -c fingerprint` → `0`). Câu "nền lớp tài-liệu có code+test (`dossier.ts`/`fingerprint.ts`)" ở đoạn trên đo trên nhánh đó, không phải `main`. ⟹ **hôm nay không có gì cưỡng-chế duy-nhất-người**, kể cả ở tầng ứng-dụng. Đây là mặt còn lại của Anchorme B5.
 
 ## Easteregg
 
