@@ -39,7 +39,7 @@ Module **Smartsend** là lớp **gửi-có-bảo-vệ (opt-in)** của PhoenixKe
 | **Factor Cancel cùng gốc seed** | 🟡 | SS-6/SSR-4/I-CURVE-5 buộc khác gốc + neo anchor-enroll; cần enforce ở builder |
 | **Kẹt khoản lớn (deadlock)** | ⚪ (đóng bằng thiết-kế) | ReclaimTimeout (SS-11) hoàn sender khi quá-hạn không consent |
 | **Freeze grief (guardian khoá tiền vô-hạn)** | ⚪ (đóng bằng thiết-kế) | SS-8′: guardian-quorum theo TỔNG trọng-số (I-GUARD-WEIGHT) hoặc `freeze_deadline` auto-hoàn sender |
-| **Factor bối-cảnh giả (ảnh AI)** | 🟡 | Spectra liveness + Glint anti-replay ZK, bind escrow-ref (chờ VeData) |
+| **Factor bối-cảnh giả (ảnh AI)** | 🔴 (chưa có lớp giảm-thiểu chạy được) | Lớp *phân-tích* (liveness / chống ảnh dựng) nay thuộc **Spectra** (LampNet) sau founder lock 2026-07-28 (`Glint-Math.md:21`, `:261`) — PhoenixKey chưa đo được đặc-tả Spectra nào. Lớp *proof* thuộc **Glint**: **P1**+**P6** bind escrow-ref (`Glint-Math.md:101`, `:105`), nhưng `glint-core` tự khai "deterministic (non-ZK)" (`glint-core/src/lib.rs:3-12`) và P6 chế-độ-chặn ngoài phạm vi v0.4.2 (`Glint-Math.md:167`). Bản đầu chỉ có guardian-factor che rủi ro này. |
 | **Double-satisfaction / redirect / minADA rò** | ⚪ (đóng bằng thiết-kế) | SS-7′ đếm input==1 + SS-5′/SS-12 ép Σ→receiver==amount+min_ada byte-perfect |
 | **`window`=0 vô-hiệu-hoá veto qua "2-bên-thoả"** | ⚪ (đóng bằng thiết-kế) | SS-10 sàn cứng `min_window_floor`, chỉ nới rộng |
 
@@ -49,7 +49,9 @@ Module **Smartsend** là lớp **gửi-có-bảo-vệ (opt-in)** của PhoenixKe
 
 - **M1 (dựng):** `smartsend_escrow.ak` (7 đường: Open/Cancel/Accept/Finalize/Freeze/ResolveFreeze/ReclaimTimeout) theo bất-biến SS-1..12 + SSR-4 hợp-nhất; builder Open/Cancel/Accept/Finalize/ResolveFreeze/ReclaimTimeout + UI công-tắc; enforce I-CURVE-5 ở builder.
 - **M2 (phụ-thuộc):** chờ/đồng-bộ anti-drain `limit_meter.ak` (Rebirthme) — nền chống-trộm.
-- **M3 (bối-cảnh):** verifier Glint + Spectra factor bối-cảnh (VeData) cắm vào `unlock_policy`, public-input bind escrow-ref.
+- **M3 (bối-cảnh) — tách hai chủ, cả hai đều CHƯA lên lịch được:**
+  - **M3a — Spectra (LampNet):** lớp phân-tích liveness / chống ảnh dựng. Vai này rời Glint từ 2026-07-28 (`Glint-Math.md:21`, `:261`); phía PhoenixKey **chưa có đặc-tả Spectra nào để dẫn-chiếu** ⇒ mục chờ [CẦN CHỐT-SS-SPECTRA].
+  - **M3b — Glint (VeData):** verifier **P1**+**P6** bind escrow-ref cắm vào `unlock_policy`. **Chặn**: `glint-core` mới là tầng tất-định, không mạch/prover/verifier (`glint-core/src/lib.rs:3-12`); sổ tra `circuit_id` chưa tồn tại nên verifier chưa reject được circuit treo (`Glint-Math.md:197`); `domain_tag` của P6 còn `[PENDING-DECISION]` (`Glint-Math.md:164`).
 
 ---
 
@@ -59,7 +61,7 @@ Module **Smartsend** là lớp **gửi-có-bảo-vệ (opt-in)** của PhoenixKe
 2. **Thứ-tự với anti-drain** — Smartsend land sau khi `limit_meter.ak` xong, hay song-song (chấp-nhận chống-trộm hở tạm tới khi anti-drain có)?
 3. **`window` mặc-định + `min_window_floor` + `reclaim_deadline`** — chốt giá-trị (24/48/72h + sàn cứng + khoảng quá-hạn)?
 4. **`freeze_deadline`** — chốt khoảng-thời-gian tương-đối lúc Freeze (vd 30 ngày) trước khi auto-hoàn sender?
-5. **Factor bối-cảnh ZK** — ưu-tiên Glint (VeData) sớm hay để guardian-factor đủ cho bản đầu?
+5. **Factor bối-cảnh ZK** — câu hỏi đã đổi hình sau founder lock Glint 2026-07-28 (`Glint-Math.md:21`): năng lực "phát hiện ảnh dựng / còn sống / đúng người" **không còn chủ ở phía VeData-Glint**, nó thuộc **Spectra** (LampNet) mà PhoenixKey chưa đo được đặc-tả nào (`Glint-Math.md:261`). Hai việc cần anh chốt: (a) đặt hàng Spectra qua kênh nào, ràng buộc nghiệm thu ra sao; (b) trong lúc chờ, Smartsend chỉ chạy với guardian-factor + SecondDevice — chấp nhận `ContextZk` treo ở mức interface-contract, hay hoãn cả `ContextZk` khỏi `unlock_policy` bản đầu?
 
 ---
 

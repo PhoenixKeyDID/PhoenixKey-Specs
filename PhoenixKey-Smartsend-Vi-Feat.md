@@ -128,7 +128,10 @@ Nếu nghi khoản gửi là do bị chiếm khoá, guardian **treo** hòm ký-q
 
 - **Bật-trước-khi-mất-khoá.** Smartsend chỉ cứu được khoản gửi SAU khi bạn đã bật + cài yếu-tố huỷ. Bật sau khi khoá đã lộ không cứu được khoản đã đi — đây là giới-hạn bản-chất của mọi cơ-chế huỷ-trong-cửa-sổ, không phải lỗi thiếu tính-năng.
 - **Chống-trộm của Smartsend dựa lớp anti-drain** của module Rebirthme làm nền — hai lớp bổ-trợ nhau: anti-drain giới-hạn thiệt-hại nếu huỷ không kịp, Smartsend cho cửa-sổ để huỷ trước. Đừng coi Smartsend là lá chắn chống-trộm đủ một mình tách rời khỏi nền đó.
-- **Yếu-tố bối-cảnh-ZK (khuôn mặt / ảnh-bí-mật / vị-trí)** dựa hai dịch-vụ nội-bộ của đội VeData: **Glint** (sinh bằng-chứng ZK cho khuôn mặt/ảnh-bí-mật/vị-trí thiết-bị, chứng minh đúng người mà không lộ dữ-liệu gốc) và **Spectra** (kiểm tra "còn sống, không phải phát lại" — liveness/anti-replay — để chặn dùng ảnh/video giả hoặc dùng lại một bằng-chứng cũ) — lớp này độc-lập, có thể dùng guardian-factor trước khi VeData sẵn-sàng.
+- **Yếu-tố bối-cảnh-ZK (khuôn mặt / ảnh-bí-mật / vị-trí) HÔM NAY CHƯA CHẠY ĐƯỢC** — và phải nói rõ vì nó cần hai phần của hai đội khác nhau, không phải một:
+  - **Phần "nhìn và phán-đoán"** — người thật đang ở đây, không phải ảnh dựng bằng AI, không phải video phát lại — nay thuộc **Spectra** (LampNet). Vai này **đã rời Glint** từ 2026-07-28 (`Glint-Math.md:21`, `:261`), và phía PhoenixKey **chưa có đặc-tả Spectra nào** để dẫn-chiếu.
+  - **Phần "chứng minh mà không lộ dữ-liệu gốc"**, kèm gắn-cứng bằng-chứng vào đúng khoản tiền đang huỷ — thuộc **Glint** (VeData). Phần này Glint có vai đúng, nhưng thư-viện `glint-core` hiện mới là tầng tất-định, **chưa có mạch ZK, chưa có bên sinh và bên kiểm bằng-chứng** (`glint-core/src/lib.rs:3-12`).
+  - **Hệ-quả trung-thực:** đừng đọc "yếu-tố khuôn mặt" như một tính-năng đang có. Bản đầu của Smartsend chạy bằng **guardian-factor** (và yếu-tố thiết-bị-thứ-hai); lớp bối-cảnh-ZK là phần thêm về sau, không phải điều-kiện để Smartsend hoạt-động.
 - **Guardian Freeze cho hòm ký-quỹ** dùng chung hạ-tầng guardian của Rebirthme; gỡ-treo cần nhóm-đồng-thuận, không phải một guardian đơn-lẻ.
 
 **Nền tái-dùng:** hạ-tầng ví theo-DID `did_payment`, guardian-recovery theo ngưỡng + timelock + Cancel của module Rebirthme; Smartsend cắm lên nền này, không dựng lại.

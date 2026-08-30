@@ -348,7 +348,7 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 | K-2 | **Per-context ref alias** (giống external-nullifier) để hai bên nhận không đối-chiếu "cùng hồ-sơ". | Trung — tăng riêng-tư, tăng phức-tạp SDK. | maintainer (§10.2) |
 | K-3 | **Archetype StampRecord cho "notarization Strata head"** (neo qua Stamp). Knowme KHÔNG tự thêm archetype (SSoT của Stamp). | Chặn đường anchor qua Stamp. | đối-chiếu 21 archetype Stamp (§12) |
 | K-4 | **Đường issued cho DocumentClaim** (cơ-quan ký ảnh) — phase này hay sau. | Lộ-trình tích-hợp cơ-quan. | maintainer (§10.6) |
-| K-5 | **Nơi chạy Spectra/Glint cho ảnh nhạy-cảm** (on-device vs Splash-in-TEE) — phụ-thuộc hợp-đồng VeData. | Rủi-ro gửi plaintext ra ngoài. | maintainer + VeData (§10.5, §12) |
+| K-5 | **Nơi chạy Spectra cho ảnh nhạy-cảm** (on-device vs Splash-in-TEE) — phụ-thuộc hợp-đồng VeData. Glint không nằm trong câu hỏi này: nó không xử-lý ảnh thô; P-del/P-venc cho Knowme đang TREO ở tầng circuit — verifier phải reject `circuit_id` treo (Glint-Math.md:196) — chưa dùng được bất-kể chạy on-device hay TEE. | Rủi-ro gửi plaintext ra ngoài. | maintainer + VeData (§10.5, §12) |
 
 → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
 

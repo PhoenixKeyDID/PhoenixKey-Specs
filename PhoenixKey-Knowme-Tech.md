@@ -33,14 +33,14 @@
      ┌──────────┼───────────────────────────────────────────────────────┐
      ▼          ▼                         ▼                              ▼
   LampNet    Strata chain [SPEC]     VeData qua Stamp/Query [SPEC]    Cardano L1 (metadata-6789)
-  ECIES      version + state_root     Glint/Spectra (verify),         anchor credential / ZkAnchor
+  ECIES      version + state_root     Spectra (verify ảnh),           anchor credential / ZkAnchor
   ciphertext field-Merkle proof       Query (read gateway D9+DP)      (chỉ HASH, không PII)
   content CID                         Stamp → anchor_request → Mosaic
 ```
 
 **Phân định ranh-giới cốt-lõi (không chồng lấn, không bỏ sót):**
 - **PhoenixKey (module Knowme) LÀM:** đóng-gói credential (envelope), phân-giải khoá (resolve DID/issuer), **tiết-lộ chọn-lọc** (selective disclosure), lớp tài-liệu (commit + seal + version + re-seal), neo hash on-chain.
-- **VeData LÀM:** catalog các loại giấy-tờ (VC types) + issuer thật, cùng các module Stamp/Query/Glint/Spectra. Knowme **dẫn-chiếu**, không tự dựng, không gọi thẳng Mosaic (chỉ qua Stamp intake).
+- **VeData LÀM:** catalog các loại giấy-tờ (VC types) + issuer thật, cùng các module Stamp/Query/Spectra. **Glint** là thư-viện ZK-proof dùng chung toàn hệ MagicLamp (đặt tại VeDataIO, Glint-Math.md:21) — Knowme dùng P2/P3/P4 biến-thể-kiểm-được-on-chain + P-del (KYB) + P-venc (tiết-lộ có kiểm-soát); P-del/P-venc đang TREO ở tầng circuit, chưa dùng được (Glint-Math.md:196,253). Knowme **dẫn-chiếu**, không tự dựng, không gọi thẳng Mosaic (chỉ qua Stamp intake).
 
 ### 1.2 Bất-biến kiến-trúc (load-bearing)
 
@@ -196,7 +196,7 @@ Neo UI: `app/verify/page.tsx` (32KB, 5 bước), `components/vc/{DeclareForm,ui}
 | **M6** | Mức 3 ZK (BBS lib + predicate + ZkAnchor + UI) | lib BBS + khoá BBS issuer |
 | **M7** | Query read gateway (D9+DP+audit) | VeData Query |
 
-**Phụ-thuộc-chặn quan-trọng:** M5/M7 phụ-thuộc hợp-đồng liên-module — Contract PhoenixKey↔VeData v0.2.0 chỉ cấp resolve DID; anchor-qua-Stamp + Query-read là intake **công-khai** của VeData (thoả hôm nay); nhưng Glint/Spectra **chủ-động** cần VeData mở hợp-đồng hoặc chạy on-device (Knowme-Feat-Math §12).
+**Phụ-thuộc-chặn quan-trọng:** M5/M7 phụ-thuộc hợp-đồng liên-module — Contract PhoenixKey↔VeData v0.2.0 chỉ cấp resolve DID; anchor-qua-Stamp + Query-read là intake **công-khai** của VeData (thoả hôm nay); nhưng Spectra **chủ-động** (ảnh) — Spectra thuộc **LampNet**, không thuộc VeData (`Glint-Math.md:21`) — cần hợp-đồng với LampNet hoặc chạy on-device (Knowme-Feat-Math §12). Glint (P-del/P-venc cho Knowme) không phụ-thuộc hợp-đồng — nó đang TREO ở tầng circuit, verifier PHẢI reject `circuit_id` treo (Glint-Math.md:196), nên hôm nay chưa dùng được bất-kể trạng-thái hợp-đồng.
 
 → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)
 

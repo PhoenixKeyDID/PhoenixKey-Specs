@@ -126,8 +126,14 @@ g_{\mathrm{ad}} = \begin{cases} 0.7 & \text{anti-drain bật} + \text{limit ch�
 $$
 
 $$
-\mathrm{indep}(f) \Leftrightarrow (\text{PersonDID trên enclave KHÁC lineage/attestation})\ \vee\ (\text{kênh không-seed: VeData-Glint / EmailOracle})
+\mathrm{indep}(f) \Leftrightarrow (\text{PersonDID trên enclave KHÁC lineage/attestation})\ \vee\ (\text{kênh không-seed: VeData-Glint — P-thr quorum ẩn danh / EmailOracle})
 $$
+
+**Cập nhật 2026-08-30:** nhánh VeData-Glint dẫn từ Glint P-thr (`Glint-Math.md:199`), hiện
+`[CONSTRUCTION-PENDING]` — verifier PHẢI reject `circuit_id` treo (`Glint-Math.md:196-197`) ⇒
+**KHÔNG chứng thực được hôm nay**. Theo quy tắc mặc định-bảo-thủ ở dưới ($\mathrm{indep}$ không
+chứng thực được ⇒ $\bot$), chọn nhánh VeData-Glint LUÔN rơi về $\bot$ (KHÔNG được chiết khấu
+premium qua kênh này) cho tới khi P-thr hoàn thiện construction.
 
 **Rigor note (2026-07-12):** khác các vị-từ khác trong tài-liệu này (vd $\mathrm{expected}(c,L,\pi)$
 ở §7, định-nghĩa đầy-đủ trên kiểu dữ-liệu đã khai ở §1), $\mathrm{indep}(f)$ ở trên **KHÔNG** phải

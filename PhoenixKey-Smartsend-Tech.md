@@ -1,6 +1,6 @@
 # PhoenixKey — Smartsend — Kỹ thuật (Tech)
 
-> **Module:** Smartsend (gửi-có-bảo-vệ). **Loại doc:** Kỹ-thuật cho implementer (đội on-chain / đội backend / Core rust_core / VeData-Glint). **Ngày:** 2026-07-09.
+> **Module:** Smartsend (gửi-có-bảo-vệ). **Loại doc:** Kỹ-thuật cho implementer (đội on-chain / đội backend / Core rust_core / VeData-Glint / Spectra-LampNet). **Ngày:** 2026-07-09.
 > **Đối tượng đọc:** kỹ-sư triển-khai. HOW: kiến-trúc, datum/redeemer CBOR, điều-kiện tx, luồng e2e, ranh-giới giao-việc, thứ-tự deploy, test.
 >
 > **Ranh giới (không chồng lấn, không bỏ sót):** module CHỈ đặc-tả hòm ký-quỹ `smartsend_escrow` (Open/Cancel/Accept/Finalize/Freeze/ResolveFreeze/ReclaimTimeout). **Cổng chi `did_payment`, guardian-recovery, anti-drain `limit_meter`** thuộc module Rebirthme — chỉ dẫn-chiếu. Xem [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md) cho bất-biến; [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md) cho ví/guardian/anti-drain; [PhoenixKey-Math.md](./PhoenixKey-Math.md) §10/§11 cho TAAD.
@@ -17,10 +17,10 @@
                 │ FFI                                        │ ZK proof
                 ▼                                            ▼
 ┌──────────────────────────────┐              ┌────────────────────────────┐
-│ PhoenixKey-Validator (Aiken) │              │  VeData / Glint (ZK)       │
-│  smartsend_escrow.ak           │◄── verify ───┤  Spectra + Glint context   │
-│  did_payment.ak (nạp nguồn)   │  ref-input   │  proof (FaceMatch/Geo/...)  │
-│  taad_logic.ak (guardian)     │◄─────────────┤                            │
+│ PhoenixKey-Validator (Aiken) │              │ Spectra (LampNet) off-chain│
+│  smartsend_escrow.ak           │◄── verify ───┤ liveness / ảnh dựng      │
+│  did_payment.ak (nạp nguồn)   │  ref-input   │ Glint (VeData): P1+P6     │
+│  taad_logic.ak (guardian)     │◄─────────────┤ bind escrow-ref §5.5 [CHỜ]│
 └──────────────┬───────────────┘   anchor     └────────────────────────────┘
                │ resolver / index
                ▼
@@ -92,7 +92,7 @@ Smartsend ĐỌC (không sửa): `controller_pkh` (verify nguồn nạp + `recei
 `build Open` → tiêu UTxO `did_payment` (controller ký) → escrow UTxO với `open_slot=tip` (ép nằm trong validity-range tx Open, SSR-11), `veto_deadline=open_slot+window` (`window ≥ min_window_floor`, SSR-10), `reclaim_deadline`, `freeze_deadline` → submit. Hết cửa-sổ, bất-kỳ ai `build Finalize` (đích cố-định →receiver, byte-perfect SS-5′) → tiền về người-nhận.
 
 ### 5.2 Đổi ý (Cancel trong cửa-sổ)
-`build Cancel` với `proofs` đủ `factors_required`, distinct FactorKind (guardian ký / Glint ZK-proof bối-cảnh) → validator verify factor khớp anchor-enroll (SSR-4) + `now<veto_deadline` (cận-trên) → `Σ→sender==amount+min_ada` → tiền hoàn người gửi.
+`build Cancel` với `proofs` đủ `factors_required`, distinct FactorKind (guardian ký / `ContextZk`: proof Glint bind escrow-ref — CHƯA nối được, §5.5) → validator verify factor khớp anchor-enroll (SSR-4) + `now<veto_deadline` (cận-trên) → `Σ→sender==amount+min_ada` → tiền hoàn người gửi.
 
 ### 5.3 Khoản lớn (Accept trước Finalize)
 Người-nhận thấy hòm → `build Accept` (controller `receiver_commit` ký) → set `receiver_consent=true`, mọi field khác byte-perfect bất-biến (SSR-14). Hết cửa-sổ → Finalize hợp-lệ (SS-4 thoả). Không consent tới `reclaim_deadline` → `ReclaimTimeout` hoàn sender (SS-11). Đích ngoài-Phoenix (`receiver_commit==#""`): `large_threshold` không enforce on-chain được — xem giới-hạn ở [PhoenixKey-Smartsend-Vi-Feat.md](./PhoenixKey-Smartsend-Vi-Feat.md) §7.
@@ -100,8 +100,22 @@ Người-nhận thấy hòm → `build Accept` (controller `receiver_commit` ký
 ### 5.4 Nghi trộm (Freeze → ResolveFreeze)
 Guardian `build Freeze` trong cửa-sổ-veto → escrow `frozen:=true` → chặn Finalize. Giải-Freeze qua `ResolveFreeze`: guardian-quorum (Σ trọng-số ≥ threshold trên `anchor.guardians`) xử-lý, HOẶC tới `freeze_deadline` không resolve → auto-hoàn sender permissionless (SS-8′, chống grief kẹt vĩnh-viễn).
 
-### 5.5 ZK-context bind escrow (Phase 2, VeData/Glint) — SSR-12
-Public-input proof Glint (FaceMatch/SecretSelfie/DeviceGeo) PHẢI gồm `blake2b_256(own_ref ‖ escrow_datum_hash)` — proof gắn-cứng vào escrow-UTxO đang spend, validator ép public-input khớp escrow đó. Spectra off-chain đảm-bảo liveness + anti-replay (nonce theo escrow) — chống dùng lại 1 proof cho nhiều lệnh Cancel.
+### 5.5 ZK-context bind escrow (Phase 2) — SSR-12
+
+**Hai chủ khác nhau, KHÔNG gộp làm một:**
+
+- **Lớp phân-tích (off-chain) — chủ là Spectra (LampNet).** "Người còn sống, không phải phát-lại, không phải ảnh dựng bằng AI". Vai này **đã rời Glint** theo founder lock 2026-07-28 (`Glint-Math.md:21`); chính Glint ghi rằng tham-chiếu "Glint phát hiện media tổng hợp" ở Smartsend phải re-home sang Spectra (`Glint-Math.md:261`).
+- **Lớp chứng-minh không tiết-lộ + bind escrow — chủ là Glint (VeData).** Public-input PHẢI gồm `blake2b_256(own_ref ‖ escrow_datum_hash)` — proof gắn-cứng vào escrow-UTxO đang spend, validator ép public-input khớp escrow đó. Primitive đúng tên: **P1** knowledge-of-opening (`Glint-Math.md:101`) + **P6** nullifier chống dùng lại một proof cho nhiều lệnh Cancel (`Glint-Math.md:105`).
+
+**Tên API `FaceMatch` / `SecretSelfie` / `DeviceGeo` KHÔNG tồn tại** — đó là API của vai media-authenticity đã bị gỡ khỏi Glint. Catalog primitive Glint (`Glint-Math.md:95-207`) gồm P1 commit · P2 range · P3 membership/non-membership · P4 quan-hệ tuyến-tính · P6 nullifier, cộng P8 zkML **TREO** và bốn primitive `[CONSTRUCTION-PENDING]` (P-thr / P-venc / P-del / P-vk). **Không primitive nào phát-biểu mệnh-đề về CON NGƯỜI** (đang sống / là chính chủ / khớp khuôn mặt) — nên phần đó phải nằm ở Spectra, không nằm ở Glint.
+
+**Hôm nay CHƯA nối được — trạng-thái đo được, không phải dự-đoán:**
+
+1. `glint-core` (`VeDataIO/Glint/glint-core/`) tự khai **"deterministic (non-ZK)"** (`glint-core/src/lib.rs:3-12`): có content-anchor, `circuit_id` tự-chứng-thực, tách miền `DS_TAG`, phong-bì proof CBOR, khung conformance — **KHÔNG mạch, KHÔNG prover, KHÔNG verifier**. 43 test `cargo test` xanh, nhưng xanh ở phần tất-định.
+2. Chưa có sổ tra `circuit_id` (VeData-Registry) để verifier consult; mọi verifier PHẢI **reject** proof mang `circuit_id` treo (`Glint-Math.md:197`).
+3. **P6 chế-độ-chặn NGOÀI phạm vi quy-phạm v0.4.2** (`Glint-Math.md:167`), `domain_tag` còn `[PENDING-DECISION]` (`Glint-Math.md:164`) ⇒ phần chống-replay bằng nullifier chưa đặc-tả được.
+
+⇒ `ContextZk` giữ nguyên ở mức interface-contract (`PhoenixKey-Smartsend-Interfaces.md` §1, hàm `glint_verify`), **KHÔNG đưa vào `unlock_policy` production** cho tới khi ba mục trên đóng. Xem hai mục chờ [CẦN CHỐT-SS-SPECTRA] / [CẦN CHỐT-SS-NULLIFIER] ở [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md) §9.
 
 ---
 
@@ -124,7 +138,8 @@ Backend chỉ index + thông-báo; KHÔNG giữ khoá, KHÔNG ký thay.
 | **đội on-chain** | `smartsend_escrow.ak` (SS-1..12, SSR-4) — 7 đường (Open/Cancel/Accept/Finalize/Freeze/ResolveFreeze/ReclaimTimeout). Dùng lại helper `anchor_controller_ok` + guardian-sig từ `auth_logic`/`taad_logic` (KHÔNG sao-chép). **KHÔNG sửa `did_payment.ak` mode-1.** |
 | **đội backend** | index hòm mở + cửa-sổ-veto/reclaim/freeze + trạng-thái consent; thông-báo Accept; resolve đích. |
 | **Core (rust_core/Flutter)** | builder Open/Cancel/Accept/Finalize/ResolveFreeze/ReclaimTimeout; công-tắc Smartsend ở màn Gửi; màn Huỷ + Đồng-ý; hiển-thị cửa-sổ. Enforce factor Cancel khác gốc seed (I-CURVE-5, dùng chung Rebirthme). |
-| **VeData / Glint (ZK)** | factor bối-cảnh cho Cancel (FaceMatch/SecretSelfie/DeviceGeo) — Spectra phân-tích + Glint ZK-proof bind escrow-ref (§5.5, SSR-12) + verifier Aiken cắm vào `unlock_policy`. |
+| **Spectra (LampNet)** | lớp phân-tích off-chain cho factor bối-cảnh: liveness / chống phát-lại / chống ảnh dựng bằng AI. Vai này rời Glint từ founder lock 2026-07-28 (`Glint-Math.md:21`, `:261`). **Chưa có đặc-tả Spectra nào đo được ở phía PhoenixKey** — mục chờ [CẦN CHỐT-SS-SPECTRA] ([PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md) §9). |
+| **VeData / Glint (ZK)** | lớp chứng-minh không tiết-lộ: **P1** knowledge-of-opening + **P6** nullifier (`Glint-Math.md:101`, `:105`), public-input bind escrow-ref (§5.5, SSR-12), verifier Aiken cắm vào `unlock_policy`. **Chưa cắm được**: `glint-core` tự khai "deterministic (non-ZK)" (`glint-core/src/lib.rs:3-12`), sổ tra `circuit_id` chưa tồn tại (`Glint-Math.md:197`). |
 | **Rebirthme** | cổng chi `did_payment` (nạp nguồn), guardian (factor + Freeze/ResolveFreeze quorum), anti-drain `limit_meter` (nền chống-trộm) — module này CHỈ dẫn-chiếu, KHÔNG dựng lại. |
 
 ---
@@ -133,13 +148,14 @@ Backend chỉ index + thông-báo; KHÔNG giữ khoá, KHÔNG ký thay.
 
 **Trình-tự onchain:**
 1. **`smartsend_escrow.ak`** — dựng hòm + 7 đường (Open/Cancel/Accept/Finalize/Freeze/ResolveFreeze/ReclaimTimeout) theo bất-biến SS-1..12 + SSR-4 đã hợp-nhất ở [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md) §4.
-2. **Verifier Glint** cho factor bối-cảnh (VeData) cắm vào `unlock_policy`, public-input bind escrow-ref (§5.5).
+2. **Verifier Glint** cho factor bối-cảnh (VeData) cắm vào `unlock_policy`, public-input bind escrow-ref (§5.5) — **CHẶN**: chưa có mạch/prover/verifier trong `glint-core` (`glint-core/src/lib.rs:3-12`), chưa có sổ tra `circuit_id` (`Glint-Math.md:197`). Bước này KHÔNG lên lịch được cho tới khi hai thứ đó có.
 
 **Phụ-thuộc ngoài:**
 - **Anti-drain `limit_meter.ak`** (Rebirthme) — chống-trộm SS-6/T-SS-3 phụ-thuộc; khuyến-nghị land trước hoặc song-song.
 - **Guardian factor + Freeze/ResolveFreeze** — dựa guardian-recovery + quorum theo TỔNG trọng-số (I-GUARD-WEIGHT) từ `anchor.guardians`.
 - **Enroll-set factor trong anchor** (SSR-4) — schema thuộc Core Anchorme/Validator.
-- **Spectra/Glint** (VeData) cho factor bối-cảnh ZK.
+- **Spectra** (LampNet) cho lớp phân-tích liveness/ảnh dựng — **chưa có chủ đặc-tả ở phía PhoenixKey** ([CẦN CHỐT-SS-SPECTRA]).
+- **Glint** (VeData) cho lớp proof P1+P6 bind escrow-ref — chờ mạch/verifier thật + sổ tra `circuit_id` ([CẦN CHỐT-SS-NULLIFIER] cho phần nullifier).
 
 ---
 
@@ -161,7 +177,7 @@ Backend chỉ index + thông-báo; KHÔNG giữ khoá, KHÔNG ký thay.
 ## 10. Ghi-chú giới-hạn thiết-kế
 
 - **Chống-trộm phụ-thuộc anti-drain**: SS-6/T-SS-3 dựa `limit_meter.ak` (Rebirthme) làm nền — Smartsend không phải lá-chắn chống-trộm đủ một mình khi thiếu lớp đó; xem tiền-đề (c) ở [PhoenixKey-Smartsend-Math.md](./PhoenixKey-Smartsend-Math.md) §6.
-- **Factor bối-cảnh ZK** phụ-thuộc verifier Glint + Spectra (VeData) — bind escrow-ref theo §5.5 trước khi đưa vào `unlock_policy` production.
+- **Factor bối-cảnh ZK chưa dùng được**, và lý do nằm ở HAI nhà khác nhau: lớp phân-tích (liveness / ảnh dựng) nay thuộc **Spectra** (LampNet) mà PhoenixKey chưa đo được đặc-tả nào; lớp proof (**P1**+**P6**, bind escrow-ref §5.5) thuộc **Glint** (VeData) mà `glint-core` còn tất-định, chưa có mạch/prover/verifier (`glint-core/src/lib.rs:3-12`) và chưa có sổ tra `circuit_id` (`Glint-Math.md:197`). Không đưa `ContextZk` vào `unlock_policy` production trước khi cả hai đóng.
 - **I-CURVE-5** (factor khác gốc seed) phải enforce ở builder — ràng-buộc dùng chung với Rebirthme.
 - **Blocker ngoài**: enroll-set factor trong `TAADDatum` (Core Anchorme/Validator), guardian ResolveFreeze quorum (nhánh mới trên guardian-recovery hiện có).
 
