@@ -36,7 +36,7 @@
 
 > 🔴 **CỔNG GO/NO-GO (đọc trước khi duyệt bật production):** validator an-toàn tiền-tệ nhưng **KHÔNG được mở Wakeme-PersonDID trên production tới khi uniqueness person-level + Registry-chuẩn land.** Lý do: PersonDID **giả-mạo được ở tầng neo-anchor** (did-string đúc anchor bất-kỳ, HW_Key P-256 không verify on-chain — KHÔNG phải lỗ sinh-trắc) + cổng chống-wash chưa tồn tại → kẻ tấn-công rút-ròng nhiều suất D. Enterprise/Org/Service DID (có parent-sig) KHÔNG dính lỗ này. Xem §7.
 
-→ Trạng-thái & tiến-độ hiện tại: [Wakeme STATUS](https://github.com/PhoenixKeyDID/PhoenixKey-Anchorme-Specs/blob/main/PhoenixKey-STATUS.md#wakeme)
+→ Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
 
 ---
 
