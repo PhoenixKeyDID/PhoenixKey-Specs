@@ -1607,7 +1607,7 @@ I-TIER5-CANCEL-3 [N]: Cancel Option A (knowledge factors as cancel proof)
 ## §12 PersonDID — Root of Trust [N]
 
 ```
--- Relationship to TAADDatum: PersonDID is the canonical conceptual entity.
+-- Relationship to TAADDatum: PersonDID is the conceptual entity that `TAADDatum` encodes on-chain (§2).
 -- TAADDatum (§10.1) is its on-chain Plutus datum. All PersonDID state lives in TAADDatum.
 -- Fields marked with (*) are stored in TAADDatum on-chain; others are off-chain (LampNet).
 
@@ -2592,7 +2592,7 @@ The on-chain state post-erasure is `TombstoneRecord = {record_id = H(content_r),
 
 ## §29 AppTokenEconomics Integration [N]
 
-> **Reconciliation with MAGIC AppEconomics v2.1 (canonical).** The reward
+> **Reconciliation with MAGIC AppEconomics v2.1.** The reward
 > COMPUTATION engine is **MagicLampNetwork/MAGIC AppEconomics v2.1**:
 > `computeW = V_d × Φ_util × Φ_users × Φ_dispute × κ_tier × Φ_age`, with
 > iterative distribution capped at `MAX_SINGLE_APP_REWARD_BPS` (30%). That

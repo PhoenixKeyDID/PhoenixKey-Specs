@@ -33,7 +33,7 @@ Với người vận hành pool (SPO — Stake Pool Operator): tạo pool mới,
 `[CẦN CHỐT]` — đây là điểm cần cân nhắc kỹ trước khi triển khai: khoá cold của pool theo thông lệ ngành khuyến nghị giữ offline (air-gapped) vì phạm vi ảnh hưởng lớn hơn hẳn một ví cá nhân — lộ khoá cold của pool ảnh hưởng **toàn bộ người uỷ thác vào pool đó**, không chỉ chủ pool. Bỏ air-gap vật lý phải được bù bằng lớp bảo vệ tương đương trên PhoenixKey (Secure Enclave non-extractable + đa yếu tố khi ký thao tác pool + phát hiện jailbreak/root chặn cứng thao tác pool trên máy nghi ngờ + xoay khoá nhanh khi nghi lộ) — không đơn thuần "bỏ air-gap cho tiện". Thiết kế chi tiết mức bảo vệ này thuộc Math/Tech doc kế tiếp, chưa chốt ở bản Feat này.
 
 ### 2.4 Vai trò ký cho SRCL
-SRCL (**Staking Reward Contribution Launch**) là cơ chế ra mắt của hệ sinh thái MagicLamp: người đang uỷ thác ADA đóng góp **phần thưởng staking** (không phải vốn gốc) cho một đợt Launch, nhận lại LAMP theo tỉ lệ đóng góp. Cơ chế + kinh tế + pháp lý của SRCL là **canonical tại LAMP**, xem [LAMP/SPEC/SRCL-Spec-Vi.md](../../LAMP/SPEC/SRCL-Spec-Vi.md) — tài liệu này KHÔNG lặp lại, chỉ mô tả phần **PhoenixKey phải cung cấp**:
+SRCL (**Staking Reward Contribution Launch**) là cơ chế ra mắt của hệ sinh thái MagicLamp: người đang uỷ thác ADA đóng góp **phần thưởng staking** (không phải vốn gốc) cho một đợt Launch, nhận lại LAMP theo tỉ lệ đóng góp. Cơ chế + kinh tế + pháp lý của SRCL được định-nghĩa tại LAMP, xem [LAMP/SPEC/SRCL-Spec-Vi.md](../../LAMP/SPEC/SRCL-Spec-Vi.md) — tài liệu này KHÔNG lặp lại, chỉ mô tả phần **PhoenixKey phải cung cấp**:
 
 1. **Ký uỷ quyền một lần:** giao dịch nối phần ủy thác (stake credential) của bạn tới script của đợt Launch — vốn gốc (phần chi tiêu) không bị đụng, chỉ phần ủy thác.
 2. **Ký nhận LAMP theo lịch:** mỗi khi tới lượt nhận LAMP theo lịch nhả của đợt, PhoenixKey đưa ra thông báo, bạn **một chạm để duyệt** — vẫn là chữ ký tươi của chính bạn mỗi lần, KHÔNG phải PhoenixKey giữ khoá ký thay hay tự động ký không cần bạn. Trải nghiệm được rút gọn (không phải tự dựng giao dịch thủ công mỗi epoch), nhưng bất biến **non-custodial** của toàn hệ PhoenixKey giữ nguyên — không có ngoại lệ cho SRCL.
@@ -67,7 +67,7 @@ SRCL (**Staking Reward Contribution Launch**) là cơ chế ra mắt của hệ 
 
 ## Nguồn
 
-Cơ chế SRCL (canonical): `LAMP/SPEC/SRCL-Spec-Vi.md`, `LAMP/SPEC/Launch-Framework-Vi.md`.
+Cơ chế SRCL: `LAMP/SPEC/SRCL-Spec-Vi.md`, `LAMP/SPEC/Launch-Framework-Vi.md`.
 Quản trị nội bộ LAMP (để phân biệt, không phải nội dung tài liệu này): `LAMP/Governance/VotingPower/CONTRACT.md`.
 Nền tảng ví: [PhoenixKey-Rebirthme-Vi-Feat.md](./PhoenixKey-Rebirthme-Vi-Feat.md), [PhoenixKey-Rebirthme-Math.md](./PhoenixKey-Rebirthme-Math.md), [PhoenixKey-Rebirthme-Tech.md](./PhoenixKey-Rebirthme-Tech.md).
 Code nền hiện có: `PhoenixKey-Core/Enclave/rust_core/src/staking.rs`.

@@ -3,7 +3,7 @@
 > Module: **Easteregg** (các mức riêng-tư của ví Phoenix) · Loại doc: Math (toán hình-thức, cho auditor) · Ngày: 2026-07-09
 > Đối tượng đọc: auditor. Định-nghĩa hình-thức 4 mức riêng-tư, bất-biến neo dòng, chứng-minh
 > value-conservation (không in-tiền-ảo / không drain) + unlinkability (phát biểu chính xác + giới hạn).
-> Tài-liệu cùng bộ: `-Vi-Feat.md` · `-Tech.md` · `-Exec.md`. Math canonical toàn hệ: `PhoenixKey-Math.md`.
+> Tài-liệu cùng bộ: `-Vi-Feat.md` · `-Tech.md` · `-Exec.md`. Đặc-tả toán học nền: `PhoenixKey-Math.md` (không lặp lại ở đây).
 >
 > **Phân-loại (quyết-định maintainer 2026-07-09):** ví CHỈ 2 LOẠI — `Phoenix`/`Standard`
 > (`PhoenixKey-Rebirthme-Math.md §2.2`). Easteregg KHÔNG phải loại ví thứ ba — là các **mức

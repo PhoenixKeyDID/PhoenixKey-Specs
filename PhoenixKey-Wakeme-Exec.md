@@ -1,6 +1,6 @@
 # PhoenixKey — Wakeme · ĐẶC-TẢ ĐIỀU-HÀNH (cho lãnh-đạo)
 
-> **Module:** Wakeme (kích-hoạt nhận LAMP). **Loại doc:** Điều-hành. **Mô hình:** BẢN A — vest-thành-sở-hữu theo epoch (chốt 2026-07-30, Issue #67; đính-chính WakemeUsageRight + bucket `owned` 2026-07-31). **Cập nhật:** 2026-07-31.
+> **Module:** Wakeme (kích-hoạt nhận LAMP). **Loại doc:** Điều-hành. **Mô hình:** BẢN A — vest-thành-sở-hữu theo epoch (chốt 2026-07-30, Issue #67; đính-chính WakemeUsageRight + bucket `owned` 2026-07-31). **Cập nhật:** 2026-08-14.
 > **Đối-tượng đọc:** lãnh-đạo — quyết-định + lý-do + đánh-đổi + rủi-ro + lộ-trình. Chi-tiết toán/invariant: [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md). Kỹ-thuật: [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md). Người-dùng: [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md).
 >
 > Tài-liệu này KHÔNG lặp toán. Chỉ nêu điều lãnh-đạo cần để duyệt và chốt.
@@ -36,7 +36,7 @@
 
 > 🔴 **CỔNG GO/NO-GO (đọc trước khi duyệt bật production):** validator an-toàn tiền-tệ nhưng **KHÔNG được mở Wakeme-PersonDID trên production tới khi uniqueness person-level + Registry-chuẩn land.** Lý do: PersonDID **giả-mạo được ở tầng neo-anchor** (did-string đúc anchor bất-kỳ, HW_Key P-256 không verify on-chain — KHÔNG phải lỗ sinh-trắc) + cổng chống-wash chưa tồn tại → kẻ tấn-công rút-ròng nhiều suất D. Enterprise/Org/Service DID (có parent-sig) KHÔNG dính lỗ này. Xem §7.
 
-→ Trạng-thái & tiến-độ hiện tại: [Wakeme STATUS](./PhoenixKey-STATUS.md#wakeme)
+→ Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
 
 ---
 
@@ -49,7 +49,7 @@
 | **Q3** | **Epoch active → `conditional` sang bucket `owned` (sở-hữu-hẳn, trong vault); user TỰ-CHỌN: giữ vault gen MAGIC / redeem về ví / mint CARP** | (b)(d) "sở hữu" = bất-khả-forfeit, KHÔNG buộc rời vault; giữ lại → **tuổi-LAMP cao nhất → Gen lợi nhất**; (c) một-bước `OwnEpoch` thay 2-bước cưỡng-bức v4.1. | Cần field `owned` trong datum + redeemer `Redeem` (owned→ví) TUỲ-CHỌN → datum/redeemer chốt-cứng ở PA-1 (`aiken check`). |
 | **Q4** | **`MIN_MAGIC_CONSUME` = tham-số, áp cả Daily lẫn Epochy, tạm 1 MAGIC/ngày** | (c)(d) một ngưỡng thống-nhất; điều-chỉnh được theo cung-cầu về sau; không kẹt sản phẩm ở việc chốt số ngay. | Số tạm chưa tối-ưu; hàm biến-động theo cung-cầu là việc thiết-kế sau (anh chốt). |
 | **Q5** | **Self-consumption HỢP-LỆ + khuyến-khích; cổng chống-wash = chuẩn Registry + counterparty ≠ owner** | (b)(d) mỗi lượt tiêu tốn-phí → về Treasury → hệ CÓ LỢI. Cổng đúng = dịch-vụ tiêu tài-nguyên THẬT (duyệt Registry) + đối-tác tiêu ≠ chính chủ. | Đẩy trách-nhiệm chống-lạm-dụng sang chuẩn Registry — blocker Registry-team (R2). |
-| **Q6** | **D keyed per-PersonDID; 1 người = 1 PersonDID, 1 tổ-chức = 1 OrgDID** | (b) đa-địa-chỉ/đa-DID KHÔNG nhân suất. Uniqueness person-level = 2FA + Glint (VeData) + Spectra (LampNet) + MCR (OriLife). | Uniqueness person-level chưa land → hở tới khi các lớp trên vào (xem §7). Sinh-trắc-per-máy KHÔNG đủ. |
+| **Q6** | **D keyed per-PersonDID; 1 người = 1 PersonDID, 1 tổ-chức = 1 OrgDID** | (b) đa-địa-chỉ/đa-DID KHÔNG nhân suất. Uniqueness person-level = 2FA + Glint (ZK-uniqueness, VeData) + Spectra (chứng-từ, LampNet) + MCR (nhận-diện đa-đặc-điểm, OriLife), trên nền uniqueness ở tầng neo-anchor. | Uniqueness person-level chưa land → hở tới khi các lớp trên vào (xem §7). Sinh-trắc-per-máy KHÔNG đủ. **MCR còn trong danh-sách nhưng số đo 2026-08-08 nói nó chưa gánh được vai này**: chưa có luồng cho người, và ở 1:N thì trần `N*` chưa tới 1 hồ-sơ tại điểm vận-hành đo được (§7.1). Giữ hay gỡ MCR khỏi danh-sách = **Q-E**. |
 
 ---
 
@@ -63,7 +63,8 @@
 | **R4** | **Settlement mint-CARP-tự-do (nghi Terra)** | 🟢 THẤP | User trả CARP-đã-có, backing qua GreenBack. Wakeme KHÔNG mint/burn CARP/LAMP tự do. |
 | **R5** | **Keeper MVP tin system-authority** — chưa có consume-event Registry thật | 🟡 TRUNG (nợ MVP) | Chấp-nhận cho MVP; owner escape-hatch đảm bảo user luôn nhận được phần đã-kiếm. Đo idle bằng GAP (lazy). Hướng production: thay `keeper_signed` bằng provider consume-event Merkle-inclusion + Registry-bonded. |
 | **R6** | **Forfeit 1001 epoch ≈ 13.7 năm — rất dài** | 🟡 TRUNG (có chủ-đích) | Khoan-dung người tạm-nghỉ; chỉ thu phần CHƯA-kiếm (`conditional` còn lại), KHÔNG đụng LAMP đã về ví owner. **[Lãnh-đạo có thể muốn rút ngắn]** — Q-C. |
-| **R7** | **Uniqueness anchor PersonDID** — did-string đúc anchor bất-kỳ (lỗ mã-hoá) | 🔴 GATE (xem §7) | Uniqueness person-level (2FA + Glint + Spectra + MCR) + PA-2 UniquenessThread (đóng CID-1) chặn Wakeme-PersonDID production tới khi land. Org/Service DID (parent-sig) không dính. |
+| **R7** | **Uniqueness anchor PersonDID** — did-string đúc anchor bất-kỳ (lỗ mã-hoá) | 🔴 GATE (xem §7) | Uniqueness person-level (2FA + Glint + Spectra + MCR — MCR chưa có số đo trên người, xem R8/Q-E) + PA-2 UniquenessThread (đóng CID-1) chặn Wakeme-PersonDID production tới khi land. Org/Service DID (parent-sig) không dính. |
+| **R8** | **Neo mốc vào năng-lực chưa có số đo trên ĐÚNG đối-tượng** — cụ-thể: coi nhận-diện đa-đặc-điểm (MCR) là cổng 1:N tìm trùng người | 🟡 TRUNG | Cổng 1:N như vậy **chưa tồn tại**: MCR chưa có luồng cho người, **0 mẫu người**, không có số chống-giả-mạo-trình-diện. Số duy nhất có là trên **cây**: tại điểm vận-hành `FAR 0,013` thì `FRR` đã `0,73`, trần `N* = 0,01/f ≈ 0,77` hồ-sơ (§7.1). **`FAR 0,013` là điểm vận-hành, KHÔNG phải sàn công-nghệ** — siết ngưỡng hạ được `f`, nhưng `FRR` tăng theo, nên ràng-buộc thật là cặp `(FAR, FRR)`. ⟹ mốc Wakeme chỉ nên neo vào năng-lực có **số đo trên đúng đối-tượng**; MCR có tiếp-tục đứng trong B3/M5/R7/Q6 hay không = **Q-E**. |
 
 ---
 
@@ -71,7 +72,7 @@
 
 - **B1 — Engine Gen đọc-số-dư (MAGIC/CARP-team).** Chỉ nối Gen production sau khi spell-out validator on-chain đọc-số-dư (KHÔNG spend/đốt LAMP). Validator vault build/chạy độc-lập.
 - **B2 — Chuẩn Registry dịch-vụ tiêu-tài-nguyên-thật + nối `has_counterparty_consume`.** Anti-idle/epoch-gate CHỈ bật production sau khi land.
-- **B3 — Wakeme-PersonDID production chặn tới khi uniqueness person-level land** (2FA + Glint/VeData + Spectra/LampNet + MCR/OriLife; PA-2 UniquenessThread đóng CID-1 là điều-kiện CẦN). Org/Service/Enterprise DID (parent-sig) không dính.
+- **B3 — Wakeme-PersonDID production chặn tới khi uniqueness person-level land.** Đang chờ **hai** thứ, không thứ nào đã xong ở mức production: (i) ít nhất MỘT kênh xác-nhận trùng-người ở mức NGƯỜI chạy thật — Glint (ZK-uniqueness, VeData) hoặc Spectra (chứng-từ, LampNet); verifier của cả hai thuộc Phase 2 bên VeData, chưa nối. (ii) uniqueness ở tầng neo-anchor (PA-2 UniquenessThread, đóng CID-1) — điều-kiện CẦN, trạng-thái đo được ghi ở [PhoenixKey-STATUS.md §Anchorme](./PhoenixKey-STATUS.md#anchorme). **MCR vẫn nằm trong danh-sách lớp person-level, nhưng theo số đo hôm nay nó KHÔNG đóng được B3** (§7.1: 0 mẫu người; ở 1:N thì trần `N*` chưa tới 1 hồ-sơ tại điểm vận-hành đo trên cây) — đừng xếp lịch gỡ chặn quanh nó. Giữ hay gỡ MCR khỏi B3 = **Q-E**, chờ chủ dự-án. Org/Service/Enterprise DID (parent-sig) không dính.
 - **B4 (phụ) — GreenBack settlement + shadow-price (CARP-team); nạp pot ban đầu + ramp-up (LAMP-team)** trước khi bật GetMAGIC production.
 
 ---
@@ -86,7 +87,7 @@
 | **M2** | Pot (`dist_treasury`) + Wakeme backend + conservation/D-cap test | LAMP/backend |
 | **M3** | MAGIC/CARP-team spell-out engine Gen đọc-số-dư → nối Gen | **B1** |
 | **M4** | Registry-chuẩn danh-mục + nối `has_counterparty_consume` → bật anti-idle/epoch-gate | **B2** |
-| **M5** | Uniqueness person-level land → mở Wakeme-PersonDID production | **B3** |
+| **M5** | Uniqueness person-level land → mở Wakeme-PersonDID production. **Chưa có ngày** — chờ verifier Glint hoặc Spectra (VeData, Phase 2) + uniqueness tầng neo-anchor. MCR còn trong danh-sách lớp person-level nhưng chưa có số đo trên người, nên **không tính nó là đường gỡ chặn** (§7.1, Q-E). Mốc GIỮ NGUYÊN, chỉ ghi đúng thứ nó chờ. | **B3** |
 | **M6** | GreenBack settlement (CARP) + shadow-price | B4 |
 | **M7** | pot ramp-up + mô-phỏng cân-đối dòng-vest-ra (R1) | LAMP/backend |
 
@@ -100,14 +101,44 @@
 | **Q-B** | **`MIN_MAGIC_CONSUME`: giữ tham-số cố-định (tạm 1 MAGIC/ngày) hay chuyển hàm biến-động theo cung-cầu.** | Tham-số cố-định trước, hàm biến-động sau. | Quyết-định thiết-kế kinh-tế (anh chốt). |
 | **Q-C** | **Forfeit 1001 epoch ≈ 13.7 năm — giữ hay rút ngắn?** | Giữ 1001 (đối-xứng 1001 ngày Daily). | Đánh-đổi khoan-dung vs pot-tái-tuần-hoàn. Chỉ đụng phần chưa-kiếm. |
 | **Q-D** | **`q` Epochy (lượng chuyển `conditional→owned` mỗi epoch active)** | `q = min(5·D, conditional)` (5 đêm × nhịp `D=WakemeUsageRight/1001`; `=5 LAMP` chỉ khi `WakemeUsageRight=1001`). | Nhịp vest-ra ảnh-hưởng R1. |
+| **Q-E** | **Nhận-diện đa-đặc-điểm (MCR) có tiếp-tục đứng trong danh-sách lớp person-level ở Q6 / R7 / B3 / M5 không?** Số đo 2026-08-08: 0 mẫu người, không có số chống-giả-mạo-trình-diện; trên cây, tại `FAR 0,013` thì `FRR 0,73` và trần 1:N `N* ≈ 0,77` hồ-sơ (§7.1). **P1 — GIỮ** MCR trong cả bốn chỗ, kèm ghi chú "chưa có số đo trên người, không tính là đường gỡ chặn" (đúng bản này). **P2 — GỠ** MCR khỏi cả bốn chỗ, chuyển nó sang vai 1:1 tăng-cường cho luồng chứng-từ ở Knowme. **Đề-xuất: P2** — B3/M5 là lịch chặn production, để trong đó một năng-lực chưa đo trên người thì lịch đọc ra lạc-quan hơn thực-tế. | Đây là **đổi phạm-vi lớp person-level**, không phải sửa số ⇒ thuộc quyền chủ dự-án. Không chốt thì Q6/R7/B3/M5 giữ nguyên P1 và mọi bên đọc lộ-trình vẫn thấy một đường gỡ chặn không có thật. |
 
 ---
 
 ## 7. Điều-kiện-tiên-quyết chặn production (GO/NO-GO)
 
-- **🔴 KHÔNG mở Wakeme-PersonDID production tới khi uniqueness person-level + Registry-chuẩn land.** Lý do: (GV1) PersonDID **giả-mạo được ở tầng neo-anchor** — `GenesisPerson` đúc anchor did-string bất-kỳ với controller attacker vì HW_Key P-256 không verify on-chain → "1 người 1 suất" CHƯA đúng. **Lỗ MÃ-HOÁ-ANCHOR, KHÔNG phải sybil-sinh-trắc** — nhưng **sinh-trắc-per-thiết-bị cũng KHÔNG đủ** (chỉ đảm bảo 1-DID/máy; 1 người N máy → N DID). Person-level thật cần: **2FA + Glint (ZK-uniqueness, VeData) + Spectra (chứng-từ, LampNet) + MCR (nhận-diện đa-đặc-điểm trên 1 video selfie, thuật-toán tất-định, OriLife).** PA-2 UniquenessThread (SMT non-membership) đóng "anchor-thứ-hai" (CID-1) = điều-kiện CẦN, chưa ĐỦ. (GV2) cổng chống-wash Registry + `has_counterparty_consume` phải land.
+- **🔴 KHÔNG mở Wakeme-PersonDID production tới khi uniqueness person-level + Registry-chuẩn land.** Lý do: (GV1) PersonDID **giả-mạo được ở tầng neo-anchor** — `GenesisPerson` đúc anchor did-string bất-kỳ với controller attacker vì HW_Key P-256 không verify on-chain → "1 người 1 suất" CHƯA đúng. **Lỗ MÃ-HOÁ-ANCHOR, KHÔNG phải sybil-sinh-trắc** — nhưng **sinh-trắc-per-thiết-bị cũng KHÔNG đủ** (chỉ đảm bảo 1-DID/máy; 1 người N máy → N DID). Person-level thật cần: **2FA + Glint (ZK-uniqueness, VeData) + Spectra (chứng-từ, LampNet) + MCR (nhận-diện đa-đặc-điểm, OriLife — hôm nay chỉ dùng được ở vai so-khớp 1:1, chưa có số đo trên người; §7.1).** PA-2 UniquenessThread (SMT non-membership) đóng "anchor-thứ-hai" (CID-1) = điều-kiện CẦN, chưa ĐỦ. (GV2) cổng chống-wash Registry + `has_counterparty_consume` phải land.
 - **Keeper MVP:** tin system-authority tới khi có consume-event Registry thật (nợ MVP có chủ-đích).
 - **On-chain money-safety đã sạch:** LAMP không rời-hệ trái-phép (đích cứng pot | ví owner); sybil-đa-địa-chỉ vô-ích *một-khi* uniqueness anchor thoả; keeper KHÔNG đoạt được LAMP. Nhưng KHÔNG "hết lỗ" — GV1×GV2 còn HỞ tới khi person-level + Registry land.
+
+### 7.1 Nhận-diện đa-đặc-điểm: 1:1 được, 1:N thì không
+
+**Năng-lực hiện có.** MCR (MultiComponentRecognition) trong hệ sinh-thái là bộ nhận-diện **cây / quả / vật-nuôi**: gộp nhiều đặc-điểm hình-ảnh của cùng một cá-thể để nhận lại nó về sau. Nó **không có luồng cho người**, không có tập mẫu người, và không có số liveness/chống-giả-mạo-trình-diện (PAD). Một điểm hay bị đọc sai: "tất-định" ở đây nghĩa là **chạy lại cho cùng kết-quả** (cố-định gieo hạt ngẫu-nhiên trong bước ước-lượng hình-học), KHÔNG có nghĩa "phán-quyết chắc-chắn" — quyết-định vẫn là **một ngưỡng đặt trên điểm giống-nhau liên-tục**, và ngưỡng đó còn đang hiệu-chỉnh.
+
+**Vì sao 1:N không dùng được — ràng-buộc là một CẶP số, không phải một con số.** Một cổng 1:N tra `N` hồ-sơ, mỗi phép so có xác-suất nhận-nhầm `f`; cổng chỉ dùng được khi số nhận-nhầm kỳ-vọng `N·f` còn nhỏ — lấy ngân-sách 1% thì trần là `N* ≈ 0,01/f`.
+
+Chỗ này phải đọc cho đúng, vì rất dễ đọc hỏng: **`f` KHÔNG phải sàn của công-nghệ.** Nó là một toạ-độ trên đường cong ngưỡng — siết ngưỡng thì `f` giảm và tỉ-lệ nhận-đúng `TAR` giảm theo. Đường cong đo được (luật đếm phiếu hai kênh tốt nhất, gallery **cây**, impostor lấy cùng vườn ≤25 m, đo 2026-08-08):
+
+| ngưỡng | TAR (≈1−FRR) | FAR (`f`) | `N* = 0,01/f` |
+|---|---|---|---|
+| dino ≥0,50 · vỏ ≥3 | 0,425 | 0,087 | 0,11 |
+| dino ≥0,55 · vỏ ≥4 | 0,375 | 0,050 | 0,20 |
+| dino ≥0,60 · vỏ ≥5 | 0,267 | **0,013** | 0,77 |
+
+`FAR 0,013` ở dòng cuối là **một điểm vận-hành**, không phải trần công-nghệ: nới ngưỡng thì `f` to hơn, siết ngưỡng thì `f` nhỏ hơn. Cái chặn thật là **cặp** `(FAR, FRR)` phải đạt cùng lúc. Một cổng ở mức người cần cỡ `FAR ≤ 1e-4` **đồng thời** `FRR ≤ 0,03`; ngay tại điểm lỏng nhất còn nghe được trong bảng — `FAR = 0,013`, tức **lỏng hơn mốc cần khoảng 130 lần** — `FRR` đã là **0,73**: gần ba phần tư người thật bị từ-chối. Siết ngưỡng cho `f` xuống thì `FRR` chỉ tệ thêm. Và toàn bộ bảng đo trên **cây**, ở điều-kiện dễ hơn người (cá-thể đứng yên, nền ổn-định, tập nhỏ); trên người thì **chưa có một mẫu nào**. Phát-biểu đúng vì thế là: khoảng-cách tới cổng-toàn-dân là nhiều bậc độ-lớn **và chưa từng được đo trên đúng đối-tượng** — không phải "lớp kỹ-thuật này có sàn `f = 1,3%`".
+
+**Thêm kênh có nới trần hay không — tuỳ kênh mới lấy từ NGUỒN nào.** Cùng đợt đo 2026-08-08 cho hai kết-quả **ngược chiều nhau**, và gộp chúng thành một quy-luật chung là cách đọc sai:
+
+- **Cùng nguồn thì KHÔNG.** Bốn kênh vùng `CTX/PLANT/BASE/LEAF` là bốn ô cắt hình-học của **cùng một khung hình** qua **cùng một mạng**: `ρ = 0,815` ⟹ `M_eff = 1,16 / 4 kênh`; tổng có trọng-số `AUC 0,7416` còn **thua** kênh đơn tốt nhất (`LEAF 0,7521`). Đây là một **kết-quả âm**, và nó chỉ nói về việc chồng thêm kênh **cùng nguồn**.
+- **Khác nguồn thì CÓ.** Cặp `DINOv2 ⟂ vỏ-thân` — mạng học sâu so với SIFT/RANSAC đếm điểm khớp trên vùng ảnh khác, hai cơ-chế khác bản-chất — đo được `ρ = −0,086` ⟹ `M_eff = 2,19 / 2 kênh`, và gộp **hơn từng kênh đứng riêng ở MỌI mức FAR**, khoảng-cách còn **nới ra khi đòi FAR thấp hơn** (+16% ở `FAR 0,087` → +39% ở `FAR 0,013`).
+
+Hệ-quả cho thiết-kế: đừng xin thêm "bộ phận" cắt ra từ cùng một ảnh qua cùng một mạng — bốn cái như thế đáng 1,16 cái. Muốn thêm một phiếu thật thì phải thêm **một loại bằng-chứng có nguyên-nhân khác** (chứng-từ, số định-danh, tín-hiệu ZK). Cùng lập-luận đó trả lời luôn ca **sinh đôi cùng trứng**: mọi đặc-điểm do gen quy-định đều chung một nguyên-nhân, tức `ρ → 1` ⟹ `M_eff → 1` bất kể thêm bao nhiêu bộ phận — thoát ra phải bằng thành-phần **không do gen quy-định**, không bằng cách đếm thêm.
+
+Lưu ý kết-quả khác-nguồn này **không** cứu được cổng 1:N ở trên: `M_eff = 2,19` mới nhân đôi số phiếu hiệu-dụng, còn để chạy 1:N ở quy-mô dân-số thì `f` phải xuống nhiều bậc độ-lớn.
+
+**Vai đúng: tầng độc-lập thứ hai cho phép so 1:1** — người trước ống kính ⟷ ảnh trong giấy-tờ đã nộp. Ở 1:1 chỉ có **một** phép so nên ngân-sách sai không bị nhân với `N`, và nó đứng cạnh một kênh khác hẳn về bản-chất (chứng-từ) — đúng cấu-hình khác-nguồn đã đo được là có lợi ở trên. Đây là lớp **tăng-cường** cho luồng chứng-từ; nó KHÔNG thay được uniqueness person-level.
+
+> **Còn treo — chờ chủ dự-án chốt (Q-E, §6):** có gỡ nhận-diện đa-đặc-điểm khỏi danh-sách lớp person-level ở Q6 / R7 / B3 / M5 hay không. Bản này **giữ nguyên** các mốc và blocker, chỉ ghi đúng số đo — gỡ là quyết-định thiết-kế, không phải sửa số.
 
 ---
 

@@ -13,7 +13,7 @@
 Hình dung đơn giản:
 - **Kho danh-tính** = một tập "phiếu" bạn tự viết (mỗi trường một phiếu), bỏ trong tủ có khoá.
 - **Xuất-trình chọn-lọc** = khi cần chứng "tôi là công-dân VN", bạn rút đúng phiếu quốc-tịch đưa ra, các phiếu khác vẫn trong tủ, người kia không thấy.
-- **Chìa khoá** = khoá sinh ra từ vân tay của bạn (Secure Enclave). Không ai mở tủ thay bạn.
+- **Chìa khoá** = một khoá do **con chip an-toàn trong máy bạn** (Secure Enclave) tự sinh ra **ngẫu-nhiên** rồi giữ luôn bên trong, không xuất ra ngoài được. Vân tay **không phải** nơi khoá sinh ra — vân tay chỉ **mở cổng** cho bạn dùng khoá đó. Không ai mở tủ thay bạn.
 
 Knowme là module `-me` user-facing, đối xứng với **Protectme**: Protectme lo bảo-vệ, Knowme lo **khai và xuất-trình** danh-tính.
 
@@ -87,7 +87,7 @@ Bạn chứng "đủ 18 tuổi" mà **không đưa ngày sinh** — người h�
 |---|---|---|
 | **Dữ-liệu ở đâu** | Kho của bên thứ-ba, nhiều bản-sao | Ở máy bạn; server chỉ giữ bản mã-hoá |
 | **Nộp bao nhiêu** | Trọn bộ hồ-sơ mỗi nơi | Chỉ trường cần; phần còn lại vẫn ẩn |
-| **Ai giữ chìa** | Bên thứ-ba | Bạn (khoá từ vân tay) |
+| **Ai giữ chìa** | Bên thứ-ba | Bạn (khoá nằm trong con chip an-toàn của máy bạn; vân tay là cái **mở cổng**, không phải nơi khoá sinh ra) |
 | **Tái dùng** | Xin lại giấy mỗi nơi | Một hồ-sơ dùng nhiều nơi, không cần cơ-quan online |
 | **Chứng "đủ 18"** | Đưa cả ngày sinh | (Mức 3) đưa đúng một câu đúng/sai |
 | **Thu-hồi** | Dữ-liệu đã nộp ngoài tầm bạn | Bạn/cơ-quan chủ-động rút (giới-hạn ở ảnh — §7) |

@@ -2,7 +2,7 @@
 
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
-> Cập nhật: 2026-08-14. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy. Số test Validator trong file này đo lại 2026-08-14 trên `origin/main` kho Validator (commit `22d48ab`): `aiken check` → `total 638 / passed 638 / failed 0`.
+> Cập nhật: 2026-08-13. Nguồn: audit per-module + đối chiếu code/CI thật; mục 5 đo lại đầu-cuối bằng `aiken check`/`aiken build` và gọi thật máy chủ đang chạy. Đợt 2026-08-13: gỡ khẳng định sai "sinh-trắc Secure Enclave đủ chống trùng người" khỏi bộ spec (8 chỗ / 6 file) và ghi lại đúng mức rủi-ro duy-nhất-người (Anchorme B5 + Knowme B5).
 
 ---
 
@@ -10,12 +10,12 @@
 
 | Module | Nền đã chạy được | Blocker chính | Production |
 |---|---|---|---|
-| **Anchorme** | validator `taad` Design-2 + **PC** (uniqueness anchor, đã nối) + **PoP-bind** (did tự chứng, đã nối) — CID-1 ĐÃ ĐÓNG cả same- và cross-entity; resolver W3C; register metadata-6789 | DeviceDID; resolve-by-hash | GO custody cho lỗ CID-1 (đóng 2026-08-12); NO-GO tổng-thể vẫn treo ở DeviceDID + resolve-by-hash |
+| **Anchorme** | validator `taad` Design-2 + **PC** (uniqueness anchor, đã nối) + **PoP-bind** (did tự chứng, đã nối) — CID-1 ĐÃ ĐÓNG cả same- và cross-entity; resolver W3C; register metadata-6789 | DeviceDID; resolve-by-hash; **B5 duy-nhất-người mức NGƯỜI (chưa có gì cưỡng-chế)** | GO custody cho lỗ CID-1 (đóng 2026-08-12); NO-GO tổng-thể vẫn treo ở DeviceDID + resolve-by-hash + B5 |
 | **Rebirthme** | ví theo-DID `did_payment`, đóng-băng theo trạng-thái, guardian recovery ngưỡng+timelock, P-256 low-s, `lampnet.rs`; **`limit_meter_vault` + `did_stake` nay build được** (hash `f3be6d6d…` / `eb535cc1…`) | `did_subaddr` chưa có; **khoá thiết bị (yếu-tố-2 chi tiêu) chưa tồn tại trong mã app** | NO-GO ví-giá-trị-lớn tới khi khoá thiết bị land |
 | **Wakeme** | validator `wakeme_vault` build được (hash `8655974a…`); backend `buildGetLamp`/`submitGetLamp` là hiện thực thật | B1 engine Gen đọc-số-dư, B2 Registry consume-gate, B3 PA2 cho GetLAMP-PersonDID; **3 biến môi trường `ACTIVATION_*` rỗng ⇒ mọi lời gọi trả `501`** | NO-GO tới khi Registry + PA2 land |
 | **Feecover** | ConsumeMAGIC lõi (kế thừa) | Layer Feecover 0 dòng; B1 MAGIC-model, B2 CARP policy-id, B3 did_commit per-DID; FG-4 EpochSettle tự-vá | NO-GO tới khi B1+B2+B3 + FG-4 |
-| **Protectme** | cổng chi-trả `protectme_logic`+`protectme_payout` + **beacon one-shot** đều trên `main` (72 test: 14 + 35 + 23, đo 2026-08-14) | 2-bucket + resolver + UI chưa có; 11 quyết-định PROT-1..11 | NO-GO tới khi beacon + blocker + quyết-định |
-| **Knowme** | Mức 1+2 SD-VC có code+test, demo `/vc` (20 file / 415 test PASS) | B1 lib BBS (Mức 3), B2 LampNet gateway (lớp tài-liệu), B4 StampRecord | M1 chạy; Mức 3/tài-liệu chờ blocker |
+| **Protectme** | cổng chi-trả `protectme_logic`+`protectme_payout` (39 test đối-kháng sạch, branch `feat/protectme-payout`) | 🔴 `protectme_beacon.ak` one-shot 0 dòng (chặn-merge); 2-bucket + resolver + UI chưa có; 11 quyết-định PROT-1..11 | NO-GO tới khi beacon + blocker + quyết-định |
+| **Knowme** | Mức 1+2 SD-VC có code+test, demo `/vc` (20 file / 415 test PASS) | B1 lib BBS (Mức 3), B2 LampNet gateway (lớp tài-liệu), B4 StampRecord; **B5 duy-nhất-người v1 chưa có trên `main`** | M1 chạy; Mức 3/tài-liệu chờ blocker; duy-nhất-người chưa cưỡng-chế |
 | **Easteregg** | 1 PoC Python off-chain trên Preview (3 tx-hash); **`did_pool` nay build được** (hash `9ba97ba4…`) | `did_subaddr.ak` chưa có; ZK Tầng 2 verifier chưa viết; G1/G3/G5 chưa vá | NO-GO; chỉ GO build+test Preview T1 + T3-mode-1 |
 | **Smartsend** | spec đầy đủ SS-1..12; **validator `smartsend` nay build được** (hash `9ed1b56f…`) | verifier Glint/Spectra (Phase 2); SS-11 vừa khôi phục điều kiện `amount ≥ large_threshold` (PR #23) | NO-GO; money-critical, review trước code |
 
@@ -43,7 +43,7 @@
 
 ## Anchorme
 
-**Test bắt-buộc:** module danh-tính (`taad_logic` + `state_nft_logic` + `attack_tests`) phủ GenesisPerson/GenesisChild/can_own/Rotate/Cancel/Finalize/Deactivate + regression Bug#3. Số test toàn-repo Validator = **638/638 PASS** (đo 2026-08-14 trên `origin/main`, commit `22d48ab`; con số 173/173 là mốc 2026-07-08, đã lỗi thời).
+**Test bắt-buộc:** module danh-tính (`taad_logic` + `state_nft_logic` + `attack_tests`) phủ GenesisPerson/GenesisChild/can_own/Rotate/Cancel/Finalize/Deactivate + regression Bug#3. Số test toàn-repo Validator = 173/173 PASS (2026-07-08).
 
 **Đã build:** validator `taad` Design-2 (genesis Người/con, rotate, transfer 2-of-2, deactivate, CanOwn); resolver W3C backend; PersonDID register (metadata-6789).
 
@@ -60,19 +60,21 @@ Trạng-thái đo được trên `main` của kho Validator:
 
 ⟹ **Same-entity VÀ cross-entity collision ĐÃ ĐÓNG cùng một cơ-chế** (PoP-bind), không phải hai cơ-chế riêng. Không còn việc "nối" nào treo cho CID-1. Chi-tiết đầy-đủ + rủi-ro-còn-lại (thiếu bộ test giả-mạo chuyên-trách, không phải một đường tấn-công): `PhoenixKey-Anchorme-Math.md` §8 (T-3) / §9 (CID-1).
 
-**Blocker mở (không còn CID-1):** B2 resolve-by-hash + point-in-time V16 (backend). B3 DeviceDID `Op_create_device` (on-chain) + hw_cert endpoint (backend). B4 Full_Authority `⊑` + type-code canonical (Math v4.7).
+**Blocker mở (không còn CID-1):** B2 resolve-by-hash + point-in-time V16 (backend). B3 DeviceDID `Op_create_device` (on-chain) + hw_cert endpoint (backend). B4 Full_Authority `⊑` + type-code canonical (Math v4.7). **B5 duy-nhất-người ở mức NGƯỜI — chưa có gì cưỡng-chế** (mới ghi 2026-08-13, xem dưới).
+
+**🔴 B5 — một người vẫn tạo được nhiều PersonDID (Anchorme-Exec R8).** CID-1 đóng nghĩa là *không đúc được anchor thứ hai cho CÙNG một did-string*; nó KHÔNG có nghĩa *một người chỉ tạo được một did-string*. Một người dùng N thiết-bị vẫn đúc được N PersonDID đều hợp-lệ, không cơ-chế nào on-chain chặn. Khoá sinh trong Secure Enclave chỉ gác **mỗi thiết-bị một danh-tính** (mẫu sinh-trắc không rời máy, không có bảng đối-chiếu chéo) — **trước 2026-08-13 bộ spec ghi nhầm rằng sinh-trắc đã đủ chống trùng người, nay đã gỡ ở 8 chỗ**. Ràng-buộc một-người-một-danh-tính v1 thiết-kế nằm ở **Knowme** (neo giấy-tờ tuỳ-thân) — trạng-thái code xem mục Knowme dưới; các lớp person-level còn lại + cổng chặn production xem `PhoenixKey-Wakeme-Exec.md` §7.
 
 **Bug live đã biết:** GET `/identity/{did}/pubkey` trả 500 với user đã qua recovery (consumer: backend bên thứ 3 OriLife/AladinWork) — cần Long vá.
 
-**Byte-9 `Character`→`Avatar` — CHỐT 2026-07-10** (xem `PhoenixKey-Math.md` §21): ranh giới Asset/Avatar dựa **nơi-ra-quyết-định** (locus-of-control, không dùng "agency" — dễ lộn AgentDID byte-6): Avatar = chỉ hành động khi nhận lệnh trực tiếp từ controller ngoài; Asset = không nhận lệnh, chỉ transfer/consume. Avatar chỉ do PersonDID/OrgDID vận hành (I-CHAR-1 sửa `{Person,Service}`→`{Person,Org}` — CanOwn §22.1 + `can_own()` on-chain vốn đã đúng, I-CHAR-1 là bên sai, đã vá). "Sống→chết" = burn AvatarDID + mint N AssetDID với `derived_from` nối phả hệ (không phải type-transition tại chỗ). Đã sửa xong Math.md (10 chỗ) + Anchorme-Math/Tech/Exec.md + DIDMethod-W3C.md. **Việc tồn đọng riêng (chưa quyết, không nằm trong đợt này):** tách owner/operator cho sinh vật hoang dã không ai đứng tên; uỷ quyền Service ký hộ Org khi mint Avatar hàng loạt (đẩy sang Tech.md).
+**Byte-9 `Character`→`Avatar` — CHỐT 2026-07-10** (xem `PhoenixKey-Math.md` §21): ranh giới Asset/Avatar dựa **nơi-ra-quyết-định** (locus-of-control, không dùng "agency" — dễ lộn AgentDID byte-6): Avatar = chỉ hành động khi nhận lệnh trực tiếp từ controller ngoài; Asset = không nhận lệnh, chỉ transfer/consume. Avatar chỉ do PersonDID/OrgDID vận hành (I-CHAR-1 sửa `{Person,Service}`→`{Person,Org}` — CanOwn §22.1 + `can_own()` on-chain vốn đã đúng, I-CHAR-1 là bên sai, đã vá). "Sống→chết" = burn AvatarDID + mint N AssetDID với `derived_from` nối phả hệ (không phải type-transition tại chỗ). Đã sửa xong Math.md (10 chỗ) + Anchorme-Math/Tech/Exec.md + DIDMethod-W3C.md, push nhánh `claude/spec-northstar-2026-07-10`. **Việc tồn đọng riêng (chưa quyết, không nằm trong đợt này):** tách owner/operator cho sinh vật hoang dã không ai đứng tên; uỷ quyền Service ký hộ Org khi mint Avatar hàng loạt (đẩy sang Tech.md).
 
 **Câu hỏi thiết-kế MỞ — Byte-4 `Asset` chỉ physical** (còn treo, KHÔNG còn phụ thuộc byte-9 nữa vì byte-9 đã chốt độc lập): lỗ hổng phân-loại — tài-sản-số thụ-động (file/dataset/media/NFT/VC-schema/model-weights) rơi khe (≠Asset physical, ≠Bot/Agent tự-chủ, ≠Service sản-phẩm, ≠Avatar). Chọn: (a) nới định nghĩa Asset → physical HOẶC digital (thêm `asset_domain: Physical|Digital`, `physical_id`/`location_proof` chuyển Optional — đề xuất 2026-07-10, chưa chốt câu chữ cuối); hay (b) digital = VC/metadata dưới DID khác (out-of-scope, ranh giới hẹp). Byte-value bất biến → hash-safe dù chọn hướng nào; lan tới Math §17 + Aiken `types.ak` + Java `DidPhoenixGenerator`. `AI`→`Agent` (byte-6) đã chốt đổi (issue Long).
 
 ## Rebirthme
 
-**Nền đã chạy (638/638 Aiken PASS, đo 2026-08-14 trên `origin/main` `22d48ab`):** ví theo-DID `did_payment` (chi khi Active + controller ký; tài-sản sống qua rotate; địa chỉ bất-biến); đóng-băng theo trạng-thái (Recovering/Migrated/Revoked chặn chi); singleton-anchor I-WALLET-4/5; guardian recovery Init/Cancel/Finalize/UpdateGuardians(≤5) + timelock 3600 slot + collateral 50 ADA (bỏ Shamir); ví Standard + Rotation Account; P-256 low-s (I-SIGN-LOWS); `lampnet.rs` fail-closed (I-VAULT-4); Ed25519 dalek deterministic.
+**Nền đã chạy (173/173 Aiken PASS, 2026-07-08):** ví theo-DID `did_payment` (chi khi Active + controller ký; tài-sản sống qua rotate; địa chỉ bất-biến); đóng-băng theo trạng-thái (Recovering/Migrated/Revoked chặn chi); singleton-anchor I-WALLET-4/5; guardian recovery Init/Cancel/Finalize/UpdateGuardians(≤5) + timelock 3600 slot + collateral 50 ADA (bỏ Shamir); ví Standard + Rotation Account; P-256 low-s (I-SIGN-LOWS); `lampnet.rs` fail-closed (I-VAULT-4); Ed25519 dalek deterministic.
 
-**Chưa có code:** 🔴 `did_subaddr.ak` (L3 unlinkable, chờ chốt [DEP-2]) — **đây là file duy nhất còn thiếu trong nhóm này**. Hai dòng trước đây ghi 🔴 nay đã sai và đã gỡ: `limit_meter.ak` anti-drain **đã có trên `main`** (`lib/phoenixkey/limit_meter.ak` 690 dòng / 32 test + `validators/limit_meter_vault.ak` 985 dòng / 32 test) ⇒ **hở HIGH của I-CURVE-4 đã đóng ở tầng validator**; `did_stake.ak` (stake theo-DID) **đã có** (`validators/did_stake.ak` 461 dòng / 19 test). Đo 2026-08-14 trên `origin/main` `22d48ab`. 🟡 I-CURVE-5 chưa enforce builder; kho bí-mật/phả-hệ seed chưa hợp-nhất; export re-key UI chưa cắm mặc-định; guardian nâng-cao (trọng-số/veto/cap) Todo; chứng-thực VeData-Glint/Midnight chờ VeData. ⚪ CIP-30 connector, legacy-migration, on-ramp mandate, pool-ops (KES/VRF) build-ready-Todo.
+**Chưa có code:** 🔴 `limit_meter.ak` anti-drain — KHÔNG tồn tại (I-CURVE-4 load-bearing, hở HIGH, ưu-tiên M2); 🔴 `did_subaddr.ak` (L3 unlinkable, chờ chốt [DEP-2]); 🔴 `did_stake.ak` (stake theo-DID). 🟡 I-CURVE-5 chưa enforce builder; kho bí-mật/phả-hệ seed chưa hợp-nhất; export re-key UI chưa cắm mặc-định; guardian nâng-cao (trọng-số/veto/cap) Todo; chứng-thực VeData-Glint/Midnight chờ VeData. ⚪ CIP-30 connector, legacy-migration, on-ramp mandate, pool-ops (KES/VRF) build-ready-Todo.
 
 **Blocker ngoài:** CARP policy-id, stake-state indexer (backend), Merkle LAMP (LAMP), schema anchor mới vào TAADDatum (backend, chờ duyệt), crate KES/VRF (PoC).
 
@@ -106,7 +108,7 @@ Trạng-thái đo được trên `main` của kho Validator:
 
 ## Protectme
 
-Cổng chi-trả `protectme_logic.ak`+`protectme_payout.ak` **nay nằm trên `main`** — khối có code+test đối-kháng sạch (double-satisfaction, cred-collision, ADA-skim, miền-số, cross-bucket đều chặn). Beacon one-shot per claim_id **đã có**: `lib/phoenixkey/protectme_beacon_logic.ak` 733 dòng / 23 test ⇒ **blocker CHẶN-MERGE nêu ở bản trước đã hết hiệu-lực**. Tổng test nhóm Protectme trên `main`: **72** (`protectme_logic` 14 + `protectme_payout` 35 + `protectme_beacon_logic` 23), đo 2026-08-14 trên `22d48ab`. 2-bucket Treasury + Feecover premium wiring + resolver claim + UI — chưa code (backend/UI). 11 quyết-định PROT-1..11 chờ chốt (🔴 PROT-10 evidence-bar, PROT-11 cohort, PROT-4 ngưỡng SYS/USER). Blocker hạ-tầng: MAGIC-model, CARP policy-id, Beacon. **NO-GO tới khi tất cả chốt.**
+Cổng chi-trả `protectme_logic.ak`+`protectme_payout.ak` (branch `feat/protectme-payout`) — khối duy nhất có code+test đối-kháng sạch (double-satisfaction, cred-collision, ADA-skim, miền-số, cross-bucket đều chặn): **39 test (14 logic + 25 validator)**. 🔴 `protectme_beacon.ak` one-shot per claim_id — 0 dòng, CHẶN-MERGE (thiếu → 1 claim_id nạp escrow 2 lần → solvency vỡ). 2-bucket Treasury + Feecover premium wiring + resolver claim + UI — chưa code (backend/UI). 11 quyết-định PROT-1..11 chờ chốt (🔴 PROT-10 evidence-bar, PROT-11 cohort, PROT-4 ngưỡng SYS/USER). Blocker hạ-tầng: MAGIC-model, CARP policy-id, Beacon. **NO-GO tới khi tất cả chốt.**
 
 ## Knowme
 
@@ -114,9 +116,11 @@ Cổng chi-trả `protectme_logic.ak`+`protectme_payout.ak` **nay nằm trên `m
 
 **Blocker:** B1 lib BBS+prover (Mức 3), B2 LampNet gateway (lớp tài-liệu), B3 Glint/Spectra (VeData), B4 StampRecord Strata. **Mốc:** M1 (Mức1+2+`/vc`) chạy; M2-M7 chờ blocker.
 
+**🔴 B5 duy-nhất-người v1 — CHƯA có trên `main` (đo 2026-08-13).** Spec giao Knowme giữ bất-biến "một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID" (`PhoenixKey-Knowme-Math.md` Đ-7, I-KNOW-12..16). Đo trên `PhoenixKey-Frontend`: `src/lib/sdvc/fingerprint.ts`, `dossier.ts` và `UniquenessRegistry` **không tồn tại trên `origin/main`** — chỉ có trên nhánh CHƯA gộp `origin/claude/cccd-uniqueness-v1` (`git ls-tree -r --name-only origin/main | grep -c fingerprint` → `0`). Câu "nền lớp tài-liệu có code+test (`dossier.ts`/`fingerprint.ts`)" ở đoạn trên đo trên nhánh đó, không phải `main`. ⟹ **hôm nay không có gì cưỡng-chế duy-nhất-người**, kể cả ở tầng ứng-dụng. Đây là mặt còn lại của Anchorme B5.
+
 ## Easteregg
 
-**Spec:** 4 doc hợp nhất mô hình "mức riêng-tư của ví Phoenix" (không phải ví thứ ba), chốt 2026-07-09. **Code on-chain:** `did_pool.ak` (T1 MST) **đã có trên `main`** — `validators/did_pool.ak` 1190 dòng / 21 test, cùng `lib/phoenixkey/pool_logic.ak` 896 dòng / 15 test (đo 2026-08-14 trên `22d48ab`); `did_subaddr.ak` (T0/L3) **vẫn chưa tồn tại**. **Off-chain:** Indexer/Accountant, sweep crank, withdraw builder — chưa có. **ZK T2:** verifier Aiken chưa viết; ExUnit 2.842B là đo của Easteregg-ZK bên VeData (độc lập); ceremony chưa chạy. **Test:** 0 test Easteregg. **PoC:** 1 PoC Python trên Preview (3 tx-hash) minh-hoạ ẩn-số-dư + gated-proof, KHÔNG validator, chưa chứng-minh operator-không-rút. **Gap:** G1 (fee-split), G3 (sweep per-pair), G5 (salt-recovery) 🔴 chưa vá; G2/G4 🟡. **NO-GO toàn module**; chỉ GO build+test Preview T1 + T3-mode-1.
+**Spec:** 4 doc hợp nhất mô hình "mức riêng-tư của ví Phoenix" (không phải ví thứ ba), chốt 2026-07-09. **Code on-chain:** `did_pool.ak` (T1 MST) + `did_subaddr.ak` (T0/L3) — chưa tồn tại. **Off-chain:** Indexer/Accountant, sweep crank, withdraw builder — chưa có. **ZK T2:** verifier Aiken chưa viết; ExUnit 2.842B là đo của Easteregg-ZK bên VeData (độc lập); ceremony chưa chạy. **Test:** 0 test Easteregg. **PoC:** 1 PoC Python trên Preview (3 tx-hash) minh-hoạ ẩn-số-dư + gated-proof, KHÔNG validator, chưa chứng-minh operator-không-rút. **Gap:** G1 (fee-split), G3 (sweep per-pair), G5 (salt-recovery) 🔴 chưa vá; G2/G4 🟡. **NO-GO toàn module**; chỉ GO build+test Preview T1 + T3-mode-1.
 
 ## Smartsend
 
@@ -124,7 +128,7 @@ Cổng chi-trả `protectme_logic.ak`+`protectme_payout.ak` **nay nằm trên `m
 
 **Bất-biến đã hợp-nhất (không còn "vá đỏ" treo):** SS-1/SS-5′/SS-12 (value-conservation byte-perfect, `min_ada` tách field, `fee_covered` chỉ audit); SS-7′ (escrow-1-lần, chống double-satisfaction batch); SS-9′ (Accept verify controller-sig qua anchor); SS-11 (`reclaim_deadline`+`ReclaimTimeout`); SS-8/SS-8′ (Freeze trong cửa-sổ-veto; thoát qua guardian-quorum hoặc `freeze_deadline` auto-hoàn); SS-10 (`window ≥ min_window_floor`); SS-2 (veto-race biên); SS-3/SSR-4/SSR-13 (factor Cancel neo anchor-enroll).
 
-**Phụ-thuộc-chặn ngoài:** ~~`limit_meter.ak` (Rebirthme)~~ **đã hết chặn** — validator đã có trên `main` (xem §Rebirthme); nền `did_payment`+guardian (nằm trong 638/638 PASS, đo 2026-08-14); verifier Glint/Spectra (VeData, Phase 2 — bind `blake2b_256(own_ref ‖ escrow_datum_hash)` SSR-12); guardian ResolveFreeze quorum (chưa build); enroll-set factor trong TAADDatum (Core Anchorme/Validator).
+**Phụ-thuộc-chặn ngoài:** `limit_meter.ak` (Rebirthme, hở HIGH); nền `did_payment`+guardian (173/173 PASS); verifier Glint/Spectra (VeData, Phase 2 — bind `blake2b_256(own_ref ‖ escrow_datum_hash)` SSR-12); guardian ResolveFreeze quorum (chưa build); enroll-set factor trong TAADDatum (Core Anchorme/Validator).
 
 **CẦN CHỐT:** `reclaim_deadline` tương-đối `veto_deadline`; `window` mặc-định + `min_window_floor`; `freeze_deadline`; thứ-tự land vs anti-drain; ưu-tiên Glint sớm hay guardian-factor đủ bản đầu.
 
@@ -148,7 +152,7 @@ Hiện-trạng triển-khai các phần của đặc-tả toán v4.6 (đã tách
 |---|---|---|
 | 2026-07-08 | Anchorme/Rebirthme | Validator `aiken check` 173/173 PASS |
 | 2026-07-08 | Wakeme | `activation_logic` 69 test PASS, qua red-team nội bộ |
-| 2026-07-09 | Protectme | 39 test đối-kháng (14 logic + 25 validator) |
+| 2026-07-09 | Protectme | 39 test đối-kháng (14 logic + 25 validator), branch `feat/protectme-payout` |
 | 2026-07-09 | Knowme | SD-VC `vitest` 20 file / 415 test PASS |
 | 2026-07-09 | Feecover | Spec MERGED #14; layer Feecover 0 dòng (grep xác nhận) |
 | 2026-07-09 | Easteregg | 1 PoC Python trên Preview (3 tx-hash), 0 validator/test |
@@ -156,7 +160,6 @@ Hiện-trạng triển-khai các phần của đặc-tả toán v4.6 (đã tách
 | 2026-08-08 | Đăng nhập web | Gọi thật máy chủ đang chạy: `POST /auth/session/init` → 200; `GET /api/v1/.well-known/jwks.json` → 200, `kid=phoenixkey-ed25519-1`; `POST /auth/token/exchange` tồn tại (403 với token giả). ⚠ `/.well-known/jwks.json` ở **gốc miền → 404** |
 | 2026-08-08 | Backend | `Tests run: 393, Failures: 0, Errors: 0, Skipped: 0` (CI run `31252652916`); `DidOpWatermarkUpsertPostgresTest` chạy trên Postgres thật 10,37s / 6 test / Skipped 0 |
 | 2026-08-08 | Tài liệu | 67 endpoint có mã / 64 có tài liệu → nay 67/67 (PR Database #132); thêm 4 sequence diagram + đặc tả 5 màn hình (PR Specs #24) |
-| 2026-08-14 | Validator | `aiken check` trên `origin/main` `22d48ab`: `total 638 / passed 638 / failed 0`. Bốn dòng 🔴 trước đây đã hết hiệu-lực và đã sửa trong file này — `limit_meter.ak` (690 dòng/32 test) + `limit_meter_vault.ak` (985/32), `did_stake.ak` (461/19), `did_pool.ak` (1190/21), `protectme_beacon_logic.ak` (733/23) đều đã nằm trên `main` |
 
 ---
 
