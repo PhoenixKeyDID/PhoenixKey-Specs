@@ -13,7 +13,21 @@ This is version 1 of the `did:phoenix` method specification, published at `https
 This is version **v1** of the `did:phoenix` method specification, published at its canonical URL to back the registry entry merged into the W3C DID Method Registry:
 
 - Registry file: `w3c/did-extensions` → `methods/phoenix.json`
-- Registered fields: `"status": "registered"`, `"specification": "https://phoenixkey.me/did-method/v1"`, `"ledger": "Cardano Blockchain"`, contact: GreenSun Tech (`contact@greensun.tech`)
+- Registered fields (verbatim from the registry file):
+
+  ```json
+  {
+    "name": "phoenix",
+    "status": "registered",
+    "specification": "https://phoenixkey.me/did-method/v1",
+    "contactName": "GreenSun Tech",
+    "contactEmail": "contact@greensun.tech",
+    "contactWebsite": "https://greensun.tech",
+    "verifiableDataRegistry": "Cardano Blockchain"
+  }
+  ```
+
+  The registry key for the ledger is **`verifiableDataRegistry`** — there is no `ledger` key in the W3C schema. Earlier revisions of this document named it `ledger` and dropped `name`, `contactName` and `contactWebsite`; anyone checking this document against the registry would have found fields that do not exist.
 - Registry commit: `97c8197` (2026-07-04)
 
 ---
