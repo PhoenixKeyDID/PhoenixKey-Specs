@@ -15,7 +15,7 @@
 - **Lớp tài-liệu** (đính ảnh/PDF; bytes mã-hoá ECIES lưu LampNet; `docHash` vào commitment; phiên-bản bất-biến Strata; re-seal chọn-lọc). Nền: `dossier`/`fingerprint` (đính ảnh mã-hoá + fingerprint + neo dossier). Mở-rộng **[SPEC]**: tiết-lộ-chọn-lọc-tài-liệu + version + re-seal.
 - **Mức 3 — ZK predicate** (chứng "đủ 18"/"quốc tịch VN" không lộ con số; nền **BBS+** chuẩn W3C [BBS-CRYPT] — tại thời-điểm viết là W3C Editor's Draft, CHƯA phải Recommendation chính-thức (cách ghi trạng-thái draft tham-khảo `PhoenixKey-DIDMethod-W3C.md §6.2` cho W3C DID Resolution); xuất-trình không-liên-kết; neo ZK-anchor + xoá GDPR). **[SPEC]**.
 
-**Phân định ranh-giới (không lấn VeData).** PhoenixKey Knowme lo **đóng-gói + phân-giải + tiết-lộ chọn-lọc**. **VeData** lo **catalog VC + issuer thật** + các module Stamp/Query/Glint/Spectra. Knowme dẫn-chiếu, KHÔNG gọi thẳng Mosaic (chỉ qua Stamp intake công-khai).
+**Phân định ranh-giới (không lấn VeData).** PhoenixKey Knowme lo **đóng-gói + phân-giải + tiết-lộ chọn-lọc**. **VeData** lo **catalog VC + issuer thật** + các module Stamp/Query/Glint. **Spectra thuộc LampNet, KHÔNG thuộc VeData** — vai phân-tích ảnh/video rời Glint sang Spectra từ 2026-07-28 (`Glint-Math.md:21`, `:261`). Knowme dẫn-chiếu, KHÔNG gọi thẳng Mosaic (chỉ qua Stamp intake công-khai).
 
 Aligns LampNetCloud + VeDataIO.
 
@@ -33,7 +33,7 @@ Aligns LampNetCloud + VeDataIO.
 | **Q2** | **BBS+ là canonical Mức 3** (SNARK/Midnight là tuỳ-chọn) | (a) BBS Cryptosuite chuẩn W3C [BBS-CRYPT] (Editor's Draft, chưa Recommendation), không trusted-setup; (b) predicate KYC thật (tuổi/quốc-tịch/hiệu-lực DN) = so-sánh + set-membership = đúng vùng mạnh BBS; (c) prover/verifier nhẹ, offchain, giải LUÔN linkability; (d) unlinkable multi-show. | BBS giới-hạn ở predicate đơn-giản; số-học phức-tạp cần SNARK. Khoá BBS (BLS12-381) song song Ed25519 — quản 2 khoá issuer. |
 | **Q3** | **Tài-liệu là một claim, KHÔNG kiểu dữ-liệu mới** (commit `docHash`, bytes off-chain) | (b) selective disclosure phủ tài-liệu miễn-phí (một leaf trong `sd[]`); (c) on-chain chỉ 1 root 32 byte, eUTXO-thân-thiện; (a) tái dùng nguyên `digestOf`. | Verify tài-liệu buộc lộ plaintext cho người nhận (Q-liên-quan giới-hạn thu-hồi). |
 | **Q4** | **Anchor tài-liệu QUA Stamp, KHÔNG gọi thẳng Mosaic** | (b) Mosaic chỉ nhận `anchor_request` từ Stamp (SSoT); (a) đi qua intake công-khai VeData = không cần mở hợp-đồng mới. | Cần chọn archetype StampRecord phù-hợp (open item K-3). |
-| **Q5** | **Duy-nhất-người v1 nằm TRONG Knowme, neo vào giấy-tờ tuỳ-thân** — một giấy-tờ ⇒ nhiều nhất một PersonDID; khoá là **dấu giấy-tờ** `fp` | (b) sinh-trắc **không** làm được việc này: khoá sinh trong vùng an-toàn của thiết-bị chỉ bảo-đảm mỗi **thiết-bị** một danh-tính — một người dùng nhiều thiết-bị vẫn tạo được nhiều danh-tính (mẫu sinh-trắc không rời máy, không có bảng đối-chiếu chéo — Math I-KNOW-16). Knowme đã giữ giấy-tờ tuỳ-thân nên là chỗ duy nhất có dữ-liệu để cưỡng-chế. (c) cơ-chế cưỡng-chế là **phép so-sánh** ở `UniquenessRegistry`, không phải một bí-mật phải canh — cho cùng kết-quả dù bảng `fp` công-khai hay không (I-KNOW-15), nên rẻ và không thêm điểm-hỏng. | Vỡ khi một người có hai giấy-tờ hợp-lệ khác nhau (đổi số, giấy-tờ nước khác) hoặc giấy-tờ bị mạo-nhận ⟹ xử bằng quy-trình tranh-chấp (Math §4.1), **không** bịt được bằng mật-mã. Chống "ảnh thật của người khác" dựa Glint (tín-hiệu) + issued (nâng-cấp), không tuyệt-đối. |
+| **Q5** | **Duy-nhất-người v1 nằm TRONG Knowme, neo vào giấy-tờ tuỳ-thân** — một giấy-tờ ⇒ nhiều nhất một PersonDID; khoá là **dấu giấy-tờ** `fp` | (b) sinh-trắc **không** làm được việc này: khoá sinh trong vùng an-toàn của thiết-bị chỉ bảo-đảm mỗi **thiết-bị** một danh-tính — một người dùng nhiều thiết-bị vẫn tạo được nhiều danh-tính (mẫu sinh-trắc không rời máy, không có bảng đối-chiếu chéo — Math I-KNOW-16). Knowme đã giữ giấy-tờ tuỳ-thân nên là chỗ duy nhất có dữ-liệu để cưỡng-chế. (c) cơ-chế cưỡng-chế là **phép so-sánh** ở `UniquenessRegistry`, không phải một bí-mật phải canh — cho cùng kết-quả dù bảng `fp` công-khai hay không (I-KNOW-15), nên rẻ và không thêm điểm-hỏng. | Vỡ khi một người có hai giấy-tờ hợp-lệ khác nhau (đổi số, giấy-tờ nước khác) hoặc giấy-tờ bị mạo-nhận ⟹ xử bằng quy-trình tranh-chấp (Math §4.1), **không** bịt được bằng mật-mã. Chống "ảnh thật của người khác" dựa Spectra (tín-hiệu chặn deepfake/ảnh dựng AI — vai này đã re-home từ Glint sang Spectra, Glint-Math.md:261) + issued (nâng-cấp), không tuyệt-đối. |
 | **Q6** | **Mặc-định proof-thay-ảnh cho thứ nhạy-cảm** | (d) least-disclosure thật; (b) đừng gửi ảnh nếu chỉ cần một thuộc-tính. | Trước khi Mức 3 sẵn-sàng: chỉ có tiết-lộ chọn-lọc trường vô-hướng (Mức 2). |
 
 ---
@@ -43,8 +43,8 @@ Aligns LampNetCloud + VeDataIO.
 | ID | Rủi-ro | Mức | Giảm-thiểu |
 |---|---|---|---|
 | **R1** | **Verify-time plaintext resale:** người nhận đã xem ảnh giấy-tờ có thể chụp/bán lại; thu-hồi chỉ chặn đọc-lại. | 🔴 CAO (cố-hữu, không vá triệt-để) | Watermark truy-vết buộc-danh-tính-R (răn-đe pháp-lý) + `purpose`/`exp` ký kèm + **ưu-tiên proof-thay-ảnh**. UI PHẢI nói thẳng. |
-| **R2** | **Tự-khai bị lạm-dụng** (nộp ảnh người khác / ảnh dựng AI). | 🟡 TRUNG | Tầng 1: Glint phát media tổng-hợp (S1/H1) — chặn deepfake, KHÔNG chặn "ảnh thật của người khác". Tầng 2: issued credential (cơ-quan ký). Kết-luận cuối thuộc bên xác-minh. |
-| **R3** | **Phụ-thuộc hợp-đồng VeData** (Glint/Spectra chủ-động, Query đọc). | 🟡 TRUNG | Anchor-qua-Stamp + Query-read thoả HÔM NAY (intake công-khai). Glint/Spectra chủ-động: chạy on-device (ảnh không rời máy) hoặc chờ VeData mở hợp-đồng. |
+| **R2** | **Tự-khai bị lạm-dụng** (nộp ảnh người khác / ảnh dựng AI). | 🟡 TRUNG | Tầng 1: Spectra (LampNet) phát media tổng-hợp — chặn deepfake, KHÔNG chặn "ảnh thật của người khác" (vai phát-hiện media đã re-home từ Glint sang Spectra: Glint-Math.md:21,261). Tầng 2: issued credential (cơ-quan ký). Kết-luận cuối thuộc bên xác-minh. |
+| **R3** | **Phụ-thuộc HAI nhà khác nhau** — Spectra chủ-động cho ảnh (**LampNet**), Glint cho P-del/P-venc + Query đọc (**VeData**). | 🟡 TRUNG | Anchor-qua-Stamp + Query-read thoả HÔM NAY (intake công-khai). Spectra chủ-động (ảnh): chạy on-device (ảnh không rời máy) hoặc chờ VeData mở hợp-đồng. Glint (P-del cho KYB, P-venc cho tiết-lộ có kiểm-soát): đang TREO ở tầng circuit — verifier PHẢI reject `circuit_id` treo, nên hôm nay CHƯA dùng được, bất-kể có hợp-đồng hay không (Glint-Math.md:196). |
 | **R4** | **Mức 3 (BBS) phụ-thuộc lib ngoài** — I-KYC-PRIVATE/UNLINKABLE cần lib để chứng bằng code. | 🟡 TRUNG | Bọc lib BBS production (MATTR/Digital Bazaar), KHÔNG tự viết mạch. Giao đội on-chain/VeData. |
 | **R5** | **Canonical JSON lệch TS ↔ Java** → membership vỡ cross-language. | 🟢 THẤP | Đã căn `canonical.ts` ≡ Jackson `ORDER_MAP_ENTRIES_BY_KEYS`. Giữ kỷ-luật khi thêm field. |
 | **R6** | **Tương-quan metadata** (kích-thước ciphertext, ref_id, anchor slot lộ chùm). | 🟢 THẤP | Padding kích-thước Envelope (K-1), per-context ref alias (K-2), batch anchor mặc-định. Query có `B_pad`+DP. |
@@ -63,7 +63,7 @@ Aligns LampNetCloud + VeDataIO.
 **Phụ-thuộc-chặn (chờ đội khác / hợp-đồng):**
 - **B1 — lib BBS + prover/verifier** (đội on-chain/VeData/Frontend). Chặn toàn bộ Mức 3.
 - **B2 — LampNet gateway wiring** (đội backend). Chặn lớp tài-liệu.
-- **B3 — Glint/Spectra chủ-động** phụ-thuộc hợp-đồng VeData; hoặc on-device.
+- **B3 — Spectra chủ-động (ảnh)** phụ-thuộc hợp-đồng VeData; hoặc on-device. **Glint (P-del/P-venc cho Knowme)** đang TREO ở tầng circuit, không phải vấn-đề hợp-đồng — verifier PHẢI reject `circuit_id` treo (Glint-Math.md:196).
 - **B4 — archetype StampRecord cho notarization Strata head** (đối-chiếu 21 archetype Stamp).
 
 ---
@@ -91,7 +91,7 @@ Aligns LampNetCloud + VeDataIO.
 | **Q-B** | **Padding kích-thước Envelope** cho docType tùy-thân (chống suy-loại)? | Bật cho tùy-thân, tắt phần còn lại. | Đánh-đổi dung-lượng LampNet vs riêng-tư. |
 | **Q-C** | **Per-context ref alias** (giống external-nullifier)? | Làm — chống hai bên nhận đối-chiếu "cùng hồ-sơ". | Tăng riêng-tư vs phức-tạp SDK. |
 | **Q-D** | **Đường issued cho DocumentClaim** (cơ-quan ký ảnh) phase này hay sau? | Phase sau (sau lớp tài-liệu cơ-bản). | Lộ-trình tích-hợp cơ-quan. |
-| **Q-E** | **Nơi chạy Spectra/Glint cho ảnh nhạy-cảm** (on-device vs TEE)? | On-device cho tùy-thân (không phụ-thuộc contract VeData). | Tránh vô-tình gửi plaintext ra ngoài. |
+| **Q-E** | **Nơi chạy Spectra cho ảnh nhạy-cảm** (on-device vs TEE)? Glint không nằm trong câu hỏi này — nó không xử-lý ảnh thô, và P-del/P-venc cho Knowme đang TREO ở tầng circuit chứ không phải ở nơi-chạy (Glint-Math.md:196). | On-device cho tùy-thân (không phụ-thuộc contract VeData). | Tránh vô-tình gửi plaintext ra ngoài. |
 
 ---
 
@@ -102,7 +102,7 @@ Aligns LampNetCloud + VeDataIO.
 - **Giới-hạn thu-hồi ảnh (R1)** là cố-hữu, **không vá triệt-để được** — không hứa chống được. Watermark = truy-vết, không phòng-ngừa.
 - **Duy-nhất-người v1 LÀ việc của Knowme**, và nó **KHÔNG** dựa vào sinh-trắc. Khoá là **dấu giấy-tờ** `fp`: một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID (Math Đ-7, I-KNOW-12..16; Tech §9). Khoá sinh trong vùng an-toàn của thiết-bị chỉ bảo-đảm **mỗi thiết-bị một danh-tính** — một người dùng nhiều thiết-bị vẫn tạo được nhiều danh-tính; sinh-trắc gác **lượt đăng-ký trên một máy** (chống hàng-loạt), không gác **người** (I-KNOW-16).
 - **Phạm-vi trung-thực của bất-biến này:** nó chặn *DID thứ hai cho cùng một giấy-tờ*, KHÔNG chặn *một người cầm hai giấy-tờ hợp-lệ khác nhau*, và không tự nó là chống-sybil toàn-diện. Các lớp person-level còn lại + cổng chặn production: `PhoenixKey-Wakeme-Exec.md` §7.
-- **VeData sở-hữu catalog VC + issuer + Stamp/Query/Glint/Spectra.** Knowme dẫn-chiếu; một phần tích-hợp phụ-thuộc hợp-đồng liên-module.
+- **VeData sở-hữu catalog VC + issuer + Stamp/Query/Spectra.** Glint là thư-viện primitive ZK-proof dùng chung toàn hệ MagicLamp, đặt tại VeDataIO (Glint-Math.md:21) — Knowme dùng P2/P3/P4 biến-thể-kiểm-được-on-chain + P-del (KYB) + P-venc (tiết-lộ có kiểm-soát), nhưng P-del/P-venc đang TREO ở tầng circuit (Glint-Math.md:196), chưa dùng được hôm nay (Glint-Math.md:253). Knowme dẫn-chiếu; một phần tích-hợp phụ-thuộc hợp-đồng liên-module.
 - **Custody/recovery/anchor DID** thuộc module khác (Anchorme/Rebirthme) — Knowme chỉ dẫn-chiếu.
 
 ---

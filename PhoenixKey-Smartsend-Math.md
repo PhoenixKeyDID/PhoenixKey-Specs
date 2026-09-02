@@ -180,7 +180,8 @@ Ba định-lý Smartsend chỉ đứng khi ba tiền-đề thoả (nếu không,
 
 - **Ledger Cardano** thực-thi đúng luật eUTXO (double-spend từ-chối → SS-7′).
 - **Anchor + guardian** (thuộc Rebirthme) đúng như đặc-tả nguồn — cổng nạp và Freeze dựa vào đó.
-- **Spectra / Glint** (factor bối-cảnh ZK) có liveness/anti-replay chống ảnh AI-generated.
+- **Spectra** (LampNet) — lớp *phân-tích* liveness / chống phát-lại / chống ảnh dựng bằng AI. Vai này **đã rời Glint** theo founder lock 2026-07-28 (`Glint-Math.md:21`); chính Glint ghi rằng tham-chiếu "Glint phát hiện media tổng hợp" ở Smartsend phải re-home sang Spectra (`Glint-Math.md:261`). Phía PhoenixKey **chưa đo được** đặc-tả Spectra nào để dẫn-chiếu ⇒ đây là giả-định CHƯA có nguồn, xem §9 [CẦN CHỐT-SS-SPECTRA].
+- **Glint** (VeData) — chỉ cấp lớp *chứng-minh không tiết-lộ*: **P1** knowledge-of-opening (`Glint-Math.md:101`) + **P6** nullifier chống dùng lại một proof cho nhiều lệnh (`Glint-Math.md:105`), public-input bind escrow-ref (SSR-12). Catalog primitive Glint (`Glint-Math.md:95-207`) **không có** primitive nào phát-biểu mệnh-đề về CON NGƯỜI (đang sống / là chính chủ / khớp khuôn mặt) ⇒ giả-định "Glint chứng-minh đúng người" là SAI, phải tách hai chủ như trên. Ngoài ra **P6 chế-độ-chặn NGOÀI phạm vi quy-phạm v0.4.2** (`Glint-Math.md:167`) và `domain_tag` còn `[PENDING-DECISION]` (`Glint-Math.md:164`) ⇒ phần chống-replay bằng nullifier CHƯA đặc-tả được hôm nay, xem §9 [CẦN CHỐT-SS-NULLIFIER].
 - **Enroll-set trong anchor** trung-thực phản-ánh factor người dùng cài (SSR-4).
 
 ---
@@ -190,6 +191,8 @@ Ba định-lý Smartsend chỉ đứng khi ba tiền-đề thoả (nếu không,
 - **[CẦN CHỐT-SS2]** `reclaim_deadline` đặt tương-đối `veto_deadline` bao lâu (chống kẹt vs tránh reclaim-quá-sớm).
 - **[CẦN CHỐT-SS3]** `window` mặc-định + `min_window_floor` (SS-10) + có cho 2-bên thoả-thuận ngoài {24,48,72}h không.
 - **[CẦN CHỐT-SS4]** Enforce I-CURVE-5 (factor Cancel khác gốc seed) ở builder — dependency chung với Rebirthme [CẦN CHỐT-W8].
+- **[CẦN CHỐT-SS-SPECTRA]** Ai sở-hữu + đặc-tả lớp phân-tích liveness / chống ảnh dựng cho factor bối-cảnh. Vai này đã rời Glint sang **Spectra** (LampNet) từ founder lock 2026-07-28 (`Glint-Math.md:21`, `:261`), nhưng phía PhoenixKey chưa đo được đặc-tả Spectra nào để dẫn-chiếu. Mục chờ — KHÔNG lấp bằng câu chữ.
+- **[CẦN CHỐT-SS-NULLIFIER]** Chống dùng lại một proof cho nhiều lệnh Cancel dựa **P6** nullifier: chế-độ-chặn (bounded) hiện NGOÀI phạm vi quy-phạm P6 v0.4.2 (`Glint-Math.md:167`), hình-dạng `domain_tag` còn `[PENDING-DECISION]` (`Glint-Math.md:164`). Chờ Glint khoá hai mục đó trước khi Smartsend đặc-tả nullifier.
 - **[CẦN CHỐT-SS-FREEZE]** `freeze_deadline` đặt tương-đối lúc Freeze bao lâu (SS-8′, vd 30 ngày) — cân giữa an-toàn vs kẹt tiền.
 
 ---

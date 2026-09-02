@@ -129,7 +129,7 @@ Bạn chứng "đủ 18 tuổi" mà **không đưa ngày sinh** — người h�
 Đáp: Không. Họ chỉ cần: khoá của bạn (từ hồ-sơ DID), khoá cơ-quan (từ danh-sách tin-cậy đã neo sẵn), và bằng xuất-trình bạn đưa. Kiểm tại-chỗ, không gọi mạng tới cơ-quan.
 
 **Hỏi: Knowme có tự chấm giấy-tờ thật hay giả không?**
-Đáp: Không tự chấm bằng con người. Với ảnh, có thể có một tín-hiệu "media này là ảnh chụp thật hay bị dựng bằng AI" (từ Glint của VeData) — nhưng đó chỉ là **tín-hiệu**, không phải phán-quyết pháp-lý. Kết-luận "giấy-tờ này có giá-trị pháp-lý" thuộc bên xác-minh danh-tính, không phải Knowme.
+Đáp: Không tự chấm bằng con người. Với ảnh, có thể có một tín-hiệu "media này là ảnh chụp thật hay bị dựng bằng AI" (từ Spectra của LampNet) — nhưng đó chỉ là **tín-hiệu**, không phải phán-quyết pháp-lý. Kết-luận "giấy-tờ này có giá-trị pháp-lý" thuộc bên xác-minh danh-tính, không phải Knowme.
 
 **Hỏi: Danh-mục loại giấy-tờ (CCCD, hộ-chiếu…) do ai định?**
 Đáp: PhoenixKey lo phần **"đóng gói + phân-giải + tiết-lộ chọn-lọc"**. Danh-mục các loại giấy-tờ và cơ-quan cấp (catalog VC + issuer) thuộc **VeData** — Knowme dẫn-chiếu, không tự dựng.
