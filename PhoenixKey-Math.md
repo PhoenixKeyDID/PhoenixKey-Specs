@@ -135,7 +135,9 @@ Dec(k, c) → ByteArray | ⊥
 BIP39_Encode(entropy: {0,1}^256) → List<Word>   (24 words)
 BIP39_ToEntropy(words: List<Word>) → {0,1}^256
 
--- Threshold secret sharing (Shamir):
+-- Threshold secret sharing (Shamir) — RESERVED, no longer used by any section.
+-- §6.6 dropped Shamir splitting of Master_KEK (canonical: I-WALLET-8, rotate-not-
+-- reconstruct). Kept here only so external references to the notation resolve.
 TSS_Share(secret, k, n)        → List<{0,1}^256>   (k-of-n Shamir shares)
 TSS_Reconstruct(shares, k)     → {0,1}^256 | ⊥
   ≜ if |shares| < k then ⊥ else Shamir_interpolate(shares, k)
@@ -589,9 +591,82 @@ Master_KEK = BIP39_ToEntropy(user_24_words)   ∈ {0,1}^256
 -- Security note: entropy depends on original wallet's key generation.
 -- See I-PERSON-6 for scope restrictions on import_mode PersonDIDs.
 
--- In both modes: Master_KEK serves as the Cardano HD wallet seed.
--- 24-word export: BIP39_Encode(Master_KEK)  (§9)
+-- Master_KEK is NOT the Cardano HD seed directly. The HD seed (wallet_seed)
+-- is HKDF-separated from Master_KEK (§6.1.1). Biometrics UNLOCK the Enclave
+-- that releases Master_KEK; they do NOT derive the seed.
+-- 24-word export: BIP39_Encode(wallet_seed)  (§6.1.1, §9)
 ```
+
+### §6.1.1 Wallet Seed Derivation — HKDF Domain Separation [N] *(v4.7)*
+
+The Cardano HD wallet is **not** seeded by `Master_KEK` directly. A dedicated,
+domain-separated HKDF step derives a distinct `wallet_seed`, so the entropy that
+feeds BIP-39 / CIP-1852 is cryptographically independent from every other key
+derived from the same `Master_KEK`. This binding was implicit in earlier
+revisions — §6.1 previously read *"Master_KEK serves as the Cardano HD wallet
+seed"*, which contradicts the shipped enclave code. §6.1.1 makes it normative.
+
+Four sections reference §6.1.1 (`PhoenixKey-Anchorme-Tech.md`,
+`PhoenixKey-SeedDistribution-Tech-Math.md` ×3) but the section itself did not
+exist until this revision.
+
+```
+-- Generate mode (Mode A) — the HD seed is HKDF-separated from Master_KEK:
+wallet_seed = HKDF-SHA256( ikm  = Master_KEK,        -- 256-bit Enclave secret
+                           salt = 0x00 × 32,
+                           info = "wallet-v1",
+                           L    = 32 )   ∈ {0,1}^256   -- BIP-39 entropy
+
+-- Import mode (Mode B) — an externally-generated mnemonic IS the HD seed:
+wallet_seed = BIP39_ToEntropy(user_24_words)   ∈ {0,1}^256
+-- No HKDF step is applied to imported wallets, so derived addresses reproduce
+-- EXACTLY those of the source wallet. In this mode Master_KEK ≜ wallet_seed.
+
+-- Both modes then share the SAME BIP-39 / CIP-1852 pipeline (§8.1):
+24_words = BIP39_Encode(wallet_seed)               -- human-readable form (§9.1)
+root_xsk = BIP32_FromEntropy(wallet_seed, "")      -- CIP-3 Icarus master key
+```
+
+**Domain separation — the three labels are distinct and MUST stay distinct.**
+
+| Key | ikm | salt | info | Anchor |
+|---|---|---|---|---|
+| `wallet_seed` | `Master_KEK` | `0x00 × 32` | `"wallet-v1"` | `lib/bridge/enclave_bridge.dart:796-803` |
+| `TAAD_Key` seed | `Master_KEK` | `SHA-256("genesis")` | `"taad-controller-v1"` | `rust_core/src/sign.rs:29,43-46` |
+| `Device_KEK` | `PIN-derived ‖ SE-gate` | per-identity | `"device-kek-v2"` | `lib/bridge/enclave_bridge.dart:1120-1124` |
+
+All three are HKDF-SHA256 ([RFC 5869](https://www.rfc-editor.org/rfc/rfc5869),
+extract-then-expand, `L = 32`), crate `hkdf` 0.12 / `sha2` 0.10.
+`wallet_seed` and the `TAAD_Key` seed differ in **both** `salt` and `info`, so
+neither collides with the other even if one label is later reused.
+
+**Biometrics unlock the Enclave; they do not derive the seed.** Biometric data
+(fingerprint / Face ID) takes part in **no** derivation. It only unlocks the
+P-256 gate of the Secure Enclave (iOS Secure Enclave / Android StrongBox) to
+**release** `Master_KEK`, itself a 256-bit hardware random from
+`SecureEnclave.Generate()`. The chain `Master_KEK → wallet_seed → BIP-39 →
+CIP-1852 → address` is deterministic: the same `Master_KEK` always yields the
+same Cardano address.
+
+**HD derivation.** `BIP32_FromEntropy` is
+`Bip32PrivateKey::from_bip39_entropy(wallet_seed, "")` — Ed25519-BIP32, Icarus
+variant, [CIP-3](https://cips.cardano.org/cip/CIP-3) — followed by
+[CIP-1852](https://cips.cardano.org/cip/CIP-1852) paths
+`m/1852'/1815'/account'/0/0` (payment) and `m/1852'/1815'/account'/2/0`
+(stake). Anchor: `rust_core/src/cardano.rs:66-95`.
+
+> **The DID is NOT derived from this chain.** `did:phoenix:` identifiers are
+> produced by the `pop_bind` preimage (`enc_type ‖ enc_creator ‖ be8(genesis_ms)
+> ‖ rand_256 ‖ controller_pkh`), which carries fresh randomness — see §2.1 and
+> `PhoenixKey-DIDMethod-W3C.md` §4.4. Two DIDs minted from one `Master_KEK`
+> differ. Only the *address* chain above is deterministic.
+
+> **[CẦN CHỐT] Spec label vs shipped label.** An earlier draft of this section
+> specified `info = "wallet-seed-v1"` with `salt = SHA-256("genesis")`. The
+> shipped code uses `info = "wallet-v1"` with a zero salt. This section records
+> what ships, because changing either input changes every address already
+> derived on testnet. Whether to migrate to the longer label is a separate
+> decision, not an editorial one.
 
 ### §6.2 Device Encryption Key
 
@@ -646,30 +721,49 @@ EncSeed = Enc(Device_KEK, Master_KEK ∥ H(DID))   -- authenticated encryption
 
 | Key | Entropy | Storage | Exportable | Recovery Path |
 |-----|---------|---------|------------|---------------|
-| Master_KEK | 256 bits | Device (encrypted) | Yes (24 words, explicit consent) | Guardian TSS + TAAD |
-| Cloud_Secret | 256 bits | Hardware Keychain | No | Guardian-encrypted share |
+| Master_KEK | 256 bits | Device (encrypted) | Yes (24 words, explicit consent) | 24-word seed ONLY — guardian rotation does NOT recover it (§6.6) |
+| Cloud_Secret | 256 bits | Hardware Keychain | No | Re-generated on the new device (§11) |
 | Device_KEK | derived | In-memory only | No | Re-derive after recovery |
 | TAAD_Key | derived | Derived at use | No | Re-derive from Master_KEK |
 | HW_Key | 256 bits | Secure Enclave | No | Generate fresh on new device |
 
-### §6.6 Guardian-Based Master_KEK Protection
+### §6.6 Guardian-Based Recovery — Rotate, Not Reconstruct
+
+> **Errata.** This section previously described Shamir `k`-of-`n` splitting of
+> `Master_KEK` across guardians, with reconstruction via `TSS_Reconstruct`. That
+> model is superseded: guardians never hold a share of `Master_KEK` and cannot
+> reconstruct it. Canonical model is **I-WALLET-8**
+> (`PhoenixKey-Rebirthme-Math.md:173`) — guardian recovery **rotates the
+> on-chain controller key**; it does not rebuild `Master_KEK`. A wallet that has
+> lost its 24 words regains DID and on-chain asset control through guardian
+> rotation, but does **not** regain the ability to re-derive `wallet_seed` or
+> any vault-class secret that depends on `Master_KEK` (§6.1.1, §9). Threshold
+> custody of the *signing key itself* — not of `Master_KEK` — is a separate,
+> forward-looking mechanism: see `PhoenixKey-SeedDistribution-Tech-Math.md`
+> (FROST-Ed25519 `t`-of-`n`, opt-in, does not change `controller_pkh`
+> derivation).
 
 ```
--- Master_KEK is split across guardians for recovery:
-k = policy.threshold          -- minimum shares for reconstruction
-n = |guardians|               -- total shares
-
-shares = TSS_Share(Master_KEK, k, n)   -- Shamir k-of-n
-
-∀ i ∈ [0, n):
-  share_encrypted_i = Enc(guardian_i.public_key, shares[i])
-  -- encrypted under guardian's Ed25519 public key via ECIES
-  -- stored in recovery credential (§10) and distributed to guardians
-
-Recovery reconstruction:
-  collect {share_i : i ∈ S} where |S| ≥ k
-  Master_KEK = TSS_Reconstruct({Dec(guardian_i.private_key, share_encrypted_i) : i ∈ S}, k)
+-- Guardian recovery (I-WALLET-8): rotates controller_pkh; no Master_KEK material moves.
+Op_recover_via_guardian(did, new_controller_pkh, guardian_sigs, s):
+  |{i : verify(guardian_i.pubkey, guardian_sigs[i])}| ≥ policy.threshold
+  ∧ TAAD.controller_pkh' = new_controller_pkh          -- rotate only
+  ∧ Master_KEK is NOT recovered, NOT reconstructed, NOT touched
+-- Full guard set (timelock, InitRecovery / Cancel / Finalize):
+-- PhoenixKey-Rebirthme-Math.md, I-WALLET-*.
 ```
+
+**What is lost and what is kept.** Rotation is not equivalent to holding the
+seed. After a guardian recovery:
+
+| | Kept | Lost |
+|---|---|---|
+| DID + on-chain control | new `controller_pkh` signs | — |
+| Assets at addresses derived from the old `wallet_seed` | — | not spendable |
+| Vault-class secrets keyed on `Master_KEK` | — | not re-derivable |
+
+Consequence for the 24-word backup (§9): guardian recovery does **not** make
+the seed backup optional. The two mechanisms cover different losses.
 
 ---
 
