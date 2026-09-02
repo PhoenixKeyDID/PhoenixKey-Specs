@@ -92,7 +92,7 @@ Người dùng đăng nhập vào một web/app khác bằng chính danh tính P
 
 ### Mục đích
 
-Người dùng tạo danh tính PhoenixKey lần đầu: sinh cặp khoá trong Secure Enclave của thiết bị, đăng ký lên Cardano, nhận `did:phoenix:<slot>:<hash>`.
+Người dùng tạo danh tính PhoenixKey lần đầu: sinh cặp khoá trong Secure Enclave của thiết bị, đăng ký lên Cardano, nhận `did:phoenix:<genesis13>:<hash64>`.
 
 > **Phạm vi**: đây là thao tác **chỉ thực hiện được trên app PhoenixKey (mobile)** — khoá gốc sinh và ở lại trong Secure Enclave của điện thoại. Một app/web khác **không tự tạo DID hộ user được**; chỉ có thể điều hướng/deep-link user sang app PhoenixKey để họ tự làm, tương tự cách luồng "Đăng nhập" dùng QR ở mục 1. Mô tả dưới đây là màn hình TRÊN APP PhoenixKey — dev app khác cần biết chính xác để hiểu deep-link dẫn tới cái gì.
 

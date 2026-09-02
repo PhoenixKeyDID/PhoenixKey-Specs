@@ -63,20 +63,20 @@ did:phoenix:
 
 ### 4.1 Syntax
 
-The method-specific identifier consists of two colon-separated components: a 13-character base32 slot and a 64-character lowercase hex hash.
+The method-specific identifier consists of two colon-separated components: a 13-character base32 genesis timestamp and a 64-character lowercase hex hash.
 
 ```
-did:phoenix:<slot>:<hash>
+did:phoenix:<genesis>:<hash>
 ```
 
-- `<slot>` — 13 characters, alphabet `[a-z2-7]` (RFC 4648 base32, lowercase, no padding).
-- `<hash>` — 64 lowercase hex characters (32 bytes), computed as `blake2b_256` over an encoding described in §4.3.
+- `<genesis>` — 13 characters, alphabet `[a-z2-7]` (RFC 4648 base32, lowercase, no padding). It encodes the **8-byte big-endian POSIX millisecond** timestamp of the genesis transaction — **not** a Cardano slot number, and never a decimal rendering of the timestamp. The width is a property of the encoding, not of the value range: 64 bits padded with one zero bit is 65 bits, exactly 13 groups of 5, so timestamp `0` renders as `aaaaaaaaaaaaa` and the u64 maximum as `7777777777776`.
+- `<hash>` — 64 lowercase hex characters (32 bytes), computed as `blake2b_256` over the preimage described in §4.4.
 
 ### 4.2 ABNF
 
 ```abnf
-phoenix-did       = "did:phoenix:" phoenix-slot ":" phoenix-hash
-phoenix-slot      = 13base32-lower
+phoenix-did       = "did:phoenix:" phoenix-genesis ":" phoenix-hash
+phoenix-genesis   = 13base32-lower
 phoenix-hash      = 64HEXDIGLC
 base32-lower      = %x61-7A / %x32-37   ; a-z / 2-7
 HEXDIGLC          = DIGIT / %x61-66     ; 0-9 / a-f
@@ -90,16 +90,39 @@ HEXDIGLC          = DIGIT / %x61-66     ; 0-9 / a-f
 
 ### 4.4 Derivation
 
-The identifier is generated client-side inside a hardware-backed secure element (iOS Secure Enclave / Android StrongBox), never on-chain:
+The identifier is generated client-side inside a hardware-backed secure element (iOS Secure Enclave / Android StrongBox), never on-chain. It is **self-certifying**: the hash commits to the key that controls the identity at genesis, so the identifier cannot be detached from its controller.
 
 ```
-did:phoenix:<slot>:<hash>
-  where hash = H( encode(entity_type) ‖ creator ‖ encode(slot) ‖ rand_256 )
+preimage = enc_type ‖ enc_creator ‖ enc_genesis_ms ‖ rand_256 ‖ controller_pkh
+
+  enc_type         1 byte     entity-type byte, canonical table below
+  enc_creator      1 or 33 B  0x00                          for a root identity
+                              0x01 ‖ blake2b_256(parent_did) for a child identity
+  enc_genesis_ms   8 bytes    big-endian POSIX milliseconds of the genesis transaction
+  rand_256        32 bytes    fresh randomness, revealed once at genesis
+  controller_pkh  28 bytes    blake2b_224 key hash of the controlling Ed25519 key
+
+hash = H( preimage )
+did  = "did:phoenix:" ‖ base32_nopad_lower( be8(genesis_ms) ) ‖ ":" ‖ hex_lower( hash )
 ```
 
-(`‖` denotes byte-string concatenation — join the operands end-to-end into one byte sequence before hashing; it carries no other meaning here.)
+(`‖` denotes byte-string concatenation — join the operands end-to-end into one byte sequence before hashing; there are no length prefixes and no separators, and it carries no other meaning here.)
 
-`H` is the same primitive as the on-chain anchor name function (§4.5); `entity_type` is encoded as a fixed single byte per the canonical byte table in §2 (`Person=0, Org=1, Device=2, Machine=3, Asset=4, Bot=5, Agent=6, Service=7, Context=8, Avatar=9`). The byte **value** is the hash-contract invariant consumed on-chain; the type's display label (`Agent`, `Avatar`) is documentation-only and carries no on-chain meaning, so labelling is fixed by the value, not the name.
+`H` is the same primitive as the on-chain anchor name function (§4.5): a single BLAKE2b-256 digest. `hex_lower` is lowercase hex; because `N(did)` hashes the UTF-8 bytes of the identifier, an uppercase rendering would be a *different* identifier, so lowercase is normative.
+
+Three constraints are load-bearing:
+
+1. **`controller_pkh` is inside the preimage.** Changing the controller changes the identifier. An implementation that omits this field derives identifiers under a superseded construction; those identifiers are rejected by the on-chain genesis gate.
+2. **`enc_creator` is domain-tagged and fixed-width.** A root identity contributes the single byte `0x00`; a child contributes `0x01` followed by the 32-byte hash of the parent identifier — never the parent identifier's own bytes, whose length varies.
+3. **`|rand_256| = 32` and `|controller_pkh| = 28` MUST be enforced at construction.** The two fields are adjacent with no separator, so moving a byte across their boundary yields an identical preimage and therefore an identical identifier. The first three fields delimit themselves; these two do not.
+
+`entity_type` is encoded as a fixed single byte per the canonical byte table in §2 (`Person=0, Org=1, Device=2, Machine=3, Asset=4, Bot=5, Agent=6, Service=7, Context=8, Avatar=9`). The byte **value** is the hash-contract invariant consumed on-chain; the type's display label (`Agent`, `Avatar` — spelled `AI` and `Character` in the on-chain type declaration) is documentation-only and carries no on-chain meaning, so labelling is fixed by the value, not the name.
+
+**Test vector.** Entity type `Person` (byte `0x00`), root identity, `genesis_ms = 1754000000000`, `rand_256` = the byte `0x11` repeated 32 times, `controller_pkh` = the byte `0xb2` repeated 28 times. The 70-byte preimage yields:
+
+```
+did:phoenix:aaaadgdcrqcaa:ff6bf9c8c1b0eb852813194ddb712ee57b8a46bdcfbc6f9cdf83678827628400
+```
 
 ### 4.5 On-chain anchor name — `N(did)`
 
@@ -111,7 +134,14 @@ N(did) = blake2b_256( UTF-8(did) )
 
 No salt, no double-hashing, no method other than a single BLAKE2b-256 digest over the UTF-8 bytes of the full DID string (including the `did:phoenix:` prefix). This value is used both as the Cardano native-asset name and as the lookup key (`did_hash`) for off-chain resolution by hash.
 
-A published test vector: `blake2b_256("did:phoenix:person:alice")` starts with `1643c0c9…c470` (see the Anchorme module's Feature spec §1.3 for the full vector set).
+Test vector, continuing the §4.4 vector:
+
+```
+N("did:phoenix:aaaadgdcrqcaa:ff6bf9c8c1b0eb852813194ddb712ee57b8a46bdcfbc6f9cdf83678827628400")
+  = 79712c5ae592fcd664c4060be77ea96ec2504dfa5c35c4cf2d63037923e1b544
+```
+
+Older vector sets in the PhoenixKey specification set hash development-only strings of the shape `did:phoenix:person:alice`. Those strings do not conform to §4.2 and are not valid `did:phoenix` identifiers; they remain useful only as evidence that `N` hashes the UTF-8 bytes verbatim, with no parsing of the identifier's structure.
 
 ---
 
@@ -127,30 +157,30 @@ Resolving a `did:phoenix` identifier produces a W3C-conformant DID Document deri
     "https://www.w3.org/ns/did/v1",
     "https://w3id.org/security/suites/jws-2020/v1"
   ],
-  "id": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470",
+  "id": "did:phoenix:aaaadgdcrqcaa:ff6bf9c8...8400",
   "verificationMethod": [
     {
-      "id": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#device-key",
+      "id": "did:phoenix:aaaadgdcrqcaa:ff6bf9c8...8400#device-key",
       "type": "JsonWebKey2020",
-      "controller": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470",
+      "controller": "did:phoenix:aaaadgdcrqcaa:ff6bf9c8...8400",
       "publicKeyJwk": { "kty": "EC", "crv": "P-256", "x": "...", "y": "..." }
     },
     {
-      "id": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#controller-key",
+      "id": "did:phoenix:aaaadgdcrqcaa:ff6bf9c8...8400#controller-key",
       "type": "JsonWebKey2020",
-      "controller": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470",
+      "controller": "did:phoenix:aaaadgdcrqcaa:ff6bf9c8...8400",
       "publicKeyJwk": { "kty": "OKP", "crv": "Ed25519", "x": "..." }
     }
   ],
   "authentication": [
-    "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#device-key"
+    "did:phoenix:aaaadgdcrqcaa:ff6bf9c8...8400#device-key"
   ],
   "capabilityInvocation": [
-    "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#controller-key"
+    "did:phoenix:aaaadgdcrqcaa:ff6bf9c8...8400#controller-key"
   ],
   "service": [
     {
-      "id": "did:phoenix:aaaaaaaaaaaaa:1643c0c9...c470#cardano-wallet",
+      "id": "did:phoenix:aaaadgdcrqcaa:ff6bf9c8...8400#cardano-wallet",
       "type": "CardanoWallet",
       "serviceEndpoint": "addr_test1..."
     }
@@ -188,7 +218,7 @@ All operations are Cardano transactions against a single multi-purpose Plutus V3
 Two mint paths, discriminated by the `StateNftRedeemer` (a *redeemer* is the Plutus term for the argument a transaction supplies to tell a validator script which action it is invoking):
 
 **`GenesisPerson`** (self-genesis, root identities only):
-- Preconditions: exactly one NFT minted under `π`; the sole output carrying that NFT sits at `Script(π)`; asset name equals `N(did)`; `entity_type = Person`; `parent_did = None`; the datum's `controller_pkh` is present in the transaction's signers (self-sign); the datum is fresh (`sequence = 0`, `status = Active`, `revoked_slot = None`).
+- Preconditions: exactly one NFT minted under `π`; the sole output carrying that NFT sits at `Script(π)`; asset name equals `N(did)`; `entity_type = Person`; `parent_did = None`; the datum's `controller_pkh` is present in the transaction's signers (self-sign); the datum is fresh (`sequence = 0`, `status = Active`, `revoked_ms = None`).
 - Signer: the identity's own controller key (Enclave-produced witness).
 - This path does not bind the DID string to a global uniqueness check at mint time; see §7.2 (Security Considerations).
 
@@ -225,7 +255,7 @@ Recovery (`InitRecovery`/`CancelRecovery`/`FinalizeRecovery`) is a guardian-assi
 
 ### 6.4 Deactivate
 
-The `Deactivate` redeemer transitions `status` from `Active` to `Revoked` and sets `revoked_slot` to a finite lower bound derived from the transaction's validity interval. **`Revoked` is a dead end**: no update redeemer's guard matches `(_, Revoked)`, so a deactivated anchor can never again be rotated, transferred, recovered, or otherwise spent through the lifecycle paths — only a pure-burn path (`GenesisBurn`, all value movements negative) can remove the NFT from circulation entirely. Readers that gate on liveness (e.g. wallet spending authorization) treat any non-`Active` status as non-authoritative.
+The `Deactivate` redeemer transitions `status` from `Active` to `Revoked` and sets `revoked_ms` to a finite lower bound derived from the transaction's validity interval. **`Revoked` is a dead end**: no update redeemer's guard matches `(_, Revoked)`, so a deactivated anchor can never again be rotated, transferred, recovered, or otherwise spent through the lifecycle paths — only a pure-burn path (`GenesisBurn`, all value movements negative) can remove the NFT from circulation entirely. Readers that gate on liveness (e.g. wallet spending authorization) treat any non-`Active` status as non-authoritative.
 
 ---
 
@@ -279,7 +309,7 @@ An implementation of `did:phoenix` claiming conformance to this method specifica
 3. Implement resolution consistent with **W3C DID Resolution v0.3** semantics, returning a DID Document matching §5 for any live, `Active` anchor, and an appropriate not-found/deactivated result otherwise.
 4. Enforce the CRUD transition guards of §6 exactly as specified (singleton spend, strict `sequence + 1`, immutable `did`/`entity_type`, dead-end `Revoked`) when implementing or verifying the on-chain validator.
 
-**Test vector (informative):** `blake2b_256("did:phoenix:person:alice")` = `1643c0c9…c470` (32 bytes, hex, truncated for display — full vector set published alongside the Anchorme module's feature specification).
+**Test vector (informative):** for the conforming identifier of §4.4, `blake2b_256("did:phoenix:aaaadgdcrqcaa:ff6bf9c8…8400")` = `79712c5a…b544` (32 bytes, hex, truncated for display; the full vector set, including the 70-byte preimage and one row per entity-type byte, is published alongside the Anchorme module's feature specification).
 
 ---
 

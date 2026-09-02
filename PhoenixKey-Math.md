@@ -228,15 +228,70 @@ MAX_SERVICE_DEPTH = 3      Service→Service chain limit
 
 ### §2.1 DID Identifier
 
+Khuôn sinh `did:phoenix` là khuôn **PoP-bind**: did-string TỰ CHỨNG, nhúng hash của
+một tiền-ảnh có chứa `controller_pkh`. Neo chuẩn: `PhoenixKey-Validator`
+`lib/phoenixkey/pop_bind.ak` (`enc_type`/`enc_creator`/`enc_genesis_ms`/`inner_hash`/
+`canonical_did`) + bộ vector `docs/vectors/canonical_did.json`.
+
 ```
 DID : ByteArray
 
-DID_construct(type, creator, slot) → DID ≜
-  "did:phoenix:" ++ base32(slot) ++ ":" ++
-  hex(H(encode(type) ++ (creator ?? "root") ++ encode(slot) ++ rand_256))
-  where rand_256 ← SecureRandom(256)
+enc_type(type)          : 1 byte   -- chỉ-số constructor EntityType, xem chú thích dưới
+enc_creator(parent)     : 1 | 33 B -- 0x00                        nếu là DID gốc
+                                   -- 0x01 ‖ H(parent_did)        nếu là DID con
+enc_genesis_ms(ms)      : 8 byte   -- big-endian, POSIX MILI-GIÂY của tx genesis
+rand_256                : 32 byte  -- SecureRandom(256), lộ một lần ở genesis
+controller_pkh          : 28 byte  -- blake2b_224 của khoá Ed25519 điều khiển
+
+preimage  = enc_type ‖ enc_creator ‖ enc_genesis_ms ‖ rand_256 ‖ controller_pkh
+inner     = H(preimage)                                      -- blake2b_256, 32 byte
+
+DID_construct(type, parent, genesis_ms, rand_256, controller_pkh) → DID ≜
+  "did:phoenix:" ++ base32_nopad_thường(be8(genesis_ms)) ++ ":" ++ hex_thường(inner)
 
 Collision: P(any two collide | n DIDs) ≤ n²/2^257 ≈ 4.32×10^{-54} at n=10^12
+```
+
+**Ba ràng buộc mang tải, bỏ cái nào cũng là khuôn khác:**
+
+1. `controller_pkh` **nằm TRONG tiền-ảnh**. Đây là thứ đóng lỗ giả-mạo lần-mint-đầu:
+   đổi controller là đổi did-string, nên kẻ tấn công không giữ được did của nạn nhân
+   mà thay khoá điều khiển bằng khoá của mình. Cài đặt nào bỏ trường này là đang
+   sinh did theo một khuôn ĐÃ BỎ, và cổng genesis on-chain sẽ từ chối.
+2. `enc_creator` **có domain-tag và độ rộng cố định**: gốc góp đúng một byte `0x00`;
+   con góp `0x01` ‖ hash 32 byte của did cha — KHÔNG nối chuỗi cha thô, KHÔNG dùng
+   chữ literal `"root"`.
+3. `|rand_256| = 32` và `|controller_pkh| = 28` **phải được ép ngay khi dựng
+   tiền-ảnh**. Phép nối không có tiền tố độ dài; ba trường đầu tự phân định biên,
+   nhưng hai trường cuối liền nhau không có dấu ngăn nên đẩy một byte qua biên
+   giữa chúng cho ra Y HỆT một tiền-ảnh ⟹ cùng một did ⟹ cùng một địa chỉ ví.
+
+**Mốc thời gian là POSIX mili-giây, KHÔNG phải slot Cardano**, và phải bằng
+`upper_bound` của tx genesis (I-TIME-ANCHOR) chứ không phải số builder tự khai.
+Nó render **base32 RFC4648 chữ thường, không đệm, của đúng 8 byte big-endian** ⟹
+**luôn 13 ký tự** `[a-z2-7]`. Độ rộng cố định là tính chất CỦA MÃ HOÁ, không phải
+của khoảng giá trị mốc: mốc `0` ra `aaaaaaaaaaaaa`, cực đại u64 ra `7777777777776`.
+KHÔNG render thập phân — dạng thập phân lọt regex resolver ở khoảng 1/459 số mốc
+rồi bị giải thành 8 byte rác, hỏng im lặng.
+
+**Hex là CHỮ THƯỜNG.** `N(did) = blake2b_256(UTF-8(did))` nên bản HOA là một did
+KHÁC, tức một tên anchor khác, tức một địa chỉ ví khác.
+
+**`enc_type` = chỉ-số constructor `EntityType`**, pin ở `pop_bind.ak` `enc_type`
+≡ `types.EntityType`: `Person=0, Org=1, Device=2, Machine=3, Asset=4, Bot=5,
+Agent=6, Service=7, Context=8, Avatar=9`. Thứ tự khai báo là BẤT BIẾN VĨNH VIỄN —
+đổi chỗ một variant vừa đổi CBOR on-chain vừa đổi `N(did)` của mọi DID cùng loại.
+⚠ **Thứ tự LIỆT KÊ ở §2.2 dưới đây KHÔNG phải thứ tự byte** (nó xếp theo tầng
+tin-cậy). Lấy giá trị byte từ bảng vừa nêu, đừng đếm dòng §2.2 (CID-4,
+`PhoenixKey-Anchorme-Math.md` §9).
+
+**Vector đối chiếu** (`Person`, DID gốc, `genesis_ms = 1754000000000`,
+`rand_256` = byte `0x11` lặp 32 lần, `controller_pkh` = byte `0xb2` lặp 28 lần;
+tiền-ảnh dài 70 byte):
+
+```
+did:phoenix:aaaadgdcrqcaa:ff6bf9c8c1b0eb852813194ddb712ee57b8a46bdcfbc6f9cdf83678827628400
+N(did) = 79712c5ae592fcd664c4060be77ea96ec2504dfa5c35c4cf2d63037923e1b544
 ```
 
 ### §2.2 DID Types
@@ -758,7 +813,7 @@ address_base(account, index) =
 
 ```
 -- PhoenixKey DID and Cardano wallet are derived from the same Master_KEK:
-DID = DID_construct(Person, None, registration_slot)      -- §2.1
+DID = DID_construct(Person, ⊥, genesis_ms, controller_pkh)  -- §2.1
 SeedData = Master_KEK                                     -- same bits
 24_words = BIP39_Encode(Master_KEK)                       -- human-readable form
 
@@ -1801,7 +1856,7 @@ Op_create(Org):
     ∧ no_circular_membership(Org, members)                            -- I-ORG-5
     ∧ G2: the new Org's owner-chain roots in {Person, Org}             -- I-OWN-7 (§22.3)
   Effect:
-    DID_new = DID_construct(Org, parent ?? "root", slot)              -- §2.1
+    DID_new = DID_construct(Org, parent, genesis_ms, controller_pkh)  -- §2.1; gốc ⇒ parent = ⊥
     create OrgDID { did=DID_new, type=Org, schema_version=1, authority_model,
                     security_level = ( authority_model=single
                                        ? Threshold(1, 1)                -- lone owner; score 5 (§2.4)
@@ -3298,7 +3353,7 @@ I-JURI-4: Jurisdiction updates require Biometric_HW_sig + optional guardian appr
 -- All other MagicLamp applications USE PhoenixKey; they do not extend it.
 
 Layer 0 — Identity (PhoenixKey):
-  Provides: DID (did:phoenix:SLOT:HASH), TAAD authority management,
+  Provides: DID (did:phoenix:<genesis13>:<hash64>), TAAD authority management,
             VC issuance/verification, access control via signed messages
   Does NOT provide: data storage, record format, business logic
 
@@ -3813,11 +3868,22 @@ interoperable with the canonical resolver. ∎
 
 ## Appendix B — DID Construction [N]
 
+Bản đầy đủ kèm ba ràng buộc mang tải và vector đối chiếu ở **§2.1** — mục này chỉ
+nhắc lại thuật toán, đừng dùng riêng nó làm nguồn.
+
 ```
-DID_construct(type, creator, slot) → DID:
-  rand_256 ← SecureRandom(256)
-  raw = H(encode(type) ++ (creator ?? "root") ++ encode(slot) ++ rand_256)
-  RETURN "did:phoenix:" ++ base32(slot) ++ ":" ++ hex(raw)
+DID_construct(type, parent, genesis_ms, controller_pkh) → DID:
+  rand_256 ← SecureRandom(256)                       -- đúng 32 byte
+  assert |rand_256| = 32 ∧ |controller_pkh| = 28     -- ép NGAY, không để tận cổng ngoài
+
+  enc_creator = if parent = ⊥ then 0x00 else 0x01 ‖ H(parent)   -- 1 hoặc 33 byte
+  preimage    = enc_type(type) ‖ enc_creator ‖ be8(genesis_ms) ‖ rand_256 ‖ controller_pkh
+  inner       = H(preimage)                                     -- blake2b_256
+
+  RETURN "did:phoenix:" ++ base32_nopad_thường(be8(genesis_ms)) ++ ":" ++ hex_thường(inner)
+
+  -- genesis_ms là POSIX MILI-GIÂY (= upper_bound tx genesis), KHÔNG phải slot.
+  -- Đoạn giữa luôn 13 ký tự [a-z2-7]; KHÔNG render thập phân.
 
 Collision: P(n DIDs) ≤ n²/2^257;  at n=10^12: P ≤ 4.32×10^{-54}
 ```
