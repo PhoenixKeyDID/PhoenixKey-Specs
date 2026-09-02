@@ -1,6 +1,6 @@
 # PhoenixKey — Wakeme · ĐẶC-TẢ ĐIỀU-HÀNH (cho lãnh-đạo)
 
-> **Module:** Wakeme (kích-hoạt nhận LAMP). **Loại doc:** Điều-hành. **Mô hình:** BẢN A — vest-thành-sở-hữu theo epoch (chốt 2026-07-30, Issue #67; đính-chính WakemeUsageRight + bucket `owned` 2026-07-31). **Cập nhật:** 2026-08-14.
+> **Module:** Wakeme (kích-hoạt nhận LAMP). **Loại doc:** Điều-hành. **Mô hình:** BẢN A — vest-thành-sở-hữu theo epoch (chốt 2026-07-30, Issue #67; đính-chính WakemeUsageRight + bucket `owned` 2026-07-31). **Cập nhật:** 2026-09-02.
 > **Đối-tượng đọc:** lãnh-đạo — quyết-định + lý-do + đánh-đổi + rủi-ro + lộ-trình. Chi-tiết toán/invariant: [PhoenixKey-Wakeme-Math.md](./PhoenixKey-Wakeme-Math.md). Kỹ-thuật: [PhoenixKey-Wakeme-Tech.md](./PhoenixKey-Wakeme-Tech.md). Người-dùng: [PhoenixKey-Wakeme-Vi-Feat.md](./PhoenixKey-Wakeme-Vi-Feat.md).
 >
 > Tài-liệu này KHÔNG lặp toán. Chỉ nêu điều lãnh-đạo cần để duyệt và chốt.
@@ -34,7 +34,7 @@
 
 **Đã BỎ.** (a) Model VND-Genie (nạp 200k) — nay miễn phí; (b) closed-loop-pot "tấm-pin" (không cho sở hữu) — phản cam-kết Daily; (c) v4.1 vest-2-bước **cưỡng-bức** (VestToOwner→ClaimVested bắt-buộc): thay bằng `OwnEpoch` chuyển `conditional→owned` **một-bước** mỗi epoch active — LAMP `owned` **được giữ trong vault sinh MAGIC**, redeem về ví / mint CARP là **TUỲ-CHỌN** của user (không phải bước bắt-buộc).
 
-> 🔴 **CỔNG GO/NO-GO (đọc trước khi duyệt bật production):** validator an-toàn tiền-tệ nhưng **KHÔNG được mở Wakeme-PersonDID trên production tới khi uniqueness person-level + Registry-chuẩn land.** Lý do: PersonDID **giả-mạo được ở tầng neo-anchor** (did-string đúc anchor bất-kỳ, HW_Key P-256 không verify on-chain — KHÔNG phải lỗ sinh-trắc) + cổng chống-wash chưa tồn tại → kẻ tấn-công rút-ròng nhiều suất D. Enterprise/Org/Service DID (có parent-sig) KHÔNG dính lỗ này. Xem §7.
+> 🔴 **CỔNG GO/NO-GO (đọc trước khi duyệt bật production):** validator an-toàn tiền-tệ nhưng **KHÔNG được mở Wakeme-PersonDID trên production tới khi uniqueness person-level + Registry-chuẩn land.** Lý do: **Sybil mức NGƯỜI** — một người tự mint được bao nhiêu PersonDID tuỳ ý, mỗi cái đều hợp khuôn (`pop_bind.ak:83-93`) → rút-ròng nhiều suất D; cộng cổng chống-wash chưa tồn tại. Enterprise/Org/Service DID (có parent-sig) KHÔNG dính lỗ này. Vế "giả-mạo ở tầng neo-anchor" của bản trước **đã đóng 2026-08-12** và không còn là lý do chặn. Chi tiết + bằng chứng: §7.
 
 → Trạng-thái & tiến-độ hiện tại: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#wakeme)
 
