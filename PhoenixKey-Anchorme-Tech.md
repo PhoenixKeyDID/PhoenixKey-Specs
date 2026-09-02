@@ -21,7 +21,7 @@
 ```
 ┌──────────────── CORE / ENCLAVE (Flutter + rust_core) ─────────────────┐
 │  vân tay → Secure Enclave: HW_Key (P-256) + TAAD_Key (Ed25519)         │
-│  DID = did:phoenix:base32(slot):hex(hash)  (rust_core taad_did.rs)     │
+│  DID = did:phoenix:base32(be8(genesis_ms)):hex_thường(inner)  §1.3      │
 │  N(did) = blake2b_256(UTF-8(did))  (phoenix_address.rs:52)             │
 │  ký: GenesisPerson(self), GenesisChild(owner), Rotate/Deactivate/Transfer│
 └───────────────┬────────────────────────────────────────────────────────┘
@@ -63,15 +63,41 @@
 
 | Thành-phần | Công-thức | Nguồn |
 |---|---|---|
-| DID canonical | `did:phoenix:base32(slot):hex(H(encode(type) ‖ creator ‖ encode(slot) ‖ rand_256))` | Math §2.1; `DidPhoenixGenerator.java:55-95` |
+| Tiền-ảnh canonical | `enc_type(1B) ‖ enc_creator(0x00 gốc \| 0x01‖blake2b_256(parent), 33B con) ‖ be8(genesis_ms) ‖ rand_256(32B) ‖ controller_pkh(28B)` | `pop_bind.ak` `inner_hash`; Math §2.1 |
+| DID canonical | `did:phoenix:base32_nopad_thường(be8(genesis_ms)):hex_thường(blake2b_256(tiền-ảnh))` | `pop_bind.ak` `canonical_did`; vector `docs/vectors/canonical_did.json` |
+| Mốc giữa | POSIX **mili-giây** (= `upper_bound` tx genesis), base32 8-byte-BE ⟹ **luôn 13 ký tự**. KHÔNG slot, KHÔNG thập phân. | `pop_bind.ak` `base32_genesis_ms` |
 | Regex | `^did:phoenix:[a-z2-7]{13}:[0-9a-f]{64}$` | `DID-Registry-Resolver-Feat §1.2` |
 | `N(did)` / `did_hash` | `blake2b_256(UTF-8(did))` — 32B, KHÔNG salt, KHÔNG BLAKE3 | `phoenix_address.rs:52`; `…-Feat §1.1` |
-| type-byte trong hash | `encode(type)` = BYTE enum. Java+Aiken **KHỚP byte-exact** (Person=0…Device=2,Machine=3,Asset=4,Bot=5,Agent=6,Service=7,Context=8,Avatar=9); chỉ **văn Math §2.2 lệch thứ-tự** (Context=2). §10 CID-4. | `DidPhoenixGenerator.java:56-65` ≡ `types.EntityType`; văn Math §2.2 |
+| type-byte trong hash | `enc_type(type)` = chỉ-số constructor `EntityType` (Person=0…Device=2,Machine=3,Asset=4,Bot=5,Agent=6,Service=7,Context=8,Avatar=9). Thứ tự khai báo BẤT BIẾN VĨNH VIỄN — đổi chỗ một variant là đổi `N(did)` của mọi DID cùng loại. Chỉ **văn Math §2.2 còn lệch thứ-tự liệt-kê** (Context=2); §10 CID-4. | `pop_bind.ak` `enc_type` ≡ `types.EntityType`; văn Math §2.2 |
+
+> **🔴 Khuôn canonical ở bảng trên là khuôn PoP-bind, và nó là khuôn DUY NHẤT.**
+> Khuôn cũ (`H(encode(type) ‖ creator-thô-hoặc-"root" ‖ encode(slot) ‖ rand_256)`,
+> mốc = **slot**, **không có** `controller_pkh`) đã bị bỏ. Ba khác biệt đều nằm
+> trong tiền-ảnh nên đều đổi hash: (1) thêm `controller_pkh` 28 byte ở cuối —
+> đây là thứ đóng CID-1; (2) creator có domain-tag `0x00`/`0x01‖hash(cha)` thay
+> vì nối chuỗi cha thô hoặc chữ literal `"root"`; (3) mốc là POSIX-ms lấy từ
+> `upper_bound` tx genesis, không phải slot Cardano do caller truyền.
+>
+> **Chưa cài đặt xong ở đâu ngoài validator.** Bản Rust của khuôn này tồn tại ở
+> `PhoenixKey-Core/rust_core/src/pop_bind.rs` (đối byte với vector Aiken) nhưng
+> **cố ý chưa nối vào đường chạy thật** — không FFI, chỉ gọi từ test. Bộ sinh cũ
+> ở `rust_core/src/taad_did.rs` và ở backend vẫn còn nguyên và vẫn là thứ đang
+> phát DID hôm nay. ⟹ DID cấp bằng bộ sinh cũ KHÔNG mint được anchor dưới
+> validator hiện hành. Việc chuyển đổi đi qua cổng THỜI-CHÍNH (đổi khuôn = đổi
+> `N(did)` = đổi địa chỉ ví), theo dõi ở `PhoenixKey-Validator` #78.
 
 **Chuỗi sinh-khoá ví + seed (Enclave → CIP-1852).** Vân tay **mở** cổng P-256 của
 Secure Enclave để giải-phóng `Master_KEK` (số ngẫu-nhiên 256-bit); nó **KHÔNG** dẫn-xuất
-seed. Từ `Master_KEK`, chuỗi dẫn-xuất **tất-định** (cùng `Master_KEK` → cùng
-địa-chỉ + cùng DID):
+seed. Từ `Master_KEK`, chuỗi dẫn-xuất **tất-định** tới bước 4 (cùng `Master_KEK` →
+cùng địa-chỉ ví, cùng 24 từ).
+
+⚠ **DID thì KHÔNG tất-định từ `Master_KEK`.** Tiền-ảnh PoP-bind còn hai trường
+không dẫn-xuất được từ seed: `rand_256` (ngẫu-nhiên tươi, lộ một lần ở genesis) và
+`genesis_ms` (mốc `upper_bound` của chính tx genesis). `Master_KEK` chỉ quyết-định
+được `controller_pkh` ở bước 5. Hệ-quả: khôi-phục 24 từ dựng lại được ví, KHÔNG
+dựng lại được did-string; did-string phải lấy từ bản lưu hoặc từ một đường tra
+danh-tính off-chain, không tính lại từ seed được. Điều này đúng cho CẢ khuôn cũ
+(`rand_256` đã có ở đó rồi) — câu "cùng `Master_KEK` → cùng DID" trước đây là sai.
 
 | Bước | Hàm (thật, khớp `rust_core`) | Thư-viện (bản) | Chuẩn |
 |---|---|---|---|
@@ -79,7 +105,7 @@ seed. Từ `Master_KEK`, chuỗi dẫn-xuất **tất-định** (cùng `Master_K
 | 2. wallet_seed | `HKDF-SHA256(ikm=Master_KEK, salt=SHA256("genesis"), info="wallet-seed-v1")` → 32B | [`hkdf`](https://crates.io/crates/hkdf) 0.12 · `sha2` 0.10 | [RFC 5869](https://www.rfc-editor.org/rfc/rfc5869) |
 | 3. 24 từ | `Mnemonic::from_entropy(wallet_seed)` | [`bip39`](https://crates.io/crates/bip39) 2.0 | [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) |
 | 4. HD derive | `Bip32PrivateKey::from_bip39_entropy(wallet_seed,[])` → `m/1852'/1815'/0'/{0,2}/0` (0=payment, 2=stake) | [`cardano-serialization-lib`](https://crates.io/crates/cardano-serialization-lib) 13.2.0 | [CIP-1852](https://cips.cardano.org/cip/CIP-1852) · [CIP-3](https://cips.cardano.org/cip/CIP-3) |
-| 5. DID | `Blake2b-256(payment_pubkey)` → `did:phoenix:base32(slot):hex(hash)` | [`blake2`](https://crates.io/crates/blake2) 0.10 · `data-encoding` | — |
+| 5. DID | `controller_pkh = Blake2b-224(payment_pubkey)` (28B) → nối tiền-ảnh §1.3 → `did:phoenix:base32(be8(genesis_ms)):hex_thường(inner)` | [`blake2`](https://crates.io/crates/blake2) 0.10 · `data-encoding` | — |
 
 Đường-cong HD = Ed25519-BIP32 (Icarus, CIP-3). **Bước 2 (`wallet-seed-v1`) là mắt-xích Math
 §6 từng thiếu** — nay đã bổ-sung ở Math **§6.1.1**. Mã: `rust_core/src/cardano.rs`
@@ -332,7 +358,7 @@ Prefix `/api/v1` (một số resolver dùng `/identifiers`, `/identity`), body s
 | 4 | `did:phoenix:person:bob` | `15b76ce74d85d716b2c3877b553d26b756acdebbd9b5b245c835e2aaf3647d56` |
 | 5 | `did:phoenix:bacaajbsuz4pg:1111111111111111111111111111111111111111111111111111111111111111` | `3a515ee8ef60b9382efe80ceb12deb2f03cdbda8aa7390d78d962f240ddfa108` |
 
-> #1/#4 dạng dev `did:phoenix:person:<name>`; #2/#3/#5 dạng canonical production `did:phoenix:<slot13>:<hash64>` (regex `^did:phoenix:[a-z2-7]{13}:[0-9a-f]{64}$`). Hàm băm không phân biệt dạng — băm UTF-8 nguyên văn preimage.
+> #1/#4 là dạng **dev**, `did:phoenix:person:<name>` — KHÔNG hợp khuôn canonical, không phải did:phoenix hợp lệ, giữ lại chỉ để chứng minh `N` băm UTF-8 nguyên văn chứ không phân tích cấu trúc chuỗi. #2/#3/#5 là dạng canonical `did:phoenix:<genesis13>:<hash64>` (regex `^did:phoenix:[a-z2-7]{13}:[0-9a-f]{64}$`), trong đó `<genesis13>` là base32 8-byte-BE của mốc POSIX-**ms**, không phải slot. Hàm băm không phân biệt dạng — băm UTF-8 nguyên văn.
 
 **Response schema (200)** — `GET /v1/registry/resolve/{did_hash}[?at=<unix_ts>]`:
 
@@ -504,7 +530,7 @@ Bổ-sung bắt-buộc trước khi mở production:
 - **PA2/PC (đã land + đã nối):** kiến-trúc THẬT là **PC** — gộp `taad`+`UniquenessThread` thành 1 validator (`anchor_policy ≡ thread_policy ≡ own_policy`), thay cho thiết-kế PA2-hai-validator ban-đầu (đã loại vì vô-nghiệm fixed-point hash). K=32 (không phải 256 — trần bootstrap-tx 16 KB). Sorted-list scale ~triệu (N/shard ≤ 400); dân-số → Merkle-root-in-datum (§5.7bis Math). **Địa-chỉ ví ĐÃ ĐỔI** khi PC land (5 validator bake `anchor_nft_policy` mới — khác PA2 gốc vốn giữ nguyên địa-chỉ) — chi-tiết `PhoenixKey-Anchorme-Math.md` §5.7ter.5.
 - **resolve-by-hash + point-in-time:** cần index ngược + `did_state_history` V16 (đội backend) trước khi Strata/VeData/MAGIC did_commit dùng được.
 - **DeviceDID:** `Op_create_device` (đội on-chain) + hw_cert verify (đội backend, validator chỉ neo hash) — cả hai phải xong đồng thời để tránh cert giả lọt.
-- **Type-code:** canonical LÀ bảng-byte `DidPhoenixGenerator.java:56-65` ≡ `types.EntityType` (Device=2…Service=7,Context=8). Văn Math §2.2 PHẢI bám bảng-byte này. Rà bản Rust/mobile bám đúng trước khi mint author-DID phi-nhân.
+- **Type-code:** canonical LÀ chỉ-số constructor `types.EntityType`, pin ở `pop_bind.ak` `enc_type` (Person=0, Org=1, Device=2…Service=7, Context=8, Avatar=9). Văn Math §2.2 PHẢI bám bảng-byte này. Rà bản Rust/Java/mobile bám đúng trước khi mint author-DID phi-nhân.
 - **`Migrated` status:** cần maintainer chốt ai/khi-nào chuyển Active→Migrated, hoặc bỏ field.
 - **Registries + Permission/Consent + ServiceDID self-service:** chờ duyệt trước khi triển khai.
 - **Ranh-giới sửa code:** validator (đội on-chain) + backend (đội backend) thuộc PhoenixKey backend — nhóm tài-liệu KHÔNG sửa; phát-hiện lỗi → báo maintainer / tạo Issue. Tài-liệu này chỉ đặc-tả.
