@@ -466,7 +466,7 @@ Neo `EntityType.Device` (§1, `types.EntityType`) — mint riêng, KHÔNG dùng 
 
 **Datum `DeviceDIDDatum`** (nhân bản `TAADDatum` §2.3 Math + phần mở-rộng riêng):
 ```
-did, schema_version=1, type=Device(0x03), owner (PersonDID|OrgDID, Active tại create),
+did, schema_version=1, type=Device(0x02), owner (PersonDID|OrgDID, Active tại create),
 security_level=Hardware_Attestation, created_slot, seq=0, metadata_hash,
 device_pubkey (Ed25519), device_class (Mobile|Laptop|Server|VPS|Sensor|Drone|Wearable|Gateway|LampNetNode),
 hw_cert_hash (BLAKE2b-256), hw_cert_kind (TPM2_Quote|SEP_Cert|FIDO2_Assertion),
@@ -486,7 +486,7 @@ cert_issued_slot, device_id_hash (= anchor NFT token_name), provisioner (DID c�
 | DEV-5 | `cert_issued_slot ≤ s < cert_issued_slot + MAX_CERT_AGE_SLOTS[device_class]` | validator (validity range) |
 | DEV-6 | `did = DID_construct(Device, provisioner, s)`; `device_pubkey`, `device_id_hash` IMMUTABLE sau create | validator |
 | DEV-7 | `device_class = LampNetNode ⇒ hw_cert_kind` Hardware bắt-buộc (không Software) | mint policy |
-| DEV-8 | type byte = Device = `0x03`; `schema_version=1`; `seq=0`; `security_level=Hardware_Attestation` | mint policy |
+| DEV-8 | type byte = Device = `0x02`; `schema_version=1`; `seq=0`; `security_level=Hardware_Attestation` | mint policy |
 
 `MAX_CERT_AGE_SLOTS` (TTL theo `device_class`, ép re-attest): Mobile=4320, Server/VPS=2160, Laptop/LampNetNode/Drone=8640, Gateway/Wearable=17280, Sensor=43200.
 
