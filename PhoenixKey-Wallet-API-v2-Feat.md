@@ -6,7 +6,8 @@
 > Refine cho Issue `PhoenixKey-Database#41`. Nguồn đối chiếu code thật:
 > `WalletController.java`, `WalletDtos.java`, `BlockfrostHttpClient.java`,
 > `IdentityServiceImpl.java` + `AuthorizedKeyRepository.java`, `phoenix_address.rs`,
-> `PhoenixKey-Math §8` (CIP-1852), và bản đính chính SuperApp
+> `PhoenixKey-Math §8` (CIP-1852), `PhoenixKey-Database#116` (cổng auth ba endpoint đọc ví),
+> và bản đính chính SuperApp
 > `[nội-bộ] SuperApp-Reply-wallet-api.md`.
 > PhoenixKey chốt interface; đội backend ước lượng thời gian + build backend.
 
@@ -151,7 +152,15 @@ GET /wallet/standard/{did}
   }
 }
 ```
-- Public như `/wallet/{did}/balance` hiện tại (địa chỉ Cardano vốn công khai).
+- 🔒 **AUTHENTICATED.** Yêu cầu Bearer session và ép `caller_did == path_did` — chỉ trả ví
+  của chính caller; DID khác trả **401**. Đây là hiện trạng production từ 2026-08-04
+  (`PhoenixKey-Database#116`, `WalletController.requireSelfDid`), áp cho **cả ba** endpoint
+  đọc ví: `/wallet/{did}/balance`, `/wallet/standard/{did}`, `/wallet/{did}/all`.
+  > Địa chỉ Cardano vốn công khai — nhưng thứ nhạy cảm không phải **địa chỉ**, mà là
+  > **liên kết DID → địa chỉ → số dư**. Serve công khai là dựng lại đúng oracle liên kết
+  > danh tính hàng loạt mà `Wallet#2` được mở ra để đóng: ai đoán được một DID là tra ra
+  > toàn bộ `fixed`/`active`/`stake`/custody + số dư ADA/LAMP/CARP. Cần dữ liệu công khai
+  > tối thiểu thì **tách endpoint mới**, đừng nới cái này.
 - Số dư = tổng UTxO tại `fixed` **+** `active` (nếu có), qua `getAddressUtxos` mỗi địa chỉ rồi cộng.
 - Chưa register Standard → **404** (phân biệt rõ với "đã register, số dư 0").
 
@@ -186,6 +195,9 @@ GET /wallet/{did}/all
 ```
 
 Quy tắc:
+- 🔒 **AUTHENTICATED — cùng cổng với §2.3.** Bearer session + `caller_did == path_did`;
+  DID khác trả **401**. Endpoint này trả *nhiều* thông tin hơn §2.3 (cả hai ví + vault),
+  nên nới nó ra công khai còn nguy hơn.
 - **`wallets[]` chỉ chứa ví đã có địa chỉ.** Phoenix luôn có (derive từ DID). Standard chỉ xuất hiện khi đã register (§2). Không register Standard → mảng chỉ có `phoenix`.
 - `phoenix.balances` **KHÔNG** có `magic`. MAGIC nằm ở block `magic` top-level, `source:"vault"`.
 - `magic.available/accrued`: đọc từ vault accounting (MagicLampNetwork SDK). Nếu Phase này chưa nối vault → trả `0` + `source:"vault"` (app hiển thị "—"), **không** trả từ `getBalance`.
@@ -275,15 +287,17 @@ Chạy trên preprod (Blockfrost preprod key). Ghi output thật vào PR.
 | # | Bước | Assert |
 |---|---|---|
 | T1 | Client derive Standard (`address_base(0,0)`, `(N,0)`, stake) → `POST /wallet/standard/register` | `code 1000`; bản ghi trong `wallet_standard_address` |
-| T2 | `GET /wallet/standard/{did}` sau register | 200; `addresses.fixed/active/stake` đúng địa chỉ đã register |
-| T3 | `GET /wallet/standard/{did}` DID **chưa** register | **404** (phân biệt với số dư 0) |
-| T4 | `GET /wallet/{did}/all` khi DID có cả Phoenix + Standard | `wallets[]` có 2 phần tử `kind` đúng; `phoenix.addresses` chỉ `fixed`, KHÔNG stake |
+| T2 | `GET /wallet/standard/{did}` sau register, **Bearer của chính DID đó** | 200; `addresses.fixed/active/stake` đúng địa chỉ đã register |
+| T3 | `GET /wallet/standard/{did}` DID **chưa** register, Bearer của chính DID đó | **404** (phân biệt với số dư 0) — 404 chỉ tới được **sau** khi qua cổng auth |
+| T4 | `GET /wallet/{did}/all` khi DID có cả Phoenix + Standard, Bearer của chính DID đó | `wallets[]` có 2 phần tử `kind` đúng; `phoenix.addresses` chỉ `fixed`, KHÔNG stake |
 | T5 | `GET /wallet/{did}/all` — kiểm MAGIC | có block `magic{source:"vault",...}`; **KHÔNG** field `magic` trong `wallets[].balances` |
 | T6 | CARP config **rỗng** → `getAddressUtxos` | `balanceCarp = 0`, không throw, không query nhầm unit |
 | T7 | CARP config **đã điền** policy+name (dùng địa chỉ testnet có CARP) → `/wallet/{did}/all` | `carp` > 0 **đúng 1 lần** ở đúng ví giữ CARP (không nhân đôi, không lẫn LAMP) |
 | T8 | `/wallet/{did}/balance` (deprecated) | `balanceMagic=0`, `magicAccrued=0`; swagger đánh `deprecated` |
 | T9 | `POST /wallet/magic/claim` | **410 Gone** (hoặc code lỗi rõ); KHÔNG mint token |
 | T10 | Register → Recover (Mode B) → `GET /identity/{did}/pubkey` | **200**, trả HW_Key owner **mới**; DB chỉ còn **1** owner-key active |
+| **T11** | Gọi **cả ba** endpoint đọc ví **không** header `Authorization` | **401** cả ba. Không rò địa chỉ, không rò số dư, không phân biệt được DID có tồn tại hay không |
+| **T12** | Gọi **cả ba** endpoint với Bearer hợp lệ của **DID khác** với `{did}` trên đường dẫn | **401** cả ba (KHÔNG 403, KHÔNG 200 rỗng) — đây là ca chứng minh `caller_did == path_did` còn sống, T11 chỉ chứng minh có cổng |
 
 > **Verify behavior, không chỉ compile:** T7 phải chạy `curl` thật với địa chỉ preprod có CARP
 > sau khi điền policy — 1 lệnh curl xác nhận CARP hiện đúng 1 lần. T10 phải tái hiện recovery thật.
