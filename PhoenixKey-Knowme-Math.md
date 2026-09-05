@@ -36,7 +36,7 @@
 | `docHash` | b64url(32B) | `H(plaintext bytes)` — ràng-buộc nội-dung tài-liệu | **[SPEC]** Knowme-Feat-Math §3.3 |
 | `k` | ByteArray(32) | khoá của `H_k`. Gánh **riêng-tư** (chặn dò ngược số giấy-tờ), KHÔNG gánh duy-nhất-người. Đích: chia `t`-trong-`n` (Đ-7.1) | **[SPEC]** Đ-7.1 |
 | `kv` | Nat | `keyVersion` — số hiệu đợt khoá đang dùng, lưu cạnh `fp` để xoay được | `fingerprint.ts:Registration` |
-| `fp(t, F)` | b64url(32B) | **dấu giấy-tờ** của loại `t` trên tập trường định-danh `F`. **Không phải vân tay sinh-trắc** — xem chú-thích Đ-7 | `FingerprintRegistryService.computeFingerprintHex` (backend, có pepper, `:209-219`); `fingerprint.ts:documentFingerprint` là bản tham-chiếu/minh-hoạ phía web, KHÔNG khoá — KHÔNG phải hàm chạy thật của registry |
+| `fp(t, F)` | b64url(32B) | **dấu giấy-tờ** của loại `t` trên tập trường định-danh `F`. **Không phải vân tay sinh-trắc** — xem chú-thích Đ-7 | `FingerprintRegistryService.computeFingerprintHex` + `VnCccdFields.fromRawFields` (backend) — hiện-thực hoá DUY NHẤT. Vector đối-chiếu: `vectors/knowme_docfp_v1.json`. Phía web KHÔNG còn hàm nào tính `fp`: `fingerprint.ts:documentFingerprint` đã đổi tên thành `localCopyDigest` (phát-hiện bản sao cục-bộ), `documentFingerprintPeppered` đã xoá (Frontend#31) |
 
 **Đơn-vị wire (bất-biến-dây, load-bearing):** một trường được băm là **mảng 3 phần-tử** `[salt, path, value]` với `value` **vô-hướng**. Đây là điểm neo cross-language: verifier độc-lập chỉ cần lặp `H(canon([salt, path, value]))`. KHÔNG được đổi arity/hình-dạng mảng. Neo: `commit.ts:digestOf`.
 
@@ -78,13 +78,57 @@ Tài-liệu đi qua **cùng** `digestOf`, cùng arity mảng, cùng không-gian 
 Predicate = { id, path, op ∈ {GE,LE,EQ,IN,RANGE}, arg, ctx? }
 ```
 
-**Đ-7 · Dấu giấy-tờ tuỳ-thân (khoá duy-nhất-người v1)** (`FingerprintRegistryService.computeFingerprintHex`, backend, `:209-219`):
+**Đ-7 · Dấu giấy-tờ tuỳ-thân (khoá duy-nhất-người v1)** (`FingerprintRegistryService.computeFingerprintHex` + `VnCccdFields.fromRawFields`, backend — hiện-thực hoá **duy nhất**):
 ```
 fp(t, F) = b64url( H_k( canon([ t, normalize(F) ]) ) )           -- H_k = BLAKE2b-256 keyed
 ```
 - `t` = loại giấy-tờ (vd `"vn-cccd"`); `F` = tập trường **định-danh** đã chuẩn-hoá, chỉ gồm trường bất-biến theo thời-gian (số giấy-tờ, ngày-sinh, giới), **không** gồm ngày cấp / nơi cấp / ảnh.
 - **Tất-định, KHÔNG salt-mỗi-lần-đăng-ký** — đây là điều kiện cần: hai bản khai của cùng một giấy-tờ phải cho cùng `fp`, nếu không thì không phát-hiện được trùng.
-- `kv` lưu **rời** cạnh `fp` ⟹ xoay khoá được: cấp `kv+1`, tính lại dần, không phải khai lại giấy-tờ.
+- `kv` lưu **rời** cạnh `fp` ⟹ công-thức xoay khoá được. Nhưng **KHÔNG phải bằng cách "tính lại
+  dần"**: bảng chỉ giữ `fp`, không giữ `F` bản rõ, nên không có gì để tính lại. Đường xoay khả-thi
+  duy-nhất là **giữ nhiều `kv` song song** và tra lần-lượt dưới từng `kv` còn dòng sống. Xem ghi-chú
+  "LỘ ≠ MẤT" ở Đ-7.1 — hiện chưa có mã cho đường đó.
+- **`H_k` là BLAKE2b-256 CÓ KHOÁ (keyed), không phải nối tiền-tố.** `blake2b(k ‖ m)` cho giá-trị **khác** `blake2b_keyed(key=k, msg=m)`; bản backend cũ dùng cách nối vì thư-viện thiếu keyed — đó là workaround, **không phải công-thức**.
+- **[SPEC — đề-xuất, CHƯA có mã] `FP_RECIPE_VERSION = 1`.** Hằng này phủ **toàn bộ** công-thức — `normalize`, `canon`, `H_k`, phép mã-hoá đầu ra — **không riêng** `kv` (`kv` chỉ nói về khoá). Nói cho đúng hiện-trạng: backend **chưa có** hằng nào tên như vậy, và bộ vector **chưa được bên nào đọc bằng máy** — nên hôm nay đổi một bước mà quên tăng hằng thì **không có gì đỏ cả**. Hai việc phải làm để câu trên thành thật: thêm hằng vào mã, và viết bài kiểm đọc `vectors/knowme_docfp_v1.json`. Số `fp_recipe_version` trong tệp vector hiện chỉ là nhãn của chính tệp đó. Hai hằng gánh hai việc: `FP_RECIPE_VERSION` nói *"cách tính đã đổi"*, `kv` nói *"khoá đã xoay"*; gộp chúng làm một là mất khả-năng phân-biệt "tra không thấy vì đổi công-thức" với "tra không thấy vì đổi khoá".
+
+**Đ-7.0 · `normalize(F)` — chuẩn-tắc, KHÔNG mô-tả bằng văn xuôi** **[SPEC]**
+
+> Bản trước mô-tả `F` bằng tiếng Việt, không cố-định tên khoá, không cố-định tập giá-trị đóng.
+> Một đội viết hiện-thực thứ hai đọc **đúng từng chữ** vẫn chọn `id_number` thay `national_id` và
+> ra `fp` lệch hoàn-toàn — mà không gì gãy: cùng một giấy-tờ đăng-ký được hai PersonDID, và
+> I-KNOW-12 mất hiệu-lực trong im-lặng. Mục này đóng lớp lỗi **của người tiếp theo**.
+
+**Lược-đồ do MÁY-CHỦ ép, không do máy-khách gửi.** Nếu máy-khách tự chọn được tập khoá thì cùng
+một người chỉ cần thêm một khoá rác là ra `fp` khác ⟹ đăng-ký bao nhiêu lần tuỳ ý. Khoá lạ **không**
+được bỏ qua im-lặng — bỏ qua im-lặng cũng là một cách chấp-nhận đầu-vào không kiểm-soát.
+
+Cho `t = "vn-cccd"`, `F` có **đúng ba** khoá, thừa hoặc thiếu đều **từ-chối**:
+
+| khoá | luật chuẩn-hoá | từ-chối khi |
+|---|---|---|
+| `national_id` | bỏ mọi ký-tự **không** thuộc `[0-9]` **ASCII** (kể cả dấu cách ở **giữa**, gạch nối, dấu chấm), rồi ép **đúng 12** chữ-số | độ dài ≠ 12 sau khi bỏ. Chữ-số ngoài ASCII cũng bị bỏ ⟹ độ dài sai ⟹ từ-chối, **không** âm-thầm cắt xén |
+| `dob` | phân-tích ISO-8601 `yyyy-MM-dd` **nghiêm-ngặt** rồi **ghi lại đúng khuôn đó** | sai khuôn; hoặc ngoài `[1900-01-01 .. hôm nay UTC]` (chặn năm mở-rộng kiểu `+12345-01-01`) |
+| `gender` | NFC → cắt hai đầu → thường-hoá → tra bảng bí-danh → một trong **ba hằng** `male` / `female` / `other` | ngoài bảng bí-danh. **Không** băm thẳng chuỗi thô |
+
+Bảng bí-danh `gender`: `male` ← `m`·`male`·`nam`; `female` ← `f`·`female`·`nu`·`nữ`; `other` ←
+`x`·`other`·`khac`·`khác`. Gộp nhiều bí-danh về một hằng là chiều **an-toàn** (ít `fp` hơn, không
+tách một người thành hai); chiều **nguy-hiểm** là để chuỗi lạ đi thẳng vào hàm băm.
+
+Tên khoá cũng thường-hoá + cắt hai đầu trước khi ép lược-đồ; **hai khoá gộp về một** sau bước đó
+(`national_id` và `NATIONAL_ID `) thì **từ-chối** — nhận cả hai là chấp-nhận đầu-vào nhập-nhằng.
+
+`canon([t, normalize(F)])` = mảng JSON **đúng hai** phần-tử, khoá **sắp-xếp mọi tầng**, **không**
+khoảng-trắng thừa, **không** nhãn miền. Ví-dụ đầy đủ:
+
+```
+["vn-cccd",{"dob":"1990-01-01","gender":"female","national_id":"012345678901"}]
+```
+
+**Bộ vector đối-chiếu: [`vectors/knowme_docfp_v1.json`](./vectors/knowme_docfp_v1.json)** — 8 ca
+NHẬN + 10 ca TỪ-CHỐI, pin **ba chốt** riêng (`normalize` → `canon` → `H_k`) để hỏng ở chốt nào thì
+biết lệch ở **bước** nào, không phải so mỗi hash cuối rồi ngồi đoán. `fp` trong tệp tính dưới
+**pepper THỬ 32 byte `0x00`** — công-bố được, và đủ để kiểm đường dây `H_k`; `fp` thật dùng pepper
+thật và **không** nằm trong tệp đó.
 
 > ⚠️ **`fp` KHÔNG phải vân tay sinh-trắc.** Tên hàm trong mã (`fingerprint.ts`) dùng chữ
 > "fingerprint" theo nghĩa **dấu băm của một chuỗi byte**, không phải theo nghĩa đường vân ngón tay.
@@ -97,35 +141,62 @@ fp(t, F) = b64url( H_k( canon([ t, normalize(F) ]) ) )           -- H_k = BLAKE2
 > là **"reference semantics"** — đây là bản tham-chiếu/minh-hoạ cho việc thiết-kế API, **KHÔNG phải
 > registry chạy thật/production**. Cơ chế duy-nhất-người v1 của Đ-7 chạy thật ở
 > `PhoenixKey-Database` (backend Java):
-> - `FingerprintRegistryService.computeFingerprintHex` (`:209-219`) — đúng công-thức
->   `H(pepper ‖ canonicalize(t, F))`; `canonicalize` dạng netstring (mỗi đoạn tiền-tố bằng độ-dài,
->   đơn-ánh — tránh ambiguity khi nối chuỗi); pepper 32 byte **fail-closed khi khởi-động** ở
->   prod/staging (thiếu pepper ⟹ service không lên được, không âm-thầm chạy không-khoá).
+> - `FingerprintRegistryService.computeFingerprintHex` — đúng công-thức Đ-7: `canon` là **JSON
+>   chuẩn-tắc mảng hai phần-tử** `[t, normalize(F)]` (khoá sắp mọi tầng, không khoảng trắng thừa),
+>   băm bằng **BLAKE2b-256 keyed thật** với pepper làm khoá. Pepper 32 byte **fail-closed khi
+>   khởi-động** ở prod/staging (thiếu pepper ⟹ service không lên được, không âm-thầm chạy
+>   không-khoá).
+>   **⚠ Bản trước của chính dòng này mô tả `H(pepper ‖ canonicalize(t, F))` với `canonicalize`
+>   dạng netstring.** Đó là khuôn CŨ — workaround thời thư-viện chưa có keyed mode — và **đã bị
+>   gỡ khỏi mã**, không phải công-thức. Hai khuôn cho `fp` khác nhau hoàn toàn, nên để sót mô-tả cũ
+>   trong tài-liệu là đủ để một đội viết hiện-thực thứ hai ra `fp` lệch mà vẫn tin mình làm đúng
+>   spec — đúng cái hỏng mà I-KNOW-14 vế hai nói tới. Chốt bằng giá-trị:
+>   `vectors/knowme_docfp_v1.json` — khuôn keyed cho đúng `fp_test_pepper` của cả 8 ca nhận, khuôn
+>   nối tiền-tố thì không cho ca nào.
 > - Bảng `document_fingerprints` — migration `V35__document_fingerprints.sql` +
 >   `V37__document_fingerprints_intent.sql`.
 > - Endpoint `KnowmeFingerprintController`: `POST /identity/fingerprint/register`,
 >   `GET /identity/fingerprint/status`.
 >
-> **⚠️ Cảnh-báo có thời-hạn — `documentFingerprint` phía web CHƯA khoá.** Cạnh
-> `UniquenessRegistry` (tham-chiếu), `fingerprint.ts` còn có hàm `documentFingerprint`
-> (`fingerprint.ts:77-80`) — hàm này **CÓ chạy thật** ở phía Frontend (copy-detection), và nó tính
-> `blake2b256(canonicalBytes(["phoenix-docfp/1", …]))` **trần, không pepper/không salt**. Số CCCD
-> Việt-Nam 12 số có cấu-trúc công-khai (3 số đầu = mã tỉnh · 1 số = giới-tính+thế-kỷ · 2 số = năm
-> sinh · 6 số cuối = ngẫu-nhiên) ⟹ kẻ tấn-công biết tỉnh+năm-sinh+giới-tính của một người thì miền
-> còn lại chỉ `10⁶` tổ-hợp ⟹ băm trần bị vét cạn gần như tức-thì — cùng lỗ đúng như Đ-7.1(B) mô-tả
-> cho trường-hợp thiếu pepper, nhưng ở đây là hiện-trạng thật của mã, không phải giả-định. Ngày
-> 2026-08-19 hàm này **chưa có nơi gọi sống nào** (route/UI) — chỉ export ở `index.ts:63` và trong
-> file test — nên rủi-ro hiện chưa hiện-thực-hoá. Nhưng nó phải được khoá **TRƯỚC KHI** lớp tài-liệu
-> tiếp theo của Knowme lên public, không phải sau.
+> **✅ ĐÃ ĐÓNG 2026-09-05 — hiện-trạng cũ giữ lại để không ai dựng lại lập-luận cũ.** Bản trước ghi
+> một *"cảnh-báo có thời-hạn"*: cạnh `UniquenessRegistry` (tham-chiếu), `fingerprint.ts` còn có hàm
+> `documentFingerprint` tính băm **trần, không pepper**, và một hàm `documentFingerprintPeppered`
+> nhận pepper từ phía trình-duyệt. Lỗ thật: số CCCD Việt-Nam 12 số có cấu-trúc công-khai (3 số đầu =
+> mã tỉnh · 1 số = giới-tính+thế-kỷ · 2 số = năm sinh · 6 số cuối = ngẫu-nhiên) ⟹ kẻ biết
+> tỉnh+năm-sinh+giới-tính của một người thì miền còn lại chỉ `10⁶` tổ-hợp ⟹ băm trần vét cạn gần như
+> tức-thì. **Đã gỡ** ở `PhoenixKey-Frontend#31` (đã gộp): hàm có-khoá phía trình-duyệt xoá hẳn — một
+> pepper gửi tới trình-duyệt không còn là pepper — và hàm không-khoá đổi tên thành `localCopyDigest`
+> để tên nói đúng việc nó làm (phát-hiện bản sao **cục-bộ**), không còn trông như một `fp` của
+> registry. Kèm một bài kiểm **âm**: gói không được export hàm vân-tay giấy-tờ có-khoá nào; thêm một
+> hàm khớp `/pepper|keyed/i` là đỏ.
+>
+> **Chỗ suýt gãy khi gỡ, ghi lại vì nó là bài học chứ không phải thủ-tục:** cổng ép lược-đồ
+> `enforceSchema` trước đây **chỉ tới được qua hàm băm có-khoá**, nên gỡ hàm mà không phơi cổng ra là
+> gỡ luôn cổng. Nay export thành `enforceDocumentSchema` — việc của máy-khách trong luồng đăng-ký là
+> dựng một `(t, F)` **đúng khuôn** để POST, không phải tự tính `fp`.
 
 **Đ-7.1 · Duy-nhất-người dựa vào phép SO-SÁNH, không dựa vào bí-mật** **[SPEC]**
 
 Hai việc khác nhau, bản trước gộp làm một rồi cùng đặt lên một `pepper` phía máy-chủ:
 
-| | Việc | Ai gánh | Lộ `k` hoặc lộ cả bảng `fp` thì sao |
+| | Việc | Ai gánh | LỘ `k` hoặc lộ cả bảng `fp` thì sao |
 |---|---|---|---|
-| **(A)** | **Chặn cấp DID thứ hai cho cùng một giấy-tờ** | chính phép so-sánh ở `UniquenessRegistry` | **không ảnh-hưởng gì** |
+| **(A)** | **Chặn cấp DID thứ hai cho cùng một giấy-tờ** | chính phép so-sánh ở registry | **không ảnh-hưởng gì** |
 | **(B)** | **Chặn dò ngược số giấy-tờ từ bảng `fp`** | khoá `k` của `H_k` | mất riêng-tư (B); (A) còn nguyên |
+
+> 🔴 **LỘ `k` ≠ MẤT `k`. Bản trước gộp hai chuyện đó rồi kết luận sai cho chuyện thứ hai.**
+> Bảng trên đúng cho cột **LỘ**. Nhưng **mất `k`, hoặc xoay `k`, thì (A) GÃY** — và gãy im-lặng:
+> `fp` tính dưới khoá hiện-hành, registry tra **đúng một** `fp`, nên sau khi khoá đổi thì mọi dòng
+> cũ **tra không thấy** ⟹ cùng một giấy-tờ đăng-ký được PersonDID thứ hai. Hỏng theo đường này
+> **không dọn lại được** (bảng không cho xoá dòng).
+>
+> Phát-biểu đúng: **duy-nhất-người không phụ-thuộc `k` BÍ-MẬT, nhưng phụ-thuộc `k` ỔN-ĐỊNH.**
+> Đó là hai tính-chất khác nhau và chỉ tính-chất thứ nhất là thứ Đ-7.1(A) chứng.
+>
+> Điều-kiện để xoay khoá mà không gãy (**chưa có mã**): tính `fp` dưới **từng** `kv` còn dòng sống
+> rồi tra lần-lượt, thấy dòng nào thì dừng. Vì chưa có, hằng phiên-bản pepper bị **khoá ở 1** —
+> tức "xoay khoá được" ở Đ-7 là tính-chất của **công-thức**, chưa phải của **hiện-thực**. Đừng đọc
+> hai thứ đó thành một.
 
 **(A) không cần bí-mật, vì so-sánh không cần bí-mật.** Registry chỉ hỏi một câu: `fp` này đã có
 chủ chưa? Câu đó trả lời được kể cả khi bảng công-khai hoàn-toàn. Kẻ biết `k` và cầm cả bảng vẫn
@@ -142,6 +213,24 @@ chéo giữa các máy được (T-1). Đừng ghi công cho nó việc mà nó 
 (3 tỉnh · 1 giới+thế-kỷ · 2 năm-sinh · 6 ngẫu-nhiên), nên biết tỉnh + năm-sinh + giới thì miền còn
 `10⁶` — băm trần là vét cạn được tức thì, và làm chậm bằng hàm tốn-bộ-nhớ không cứu được vì miền
 quá nhỏ. Nên vẫn giữ `k`.
+
+> 🔴 **"Có trần" chỉ đúng cho đường NGUỘI — đường kẻ tấn-công tự tính `fp` từ bảng lộ.**
+> Với đường NÓNG, tức kẻ tấn-công hỏi hệ đang chạy, `k` **không** phải là thứ canh cửa, vì trong
+> luồng khai giấy-tờ thì chính máy-chủ giữ `k` và tính hộ. Cái canh cửa ở đó là những ràng-buộc
+> **quanh** lượt khai — phải có phiên, có hạn nhịp, và (đúng ra) phải có bằng-chứng người khai thật
+> sự cầm giấy-tờ. Đừng đọc đoạn `10⁶` ở trên như một cái trần cho cả hai đường.
+>
+> Đánh giá cụ-thể cho đường nóng — **ràng-buộc nào đang có, nào chưa, mạnh tới đâu** — là phân-tích
+> vận-hành trên hệ đang chạy, **không đặt ở tài-liệu công-khai**: nó sống trong kho backend
+> (`PhoenixKey-Database`) cùng với bản vá tương ứng. Ở đây chỉ ghi phần thuộc về **thiết-kế**, và
+> ghi để không ai bỏ sót:
+>
+> - Bất-biến duy-nhất-người **không tự đứng được** nếu lượt khai không gắn với bằng-chứng cầm
+>   giấy-tờ. Không có ràng-buộc đó thì "một giấy-tờ ⟶ một người" tụt xuống thành "một giấy-tờ ⟶
+>   người khai trước", mà bảng lại **chỉ-thêm-không-xoá**. Đây là **yêu-cầu thiết-kế còn thiếu**,
+>   không phải chi-tiết hiện-thực.
+> - `k` gánh việc (B) — chặn dò ngược **ngoại-tuyến**. Nó **không** gánh việc chặn dò **trực-tuyến**.
+>   Gán nhầm hai việc cho một khoá là cách người ta tin mình đã đỡ trong khi chưa.
 
 Nhưng nói cho đúng cỡ: nếu `k` **và** bảng `fp` cùng lộ, thứ kẻ tấn-công thu được là **liên-kết
 DID ↔ số giấy-tờ** của những người trong bảng. Đó là mất riêng-tư — **không** phải mất quyền chi,
@@ -200,8 +289,8 @@ không có nút bật/tắt theo người.
 
 | **I-KNOW-12** | **Một giấy-tờ ⇒ một PersonDID (duy-nhất-người v1):** với mọi `(t, F)`, tồn tại **nhiều nhất một** PersonDID đang giữ `fp(t,F)`. Đăng-ký thứ hai cùng `fp` bị từ-chối, KHÔNG ghi đè. | Backend THẬT: `FingerprintRegistryService` + bảng `document_fingerprints` (migration V35/V37) kiểm `fp` đã có chủ chưa trước khi ghi, qua `KnowmeFingerprintController: POST /identity/fingerprint/register`. `UniquenessRegistry.register` (`fingerprint.ts`) chỉ là bản tham-chiếu/minh-hoạ cùng logic, KHÔNG chạy thật | `FingerprintRegistryService.java`; `V35__document_fingerprints.sql`, `V37__document_fingerprints_intent.sql`; `KnowmeFingerprintController.java:/identity/fingerprint/register`; (minh-hoạ) `fingerprint.ts:UniquenessRegistry` |
 | **I-KNOW-13** | **Từ-chối trùng KHÔNG lộ chủ hiện-hữu:** kết-quả trả về khi trùng chỉ nói **có** chủ khác, không nói **ai**. | Endpoint `GET /identity/fingerprint/status` (backend) — verify response không mang DID chủ khác. `isHeldByAnother()`/`conflict_other_owner` (`fingerprint.ts`, đã bỏ trường `existingOwner`) là minh-hoạ cùng nguyên-tắc, KHÔNG phải server thật | `KnowmeFingerprintController.java:/identity/fingerprint/status`; (minh-hoạ) `fingerprint.ts` |
-| **I-KNOW-14** | **`fp` là hàm CÓ KHOÁ, không phải băm trần:** mọi `fp` sinh qua `H_k`; `kv` lưu rời để xoay được. Đây là bất-biến **riêng-tư** — nó chặn dò ngược số giấy-tờ từ bảng — **KHÔNG** phải bất-biến duy-nhất-người. Vi-phạm nó làm lộ liên-kết DID ↔ số giấy-tờ, **không** làm cấp thêm được DID. | tham-số pepper **bắt-buộc** ở `computeFingerprintHex`, fail-closed khi thiếu ở prod/staging (backend, `:107-158`) — không có đường gọi nào bỏ qua | `FingerprintRegistryService.computeFingerprintHex:209-219` + **[SPEC]** Đ-7.1(B). ⚠️ KHÔNG nhầm với `fingerprint.ts:documentFingerprint` (web) — hàm đó KHÔNG có khoá, xem cảnh-báo sau Đ-7 |
-| **I-KNOW-15** | **Duy-nhất-người KHÔNG phụ-thuộc vào bất-kỳ bí-mật nào:** phép so-sánh `fp` ở registry cho cùng kết-quả dù bảng công-khai hay không. Lộ `k`, lộ toàn bộ bảng `fp`, hay mất cả hai, đều **không** cấp thêm được DID nào cho một giấy-tờ đã có chủ. | Điều-kiện từ-chối của backend registry (`FingerprintRegistryService`) không đọc pepper, không đọc gì bí-mật — chỉ so `fp` đã tồn-tại trong `document_fingerprints` chưa | **[SPEC]** Đ-7.1(A); `FingerprintRegistryService.java`; bảng `document_fingerprints`; (minh-hoạ) `fingerprint.ts:UniquenessRegistry` |
+| **I-KNOW-14** | **`fp` là hàm CÓ KHOÁ, không phải băm trần — VÀ CÔNG-THỨC LÀ MỘT, CHUẨN-TẮC, Ở ĐÚNG MỘT CHỖ.** Vế một: mọi `fp` sinh qua `H_k` (BLAKE2b-256 **keyed**, không phải nối tiền-tố); `kv` lưu rời để xoay được. Vế hai (mở rộng 2026-09-05): `normalize(F)` là **lược-đồ đóng do máy-chủ ép** (Đ-7.0) — tên khoá cố-định, tập giá-trị `gender` đóng, luật từng trường viết ra thành bảng — và toàn-bộ công-thức **dự-kiến** mang hằng `FP_RECIPE_VERSION` (**[SPEC]**, chưa có mã — xem Đ-7). Đây là bất-biến **riêng-tư** (chặn dò ngược số giấy-tờ) **cộng** bất-biến **đồng-nhất** (hai hiện-thực phải ra cùng `fp`). Vi-phạm vế một làm lộ liên-kết DID ↔ số giấy-tờ, **không** cấp thêm được DID. Vi-phạm vế hai thì **có**: hai `normalize` lệch nhau ⟹ cùng một giấy-tờ ra hai `fp` ⟹ hai PersonDID, và I-KNOW-12 mất hiệu-lực trong im-lặng. | (a) pepper **bắt-buộc** ở `computeFingerprintHex`, fail-closed khi thiếu ở prod/staging (backend) — không đường gọi nào bỏ qua; (b) `VnCccdFields` là **bản-ghi cố-định**, không phải `Map` tự do ⟹ không tồn-tại đường đưa tập khoá lạ tới hàm băm; (c) bộ vector `vectors/knowme_docfp_v1.json` — 8 ca nhận + 10 ca từ-chối, pin ba chốt riêng | `FingerprintRegistryService.computeFingerprintHex` + `VnCccdFields.fromRawFields` + **[SPEC]** Đ-7.0 / Đ-7.1(B) |
+| **I-KNOW-15** *(sửa 2026-09-05 — bản trước phát-biểu QUÁ RỘNG, xem ghi-chú dưới bảng)* | **Duy-nhất-người không phụ-thuộc `k` BÍ-MẬT, nhưng phụ-thuộc `k` ỔN-ĐỊNH.** Vế đúng: lộ `k`, lộ toàn bộ bảng `fp`, hay lộ cả hai, đều **không** cấp thêm được DID nào cho một giấy-tờ đã có chủ — phép so ở registry cho cùng kết-quả dù bảng công-khai hay không. Vế phải nêu kèm: **mất `k` hoặc xoay `k` thì bất-biến này GÃY** — `fp` tính dưới khoá hiện-hành, registry tra đúng một `fp`, nên sau khi khoá đổi mọi dòng cũ tra không thấy ⟹ cùng một giấy-tờ ra PersonDID thứ hai, và bảng không cho xoá dòng nên không dọn lại được. | (a) điều-kiện từ-chối của registry không đọc pepper, không đọc gì bí-mật — chỉ so `fp` đã có trong `document_fingerprints` chưa; (b) chính hàm đăng-ký chỉ tra **một** `fp`, nên hằng phiên-bản pepper bị **khoá ở 1** trong mã và ghi rõ lý-do tại chỗ | **[SPEC]** Đ-7.1(A) + ghi-chú "LỘ ≠ MẤT"; `FingerprintRegistryService.java`; bảng `document_fingerprints` |
 | **I-KNOW-16** | **Sinh-trắc gác LƯỢT ĐĂNG-KÝ, không gác NGƯỜI:** cổng Enclave buộc mỗi lượt ghi `fp` phải qua một người thật trên máy đó ⟹ chặn đăng-ký hàng-loạt bằng máy. Nó **không** chứng người đó chưa đăng-ký ở máy khác — mẫu sinh-trắc nằm trong Enclave từng máy, **không rời máy**, **không có bảng nào** đối-chiếu chéo. | cổng sinh-trắc chạy trước `register`; không có kho mẫu sinh-trắc phía máy-chủ để đối-chiếu | §8; T-1 |
 
 ### 4.1 Tranh-chấp một giấy-tờ — hai mức, hệ-quả tách rời
@@ -386,8 +475,8 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 | I-KNOW-11 lịch-sử bất-biến (versioning) | **[SPEC]** Feat-Math §5, §11 INV-K4 (alias Strata `_CONTRACT.md` INV-E1,E2,E3,E5,E6,E7) |
 | I-KNOW-12 một-giấy-tờ-một-PersonDID | `FingerprintRegistryService.java`; `document_fingerprints` (V35/V37); `KnowmeFingerprintController.java:/identity/fingerprint/register` — backend THẬT. `fingerprint.ts:UniquenessRegistry` chỉ là tham-chiếu |
 | I-KNOW-13 từ-chối trùng không lộ chủ | `KnowmeFingerprintController.java:/identity/fingerprint/status` — backend THẬT. `fingerprint.ts` chỉ là tham-chiếu |
-| I-KNOW-14 fp có-khoá | `FingerprintRegistryService.computeFingerprintHex:209-219` (pepper fail-closed `:107-158`) — backend THẬT. KHÔNG phải `fingerprint.ts:documentFingerprint` (web, KHÔNG khoá) |
-| I-KNOW-15 duy-nhất-người không phụ-thuộc bí-mật | **[SPEC]** Đ-7.1(A); `FingerprintRegistryService.java` + bảng `document_fingerprints` |
+| I-KNOW-14 fp có-khoá + công-thức chuẩn-tắc | `FingerprintRegistryService.computeFingerprintHex` (pepper fail-closed lúc khởi-động) + `VnCccdFields.fromRawFields` (lược-đồ đóng) — backend THẬT, hiện-thực hoá duy nhất. Vector: `vectors/knowme_docfp_v1.json` |
+| I-KNOW-15 duy-nhất-người không phụ-thuộc `k` BÍ-MẬT (nhưng **phụ-thuộc `k` ỔN-ĐỊNH**) | **[SPEC]** Đ-7.1(A) + ghi-chú "LỘ ≠ MẤT"; `FingerprintRegistryService.java` + bảng `document_fingerprints` |
 | I-KNOW-16 sinh-trắc gác lượt không gác người | §8; T-1 |
 | I-KYC-PRIVATE/UNLINKABLE/... | **[SPEC]** KYC-KYB-ZK §B.8 |
 
@@ -395,7 +484,7 @@ Chuyển BỊ CẤM (verifier phải REJECT): digest ∉ sd[]; sai `aud`/`nonce`
 
 ## Nguồn
 
-- Code (nguồn chân-lý Mức 1+2): `PhoenixKey-Frontend/src/lib/sdvc/{commit,canonical,credential,disclose,didDoc,didResolver,statusList,trust,trustList,crypto,lampnet,dossier,fingerprint,consent,schema,schemaRegistry,anchor,did}.ts`. Riêng phần **registry duy-nhất-người v1 (Đ-7, I-KNOW-12..15)**, nguồn chân-lý là backend `PhoenixKey-Database` (`FingerprintRegistryService.java`, `document_fingerprints`, `KnowmeFingerprintController.java`) — `fingerprint.ts:UniquenessRegistry`/`documentFingerprint` chỉ là bản tham-chiếu/minh-hoạ phía web.
+- Code (nguồn chân-lý Mức 1+2): `PhoenixKey-Frontend/src/lib/sdvc/{commit,canonical,credential,disclose,didDoc,didResolver,statusList,trust,trustList,crypto,lampnet,dossier,fingerprint,consent,schema,schemaRegistry,anchor,did}.ts`. Riêng phần **registry duy-nhất-người v1 (Đ-7, I-KNOW-12..15)**, nguồn chân-lý là backend `PhoenixKey-Database` (`FingerprintRegistryService.java`, `document_fingerprints`, `KnowmeFingerprintController.java`) — `fingerprint.ts:UniquenessRegistry` chỉ là bản tham-chiếu/minh-hoạ phía web, và từ Frontend#31 phía web KHÔNG còn hàm nào tính `fp` (`localCopyDigest` chỉ phát-hiện bản sao cục-bộ).
 - Spec (lớp tài-liệu + Mức 3): thiết-kế nội-bộ (không công khai) — Knowme-Feat-Math (§3, §6, §9, §11), KYC-KYB-ZK-Feat-Math (§B).
 - `PhoenixKey-Math.md §34` (Privacy/GDPR tombstone — dẫn-chiếu, KHÔNG sửa).
 - → Trạng-thái & tiến-độ: [PhoenixKey-STATUS.md](./PhoenixKey-STATUS.md#knowme)

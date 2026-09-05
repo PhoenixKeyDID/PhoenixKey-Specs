@@ -1,0 +1,319 @@
+{
+  "$schema_version": 1,
+  "fp_recipe_version": 1,
+  "title": "Đ-7 · dấu giấy-tờ fp — vector đối-chiếu-chéo (normalize + canon + H_k)",
+  "source_of_truth": {
+    "repo": "PhoenixKey-Database",
+    "ref": "origin/main",
+    "commit": "b75f8ee",
+    "classes": [
+      "VnCccdFields",
+      "FingerprintRegistryService"
+    ],
+    "functions": [
+      "VnCccdFields.fromRawFields",
+      "FingerprintRegistryService.canonicalizePayload",
+      "FingerprintRegistryService.computeFingerprintHex"
+    ],
+    "paths_note": "Kho nguồn là kho RIÊNG; tên lớp + tên hàm đủ để người có quyền đọc tìm ra, đường dẫn đầy đủ và số dòng thì không thêm gì cho người ngoài ngoài việc phơi bố cục cây mã — và số dòng còn lỗi thời im lặng. Mốc commit thì GIỮ, dù người ngoài không tra được: nó là thứ duy nhất neo bộ vector này vào một trạng thái mã xác định, và nó lỗi thời một cách thấy được chứ không âm thầm.",
+    "commit_note": "Cặp (ref, commit) đi CÙNG nhau. Bump mốc thì phải chạy lại bộ test đọc tệp này tại chính mốc mới, không chỉ đổi con số — bump không kiểm là chuyển một giá trị từ chỗ đúng-đã-đo sang chỗ đúng-vì-ai-đó-gõ."
+  },
+  "why": "fp là KHOÁ CHÍNH của bảng chống khai trùng giấy tờ. Hai hiện thực lệch nhau một byte ở normalize hay ở canon cho ra hai fp khác nhau cho CÙNG một người ⇒ cùng một giấy tờ đăng ký được hai PersonDID, và bất biến I-KNOW-12 mất hiệu lực mà không có gì gãy. Đ-7 mô tả F bằng tiếng Việt, không cố định tên khoá, không cố định tập giá trị đóng — một đội viết hiện thực thứ hai đọc đúng từng chữ vẫn chọn `id_number` thay `national_id` và ra fp lệch hoàn toàn. Tệp này pin từng BƯỚC bằng giá trị, để đối chiếu BYTE chứ không đối chiếu bằng văn xuôi.",
+  "synthetic_data_notice": "MỌI số giấy tờ, ngày sinh và giới trong tệp này là DỰNG ĐỂ THỬ, không thuộc về người nào. Chúng được chọn cho mục đích duy nhất là ép các nhánh chuẩn hoá (dấu cách ở giữa, dạng phân rã Unicode, cận dưới của dob), và được cố ý dựng cho BẤT KHẢ VỀ CẤU TRÚC — xem `structural_impossibility` bên dưới. Đừng thêm dữ liệu thật vào đây, và lý do KHÔNG phải là fp: fp tính dưới pepper THỬ nên nó không dò ngược ra ai. Cái hại nằm ở chính bản rõ — tệp này công khai, nên một dòng thật là công bố số giấy tờ + ngày sinh + giới của một người có thật, tức xử lý dữ liệu cá nhân ngoài phạm vi đồng ý (PDPL Đ.12). Không có bước nào sau đó gỡ lại được.",
+  "structural_impossibility": {
+    "rule": "Số CCCD trong tệp được dựng để KHÔNG số nào cấp cho người thật được: A7 và A8 mang tiền tố tỉnh `999` (dải mã tỉnh có thật dừng ở 096); A1–A6 dùng dãy tăng dần `012345678901` — chữ số thứ 4 là `3` (nữ, thế kỷ 21) kèm hai chữ số năm sinh `45`, tức năm 2045, chưa tới.",
+    "why": "Một số vừa hợp cấu trúc vừa tự nhất quán (mã tỉnh thật + mã giới/thế kỷ khớp năm sinh + khớp `dob` và `gender` đi kèm) thì người đọc KHÔNG phân biệt được với số thật, và tệp này công khai. Đổi một cụm chữ số cho số trở nên bất khả là xong, không mất gì về mặt kiểm thử.",
+    "caveat": "Hiện `normalize` chỉ ép ĐÚNG 12 chữ số, không kiểm mã tỉnh. Ngày nào thêm kiểm cấu trúc thì các ca này thành REJECT — lúc đó phải DỰNG LẠI bộ vector chứ không phải nới luật kiểm cho vector chạy qua. Ghi thêm: đảm-bảo của A1–A6 dựa trên năm sinh 2045 nên nó HẾT HẠN THEO THỜI GIAN, còn đảm-bảo của A7–A8 dựa trên mã tỉnh `999` thì không. Tới trước 2045 phải chuyển A1–A6 sang tiền tố `999` và dựng lại fp — đừng để tới lúc đó mới phát hiện."
+  },
+  "how_to_use": {
+    "order": "BA CHỐT, so theo thứ tự — hỏng ở chốt nào thì biết lệch ở BƯỚC nào, không phải so mỗi hash cuối rồi ngồi đoán.",
+    "1_normalize": "raw_fields → normalized_fields. Đây là chốt bắt được gần như mọi lệch thật (tên khoá, dấu cách giữa số, bí danh gender, dạng phân rã Unicode). Ca REJECT phải NÉM, không được trả về một fp nào.",
+    "2_canon": "canon([t, normalized_fields]) → canon_utf8 / canon_hex. Mảng JSON ĐÚNG HAI phần tử, khoá sắp xếp mọi tầng, KHÔNG khoảng trắng thừa, KHÔNG nhãn miền. Ba thứ đó đều là chỗ đã có hiện thực lệch trong quá khứ.",
+    "3_hash": "fp = b64url_nopad( BLAKE2b-256 KEYED(key = pepper, msg = canon) ). Trường `fp_test_pepper` tính dưới pepper THỬ 32 byte 0x00 — công bố được, và đủ để kiểm đường dây H_k mà không cần pepper production. fp thật dùng pepper thật; giá trị đó KHÔNG nằm trong tệp này.",
+    "keyed_not_prefix": "KEYED, không phải nối tiền tố. `blake2b(pepper || msg)` cho giá trị KHÁC `blake2b_keyed(key=pepper, msg)`. Bản backend cũ từng dùng cách nối vì thư viện thiếu keyed; đó là workaround, không phải công thức."
+  },
+  "test_pepper_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+  "schema_vn_cccd": {
+    "required_keys": [
+      "dob",
+      "gender",
+      "national_id"
+    ],
+    "note": "ĐÚNG tập này — thừa hoặc thiếu đều từ chối. Lược đồ do MÁY CHỦ ép, không do máy khách gửi: nếu máy khách tự chọn được tập khoá thì thêm một khoá rác là ra fp khác.",
+    "national_id": "Bỏ mọi ký tự không thuộc [0-9] ASCII, rồi ép ĐÚNG 12 chữ số.",
+    "dob": "Phân tích ISO-8601 yyyy-MM-dd nghiêm ngặt rồi ghi lại đúng khuôn đó. Cận: [1900-01-01 .. hôm nay UTC].",
+    "gender": "NFC → cắt hai đầu → thường-hoá → tra bảng bí danh → một trong ba hằng: male | female | other. Ngoài bảng thì TỪ CHỐI, không băm chuỗi thô.",
+    "gender_aliases": {
+      "male": [
+        "m",
+        "male",
+        "nam"
+      ],
+      "female": [
+        "f",
+        "female",
+        "nu",
+        "nữ"
+      ],
+      "other": [
+        "x",
+        "other",
+        "khac",
+        "khác"
+      ]
+    }
+  },
+  "accept": [
+    {
+      "id": "A1",
+      "why": "Ca chuẩn — mọi trường đã đúng khuôn, normalize không đổi gì.",
+      "raw_fields": {
+        "national_id": "012345678901",
+        "dob": "1990-01-01",
+        "gender": "female"
+      },
+      "normalized_fields": {
+        "dob": "1990-01-01",
+        "gender": "female",
+        "national_id": "012345678901"
+      },
+      "canon_utf8": "[\"vn-cccd\",{\"dob\":\"1990-01-01\",\"gender\":\"female\",\"national_id\":\"012345678901\"}]",
+      "canon_hex": "5b22766e2d63636364222c7b22646f62223a22313939302d30312d3031222c2267656e646572223a2266656d616c65222c226e6174696f6e616c5f6964223a22303132333435363738393031227d5d",
+      "canon_len": 79,
+      "fp_test_pepper": "vxMo6uy1nrDO50h6c0E9j19fSv9Az67TFljTbZt0Dxo"
+    },
+    {
+      "id": "A2",
+      "why": "national_id có dấu cách Ở GIỮA. Phép thường-hoá + cắt hai đầu KHÔNG đủ ở đây — đây là ca làm lộ điều đó. Phải cho ra CÙNG fp với A1.",
+      "raw_fields": {
+        "national_id": "0123 4567 8901",
+        "dob": "1990-01-01",
+        "gender": "female"
+      },
+      "normalized_fields": {
+        "dob": "1990-01-01",
+        "gender": "female",
+        "national_id": "012345678901"
+      },
+      "canon_utf8": "[\"vn-cccd\",{\"dob\":\"1990-01-01\",\"gender\":\"female\",\"national_id\":\"012345678901\"}]",
+      "canon_hex": "5b22766e2d63636364222c7b22646f62223a22313939302d30312d3031222c2267656e646572223a2266656d616c65222c226e6174696f6e616c5f6964223a22303132333435363738393031227d5d",
+      "canon_len": 79,
+      "fp_test_pepper": "vxMo6uy1nrDO50h6c0E9j19fSv9Az67TFljTbZt0Dxo"
+    },
+    {
+      "id": "A3",
+      "why": "national_id có gạch nối và dấu chấm. Cùng fp với A1.",
+      "raw_fields": {
+        "national_id": "012-345.678901",
+        "dob": "1990-01-01",
+        "gender": "female"
+      },
+      "normalized_fields": {
+        "dob": "1990-01-01",
+        "gender": "female",
+        "national_id": "012345678901"
+      },
+      "canon_utf8": "[\"vn-cccd\",{\"dob\":\"1990-01-01\",\"gender\":\"female\",\"national_id\":\"012345678901\"}]",
+      "canon_hex": "5b22766e2d63636364222c7b22646f62223a22313939302d30312d3031222c2267656e646572223a2266656d616c65222c226e6174696f6e616c5f6964223a22303132333435363738393031227d5d",
+      "canon_len": 79,
+      "fp_test_pepper": "vxMo6uy1nrDO50h6c0E9j19fSv9Az67TFljTbZt0Dxo"
+    },
+    {
+      "id": "A4",
+      "why": "gender bí danh tiếng Việt 'nữ' (dựng sẵn NFC). Gộp bí danh về một hằng là chiều AN TOÀN — ít fp hơn, không tách một người thành hai. Cùng fp với A1. ⚠ A4 và A5 TRÔNG giống hệt nhau trong tệp này — chúng khác nhau ở BYTE, xem raw_gender_utf8_hex (A4: 6ee1bbaf, dạng dựng sẵn; A5: 6e75cc9bcc83, dạng phân rã). Một bộ đọc tệp mà chuẩn hoá Unicode trước khi so sẽ làm hai ca này thành một ca — đó là cách phép kiểm tự vô hiệu hoá chính nó.",
+      "raw_fields": {
+        "national_id": "012345678901",
+        "dob": "1990-01-01",
+        "gender": "nữ"
+      },
+      "raw_gender_utf8_hex": "6ee1bbaf",
+      "normalized_fields": {
+        "dob": "1990-01-01",
+        "gender": "female",
+        "national_id": "012345678901"
+      },
+      "canon_utf8": "[\"vn-cccd\",{\"dob\":\"1990-01-01\",\"gender\":\"female\",\"national_id\":\"012345678901\"}]",
+      "canon_hex": "5b22766e2d63636364222c7b22646f62223a22313939302d30312d3031222c2267656e646572223a2266656d616c65222c226e6174696f6e616c5f6964223a22303132333435363738393031227d5d",
+      "canon_len": 79,
+      "fp_test_pepper": "vxMo6uy1nrDO50h6c0E9j19fSv9Az67TFljTbZt0Dxo"
+    },
+    {
+      "id": "A5",
+      "why": "gender 'nữ' gõ TỔ HỢP: u + U+031B COMBINING HORN + U+0303 COMBINING TILDE (dạng phân rã). Dựng ca này thì phải theo `raw_gender_utf8_hex`, đừng gõ tay — nhầm U+031B (dấu móc, cho ư) sang U+0323 (dấu chấm dưới) là ra chữ khác và fp khác. NFC trước khi tra bảng bí danh, nếu không thì cùng một chữ ra hai fp. Xem cảnh báo ở A4 về việc hai ca này khác nhau ở byte chứ không ở hình chữ.",
+      "raw_fields": {
+        "national_id": "012345678901",
+        "dob": "1990-01-01",
+        "gender": "nữ"
+      },
+      "raw_gender_utf8_hex": "6e75cc9bcc83",
+      "normalized_fields": {
+        "dob": "1990-01-01",
+        "gender": "female",
+        "national_id": "012345678901"
+      },
+      "canon_utf8": "[\"vn-cccd\",{\"dob\":\"1990-01-01\",\"gender\":\"female\",\"national_id\":\"012345678901\"}]",
+      "canon_hex": "5b22766e2d63636364222c7b22646f62223a22313939302d30312d3031222c2267656e646572223a2266656d616c65222c226e6174696f6e616c5f6964223a22303132333435363738393031227d5d",
+      "canon_len": 79,
+      "fp_test_pepper": "vxMo6uy1nrDO50h6c0E9j19fSv9Az67TFljTbZt0Dxo"
+    },
+    {
+      "id": "A6",
+      "why": "Khoá viết HOA và có khoảng trắng đuôi — khoá thường-hoá trước khi ép lược đồ.",
+      "raw_fields": {
+        "NATIONAL_ID ": "012345678901",
+        "Dob": "1990-01-01",
+        "GENDER": "F"
+      },
+      "normalized_fields": {
+        "dob": "1990-01-01",
+        "gender": "female",
+        "national_id": "012345678901"
+      },
+      "canon_utf8": "[\"vn-cccd\",{\"dob\":\"1990-01-01\",\"gender\":\"female\",\"national_id\":\"012345678901\"}]",
+      "canon_hex": "5b22766e2d63636364222c7b22646f62223a22313939302d30312d3031222c2267656e646572223a2266656d616c65222c226e6174696f6e616c5f6964223a22303132333435363738393031227d5d",
+      "canon_len": 79,
+      "fp_test_pepper": "vxMo6uy1nrDO50h6c0E9j19fSv9Az67TFljTbZt0Dxo"
+    },
+    {
+      "id": "A7",
+      "why": "gender male, mốc dob khác. Số mang tiền tố tỉnh `999` — không có mã tỉnh nào như thế (xem `structural_impossibility`).",
+      "raw_fields": {
+        "national_id": "999203004567",
+        "dob": "2003-12-31",
+        "gender": "nam"
+      },
+      "normalized_fields": {
+        "dob": "2003-12-31",
+        "gender": "male",
+        "national_id": "999203004567"
+      },
+      "canon_utf8": "[\"vn-cccd\",{\"dob\":\"2003-12-31\",\"gender\":\"male\",\"national_id\":\"999203004567\"}]",
+      "canon_hex": "5b22766e2d63636364222c7b22646f62223a22323030332d31322d3331222c2267656e646572223a226d616c65222c226e6174696f6e616c5f6964223a22393939323033303034353637227d5d",
+      "canon_len": 77,
+      "fp_test_pepper": "Ju8FeAluBeNtaVaHUqVxw_ihIIA2CaJe0sJnIXD9Nzk"
+    },
+    {
+      "id": "A8",
+      "why": "gender other, dob ở ĐÚNG cận dưới cho phép (1900-01-01). Số mang tiền tố tỉnh `999` — không có mã tỉnh nào như thế (xem `structural_impossibility`).",
+      "raw_fields": {
+        "national_id": "999199009999",
+        "dob": "1900-01-01",
+        "gender": "khác"
+      },
+      "normalized_fields": {
+        "dob": "1900-01-01",
+        "gender": "other",
+        "national_id": "999199009999"
+      },
+      "canon_utf8": "[\"vn-cccd\",{\"dob\":\"1900-01-01\",\"gender\":\"other\",\"national_id\":\"999199009999\"}]",
+      "canon_hex": "5b22766e2d63636364222c7b22646f62223a22313930302d30312d3031222c2267656e646572223a226f74686572222c226e6174696f6e616c5f6964223a22393939313939303039393939227d5d",
+      "canon_len": 78,
+      "fp_test_pepper": "-ulv_cavBtZYn4A139oEnscVi3NmXNTA_aRMwZ117po"
+    }
+  ],
+  "reject": [
+    {
+      "id": "R1",
+      "why": "THỪA khoá. Khoá lạ KHÔNG được bỏ qua im lặng — bỏ qua im lặng cũng là chấp nhận đầu vào không kiểm soát, và nó mở đúng lỗ: thêm một khoá rác là ra fp khác, đăng ký được bao nhiêu lần tuỳ ý.",
+      "raw_fields": {
+        "national_id": "012345678901",
+        "dob": "1990-01-01",
+        "gender": "female",
+        "issued_at": "2020-01-01"
+      },
+      "reason": "schema_extra_key"
+    },
+    {
+      "id": "R2",
+      "why": "THIẾU khoá.",
+      "raw_fields": {
+        "national_id": "012345678901",
+        "dob": "1990-01-01"
+      },
+      "reason": "schema_missing_key"
+    },
+    {
+      "id": "R3",
+      "why": "national_id 11 chữ số sau khi bỏ ký tự phân cách. KHÔNG âm thầm đệm hay cắt.",
+      "raw_fields": {
+        "national_id": "01234567890",
+        "dob": "1990-01-01",
+        "gender": "female"
+      },
+      "reason": "national_id_length"
+    },
+    {
+      "id": "R4",
+      "why": "Chữ số KHÔNG phải ASCII (chữ số Ả Rập-Ấn Độ U+0660..). Bị bỏ như mọi ký tự không phải [0-9] ⇒ độ dài sai ⇒ từ chối, chứ không âm thầm cắt xén.",
+      "raw_fields": {
+        "national_id": "٠١٢345678901",
+        "dob": "1990-01-01",
+        "gender": "female"
+      },
+      "reason": "national_id_length"
+    },
+    {
+      "id": "R5",
+      "why": "dob không phải ISO-8601 yyyy-MM-dd.",
+      "raw_fields": {
+        "national_id": "012345678901",
+        "dob": "01/01/1990",
+        "gender": "female"
+      },
+      "reason": "dob_format"
+    },
+    {
+      "id": "R6",
+      "why": "dob năm MỞ RỘNG kiểu +12345-01-01 — chặn bằng cận dưới/cận trên, không chỉ bằng phép phân tích.",
+      "raw_fields": {
+        "national_id": "012345678901",
+        "dob": "+12345-01-01",
+        "gender": "female"
+      },
+      "reason": "dob_range"
+    },
+    {
+      "id": "R7",
+      "why": "dob TƯƠNG LAI.",
+      "raw_fields": {
+        "national_id": "012345678901",
+        "dob": "2999-01-01",
+        "gender": "female"
+      },
+      "reason": "dob_range"
+    },
+    {
+      "id": "R8",
+      "why": "gender ngoài bảng bí danh. Chuỗi lạ KHÔNG được băm thẳng — đó là chiều NGUY HIỂM: hai cách viết ra hai fp cho cùng một người.",
+      "raw_fields": {
+        "national_id": "012345678901",
+        "dob": "1990-01-01",
+        "gender": "woman"
+      },
+      "reason": "gender_unknown"
+    },
+    {
+      "id": "R9",
+      "why": "Hai khoá gộp về một sau khi thường-hoá ('national_id' và 'NATIONAL_ID '). Nhận cả hai là chấp nhận đầu vào nhập nhằng.",
+      "raw_fields_note": "{\"national_id\": \"012345678901\", \"NATIONAL_ID \": \"999999999999\", \"dob\": \"1990-01-01\", \"gender\": \"female\"} — không biểu diễn được bằng JSON object trong tệp này vì hai khoá KHÁC nhau ở mức JSON; đọc theo ghi chú.",
+      "reason": "duplicate_key_after_normalize"
+    },
+    {
+      "id": "R10",
+      "why": "t ngoài danh sách hỗ trợ. Phiên bản này chỉ có vn-cccd; loại mới phải thêm LƯỢC ĐỒ trước, không nhận t tự do.",
+      "t": "vn-passport",
+      "raw_fields": {
+        "national_id": "012345678901",
+        "dob": "1990-01-01",
+        "gender": "female"
+      },
+      "reason": "doc_type_unsupported"
+    }
+  ],
+  "coverage_gaps": [
+    "Chỉ có t = vn-cccd. Loại giấy tờ thứ hai phải thêm LƯỢC ĐỒ ở đây TRƯỚC khi có mã nhận nó.",
+    "Chưa bên nào đọc tệp này bằng MÁY. Cùng lỗ đã ghi ở canonical_did.json: chép tay giá trị vào test thì tệp trôi mà test vẫn xanh. Việc nối là của kho tiêu thụ.",
+    "fp_test_pepper KHÔNG kiểm được cách nạp pepper thật (fail-closed khi thiếu ở prod/staging). Đó là bài của kho backend, không phải của vector.",
+    "Chưa có ca nào cho việc XOAY pepper (kv). Hằng phiên bản pepper đang khoá ở 1 và hàm đăng ký chỉ tra ĐÚNG MỘT fp, nên xoay pepper là thay đổi có thật ở mã tra cứu chứ không chỉ ở cấu hình — xem I-KNOW-15 (LỘ ≠ MẤT) trong PhoenixKey-Knowme-Math.md."
+  ]
+}

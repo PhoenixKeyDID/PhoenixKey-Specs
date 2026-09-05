@@ -2,7 +2,7 @@
 
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
-> **Cập nhật: 2026-09-03.** Mọi số dưới đây đo lại từ đầu trên `main` của từng kho, không kế thừa bản trước. Bản 2026-08-12 có **8/9 hash validator đã lỗi thời** và bốn chỗ mô tả sai chiều — xem §7.
+> **Cập nhật: 2026-09-05.** Mọi số dưới đây đo lại từ đầu trên `main` của từng kho, không kế thừa bản trước. Bản 2026-08-12 có **8/9 hash validator đã lỗi thời** và bốn chỗ mô tả sai chiều — xem §7.
 
 ---
 
@@ -384,15 +384,17 @@ Cổng chi-trả `protectme_logic.ak`+`protectme_beacon_logic.ak`+`protectme_pay
 
 **Blocker:** B1 lib BBS+prover (Mức 3), B2 LampNet gateway (lớp tài-liệu), B3 Glint/Spectra (VeData), B4 StampRecord Strata. **Mốc:** M1 (Mức1+2+`/vc`) chạy; M2-M7 chờ blocker.
 
-**🔴 B5 duy-nhất-người v1 — mã đã có, nhưng KHÔNG cưỡng-chế (đo lại 2026-09-02).** Spec giao Knowme giữ bất-biến "một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID" (`PhoenixKey-Knowme-Math.md` Đ-7, I-KNOW-12..16).
+**🟠 B5 duy-nhất-người v1 — dây nối ĐÃ CÓ, nhưng cổng MẶC ĐỊNH TẮT (đo lại 2026-09-05).** Spec giao Knowme giữ bất-biến "một giấy-tờ tuỳ-thân ⇒ nhiều nhất một PersonDID" (`PhoenixKey-Knowme-Math.md` Đ-7, I-KNOW-12..16).
 
-Bản trước ghi `fingerprint.ts`/`dossier.ts`/`UniquenessRegistry` **không tồn tại trên `origin/main`** của `PhoenixKey-Frontend`. **Dữ-kiện đó sai từ khi nhánh `cccd-uniqueness-v1` được gộp** — `git ls-tree -r --name-only origin/main | grep -E 'fingerprint|dossier'` nay trả về `src/lib/sdvc/fingerprint.ts`, `src/lib/sdvc/dossier.ts`, `src/lib/sdvc/__tests__/fingerprint.test.ts`.
+**Blocker cũ "chỉ thiếu dây nối" đã gỡ — xoá, đừng đọc lại.** Đường tạo PersonDID nay có gác TRƯỚC, không phải ghi-nhận SAU: `RegistrationOutboxHelper` chuẩn-hoá + tính `fp` rồi `hasBinding(fp)` **trước** khi dựng DID (`:146-152`), và `register(userDid, fp)` + từ-chối `CONFLICT_OTHER_OWNER` sau khi có DID (`:230-231`). `FingerprintRegistryService` không còn là ốc-đảo một-nơi-dùng.
 
-**Kết-luận thì vẫn đứng, vì lý-do khác.** `UniquenessRegistry` (`fingerprint.ts:106`) và `AnchorRegistry` (`anchor.ts:500`) đều là `Map` **trong bộ nhớ tiến-trình**, chỉ export ở `index.ts:65,84`, và **0 nơi dùng ngoài `__tests__`** (`grep -rn UniquenessRegistry src/ --include='*.ts' | grep -v __tests__` → chỉ 2 dòng: chỗ định-nghĩa và chỗ export). Chúng là bản tham-chiếu minh-hoạ, đúng như `PhoenixKey-Knowme-Math.md:204` tự gắn nhãn "(minh-hoạ)".
+**Nhưng bất-biến vẫn CHƯA được cưỡng-chế, vì một lý-do khác và nhỏ hơn:** cổng đòi `documentFingerprint` **mặc định tắt** — `application.yml` `require-document-fingerprint: ${PHOENIXKEY_KNOWME_REQUIRE_DOC_FINGERPRINT:false}`. Tắt thì một lượt đăng-ký PERSON **không kèm** giấy-tờ vẫn qua, và lượt đó không chạm bảng `fp` ⟹ không có gì để trùng. Dây nối chỉ gác những ai tự nguyện khai.
 
-Phía backend thì ngược lại — mã cưỡng-chế THẬT có và đúng chiều: `PhoenixKey-Database` `FingerprintRegistryService.java:282-307` trả `CONFLICT_OTHER_OWNER` khi một giấy-tờ đã thuộc DID khác, `V35__document_fingerprints.sql:40` đặt `fp VARCHAR(44) PRIMARY KEY`, và pepper hỏng-đóng ngoài profile dev (`:127-168` ném `IllegalStateException` khi thiếu `PHOENIXKEY_KNOWME_PEPPER_V1`). **Nhưng nó là ốc-đảo**: `FingerprintRegistryService` chỉ có MỘT nơi dùng trong `src/main/java` — `KnowmeFingerprintController.java:41`, tức chính endpoint phơi ra nó. `/identity/register` không gọi sang, và `register(auth.userDid(), fpHex)` nhận DID **đã tồn tại** làm tham-số ⇒ nó ghi-nhận SAU, không gác TRƯỚC. Bỏ qua bước đó thì vẫn có DID.
+Phía máy-khách: từ `PhoenixKey-Frontend#31` (gộp 2026-09-05) **web không còn hàm nào tính `fp`** — bản có-khoá phía client đã gỡ khỏi `src/lib/sdvc/fingerprint.ts`, còn lại `localCopyDigest` chỉ phát-hiện bản sao cục-bộ. Một nơi tính `fp`, và nơi đó giữ pepper: đúng I-KNOW-14.
 
-⟹ **hôm nay không có gì cưỡng-chế duy-nhất-người**, kể cả ở tầng ứng-dụng. Đây là mặt còn lại của Anchorme B5. Việc gỡ rẻ nhất trong cả nhóm: nối `FingerprintRegistryService.register` vào đường tạo PersonDID và từ-chối khi `CONFLICT_OTHER_OWNER` — mã từ-chối, pepper hỏng-đóng và khoá chính đều đã sẵn, chỉ thiếu dây nối.
+⟹ Việc còn lại **không phải viết mã**, mà là **bật cổng** (`PHOENIXKEY_KNOWME_REQUIRE_DOC_FINGERPRINT=true`) — quyết-định vận-hành, vì bật lên là chặn đăng-ký của người chưa có giấy-tờ trong tay. Số liệu để quyết đang được đo: bộ đếm `phoenixkey.knowme.person_register.total{document_fingerprint=present|absent}` (`PhoenixKey-Database` PR #242) cho biết tỉ-lệ lượt PERSON hiện khai thiếu giấy-tờ. Bật trước khi có số là chặn người dùng thật mà không biết chặn bao nhiêu.
+
+**Đầu việc còn mở, thuộc thiết-kế chứ không thuộc vá lỗi:** lượt khai giấy-tờ hiện **không gắn với bằng-chứng người khai đang cầm giấy-tờ đó** — hệ nhận `(t, F)` do máy-khách gửi. Thiếu ràng-buộc này thì "một giấy-tờ ⟶ một người" tụt xuống thành "một giấy-tờ ⟶ người khai trước", và bảng `fp` là chỉ-thêm-không-xoá. Cần một cơ-chế gắn lượt khai với bằng-chứng cầm giấy-tờ (eKYC / xuất-trình có ký) trước khi bật cổng thành bắt-buộc toàn hệ.
 
 ### Easteregg
 
