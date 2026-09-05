@@ -2,7 +2,7 @@
 
 > **File này là báo-cáo hiện-trạng, KHÔNG phải đặc-tả.** Bộ spec (`*-Vi-Feat/-Math/-Tech/-Exec`) là **kim-chỉ-nam thiết-kế** — mô tả hệ thống ĐÍCH mà các đội dev xây tới. File này ghi *đang ở đâu trên đường tới đó*: cái gì đã chạy, chặn bởi ai, bằng chứng test. Khi hai bên lệch → spec là mục-tiêu, STATUS là thực-tại.
 >
-> **Cập nhật: 2026-09-03.** Mọi số dưới đây đo lại từ đầu trên `main` của từng kho, không kế thừa bản trước. Bản 2026-08-12 có **8/9 hash validator đã lỗi thời** và bốn chỗ mô tả sai chiều — xem §7.
+> **Cập nhật: 2026-09-05.** Mọi số dưới đây đo lại từ đầu trên `main` của từng kho, không kế thừa bản trước. Bản 2026-08-12 có **8/9 hash validator đã lỗi thời** và bốn chỗ mô tả sai chiều — xem §7.
 
 ---
 
@@ -54,7 +54,7 @@ Mã tự khai đúng như vậy — `CardanoService.java:9-13`: *"Cơ chế hi�
 
 `PhoenixKey-Validator/deploy/README.md:23` — bản hash TAAD preprod duy nhất từng được chốt trong `deploy/` tự khai **"ĐÃ CHẾT — đừng deploy"** (lý do: PA2 thêm `uniqueness_bootstrap_seed` vào `ValidatorParams`, và #44 đổi `TAADDatum`). Tức bản đó lỗi thời *trước khi* deploy. Đo lại 2026-09-02: `deploy/plutus-preprod.json` mang hash `taad` `258cf1f4…` trong khi `aiken build` trên `main` cho `d94d77f9…` — hai giá trị khác nhau xác nhận `pop_bind` chưa từng chạy trên chuỗi.
 
-**Công cụ deploy nay đã có, chặn còn lại là tiền** (`PhoenixKey-Validator` #99). Máy dựng không có `cardano-cli`; hai script `.sh` trong `deploy/` chỉ *in ra* lệnh để chép sang máy có khoá. Đường chạy được là ba script Lucid + Blockfrost: `apply_params.ts` (bake tham số, kiểm seed còn chưa chi) → `deploy_refscripts_lucid.ts` (publish ref-script) → `bootstrap_uniqueness_lucid.ts` (đúc 32 shard-thread PA2). Bỏ bước ba thì `taad.mint` nhánh genesis đòi chi một shard-thread chưa tồn tại ⟹ mọi DID genesis fail vĩnh viễn, và one-shot đã tiêu seed nên không đúc bù được. Chi phí đo được: ref-script `taad` ~58 tADA min-UTxO (CBOR 13.300 byte), `lamp_policy` ~2,2 tADA, 32 output thread ~1,2 tADA/cái ⟹ **~110 tADA**. Ví mà kho có khoá (`FOUNDATION_SEED`) giữ **52,79 tADA**.
+**Công cụ deploy nay đã có; "chặn vì thiếu tiền" đã đo lại và SAI** (`PhoenixKey-Validator` #99). Máy dựng CÓ `cardano-cli` 8.17 (đường dẫn nằm trong tệp bí mật của môi trường, không chép vào đây); hai script `.sh` trong `deploy/` chỉ *in ra* lệnh để chép sang máy có khoá. Đường chạy được là ba script Lucid + Blockfrost: `apply_params.ts` (bake tham số, kiểm seed còn chưa chi) → `deploy_refscripts_lucid.ts` (publish ref-script) → `bootstrap_uniqueness_lucid.ts` (đúc 32 shard-thread PA2). Bỏ bước ba thì `taad.mint` nhánh genesis đòi chi một shard-thread chưa tồn tại ⟹ mọi DID genesis fail vĩnh viễn, và one-shot đã tiêu seed nên không đúc bù được. Chi phí đo được: ref-script `taad` ~58 tADA min-UTxO (CBOR 13.300 byte), `lamp_policy` ~2,2 tADA, 32 output thread ~1,2 tADA/cái ⟹ **~110 tADA**. Ví mặc định của script giữ **52,79 tADA** — nhưng đó KHÔNG phải toàn bộ: đo ngày 2026-09-04 qua Blockfrost, tổng số dư testnet mà đội có thể ký **dư nhiều lần** mức ~110 tADA cần cho cả ba bước, trên cả Preprod lẫn Preview. Chặn thật là hai thứ khác: (a) script đọc biến `FOUNDATION_WALLET_SEED` trong khi tệp bí mật đặt tên `FOUNDATION_SEED` — lệch tên, đã vá cho nhận cả hai; (b) `uniqueness_bootstrap_seed` chưa được chọn, mà bước 3 là one-shot không đúc bù được. Nói cách khác: tiền chưa bao giờ là chỗ chặn, và câu "chặn còn lại là tiền" ở bản trước là kết luận rút ra từ MỘT ví.
 
 **Vấn đề không phải v1.0. Vấn đề là ba điều sau.**
 
@@ -99,7 +99,7 @@ Không phải module thứ 9 — là một năng lực cắt ngang Anchorme, d�
 | `GET /identity/{did}/commitment-check` | **có**, đòi Bearer, **6** trạng thái | `MATCH · MISMATCH · NO_COMMITMENT_LEGACY · NO_SALT_UNVERIFIABLE · NOT_ANCHORED · NOT_AN_ASSET` |
 | SDK client | **có**, PR SDK #16 chưa merge (107 test, 0 đỏ) | `verifyAssetCommitment` đối chiếu CHÉO NGÔN NGỮ với hàm Java sản xuất chạy qua `jshell` — cùng chuỗi byte |
 | UI Flutter | `entityType` hard-code `'PERSON'` | `create_identity_screen.dart:261` |
-| Validator phả-hệ `lineage` | **đã dựng + đã tấn công + đã vá**, PR Validator #89 chưa merge | 871 test 0 đỏ; hash `5cff3fc3…`; **9 hash validator cũ giữ nguyên từng byte** |
+| Validator phả-hệ `lineage` | **đã dựng + đã tấn công + đã vá 10 lỗ**, còn 2 mở (xem dưới). #89 đã gộp; hai lỗ mới đang chờ gộp ở Validator #104 | trên `main`: 1.056 test 0 đỏ, hash `dc06264f…`. Trên nhánh #104: 1.066 test 0 đỏ, hash `3630b08d…`, và 25/28 mục blueprint giữ nguyên hash từng byte — chỉ 3 mục `lineage.lineage.{spend,mint,else}` (cùng một script) đổi |
 
 **Hai số quyết định chi phí, đo được:**
 - **min-ADA ≈ 2,36 ADA / DID** — `(388+160)×4310`; 388 byte là CBOR `TxOut` đầy đủ theo CDDL, 4310 là `coinsPerUTxOByte` lấy sống từ Koios mainnet epoch 650.
@@ -107,7 +107,7 @@ Không phải module thứ 9 — là một năng lực cắt ngang Anchorme, d�
 
 🔴 **min-ADA KHÔNG thu hồi được.** `taad_logic.ak:97-98` ép output tiếp diễn mang đúng NFT ở đúng địa chỉ script **vô điều kiện, trước mọi nhánh redeemer**; `TAADRedeemer` (`types.ak:161-277`) **không có Burn**; `Deactivate` (`:310-334`) chỉ đổi `status`. ⇒ 100.000 quả = **236.188 ADA khoá vĩnh viễn**. Cấp TAAD AssetDID cho từng quả là không khả thi — phải phân tầng, quả nằm trong lá Merkle của UTxO lô.
 
-**Phả hệ `lineage` — 8 lỗ do audit + red-team dựng PoC, đã vá TRƯỚC khi deploy** (validator chưa lên chuỗi nên sửa còn miễn phí):
+**Phả hệ `lineage` — 10 lỗ do audit + red-team dựng PoC, đã vá TRƯỚC khi deploy** (validator chưa lên chuỗi nên sửa còn miễn phí). V1–V8 đã trên `main`; V9–V10 đang chờ gộp ở Validator #104:
 
 | | Lỗ | Vá |
 |---|---|---|
@@ -119,6 +119,8 @@ Không phải module thứ 9 — là một năng lực cắt ngang Anchorme, d�
 | V6 🟡 | Trường `did` tự khai ⇒ mạo danh tài sản | Con kế thừa `did` của cha; đặt mới chỉ ở `Genesis` có cổng |
 | V7 🟡 | L-2 chỉ ghim `payment_credential` ⇒ đổi stake credential là biến mất khỏi bên giám sát quét theo địa chỉ | So toàn địa chỉ |
 | V8 🟡 | Trần Merge 20 không bao giờ đạt được | Tách `max_merge_parents = 4` |
+| V9 🔴 | **Không hề có bất biến bảo toàn lovelace.** Chữ `lovelace` xuất hiện 11 lần trong `lineage_logic.ak` và cả 11 đều nằm trong mẫu thử — mã sản xuất không có mệnh đề nào. `Split`/`Merge`/`PromoteLeaf`/`Commit`/`Seal` đếm token và khối lượng đúng rồi để người ký rút min-ADA của ô ra ngoài: token còn, ADA đi mất | `lovelace_conserved` (Σ ra ≥ Σ vào) gắn vào cả 5 nhánh. Miễn có chủ ý ở `Genesis` (không có ô lineage đầu vào) và `Destroy` (đơn vị thôi tồn tại). Giá: `Merge` không còn nhả min-ADA dư ra ngoài — dư đi theo đơn vị đã gộp, về lại lúc `Destroy` |
+| V10 🔴 | **Đường đóng chỉ cần một chữ ký suy được từ seed.** `Seal`/`Destroy` bỏ cổng `Active` (V5) mà chỉ đòi `controller_pkh` — thứ dẫn được từ seed. Khoá đã nghỉ hưu, hoặc khoá cũ trong lúc DID đang khôi phục, vẫn đóng/đốt được đơn vị của bên chứng thực | Thêm `device_policy.device_signed` ⇒ **2-of-2**. Khoá thiết bị ở enclave, không dẫn được từ seed. Mục tiêu V5 giữ nguyên: bỏ liveness ≠ bỏ yếu-tố-2. Kèm theo `attestor_signed_any_status` liệt kê status tường minh nên `Migrated` bị từ chối. ⚠ **Vá NỬA đường** — cổng của `Genesis`/`Split`/`Merge`/`PromoteLeaf`/`Commit` vẫn 1-of-1, xem ranh giới mở #4 và §6 mục 6b. Đừng đọc dòng này thành "đã yên" |
 
 **Trần Merge là trần THỰC THI, không phải trần logic.** Merge chi n UTxO ⇒ ledger chạy validator n+1 lần, mỗi lần lại O(n) ⇒ bậc hai. Đo mem toàn tx, trần 14 M: n=4 → 62,3 % · n=6 → **111,3 % ✗** (hình dạng xấu nhất: 5 output ví × 30 policy). Đại lượng đội chi phí là **số policy** trên một output, không phải số token — `assets.tokens` tra một khoá trong từ điển policy.
 
@@ -129,12 +131,14 @@ Không phải module thứ 9 — là một năng lực cắt ngang Anchorme, d�
 **Ranh giới phải nói với người ngoài:** on-chain chỉ bảo đảm không tạo được khối lượng từ hư không **sau khi đã nhập**. Cái cân nằm ngoài chuỗi; điểm nhập là oracle. Đường tấn công rẻ nhất — thuê một nông dân thật, chở hàng ngoài tới vườn, đăng ký tại gốc — làm mọi cổng đều xanh, và không cơ chế on-chain nào chạm tới.
 
 **Bốn ranh giới còn mở, chưa có cơ chế** (nêu để không ai đọc quá lời):
-1. `lineage` **không có khái niệm chủ sở hữu** — cổng duy nhất là chữ ký bên chứng thực, và `Destroy` không ràng buộc ADA chảy đi đâu ⇒ về kinh tế min-ADA của mọi đơn vị thuộc về bên chứng thực.
+1. `lineage` **không có khái niệm chủ sở hữu** — cổng duy nhất là chữ ký bên chứng thực. Từ V9, năm nhánh giữ đơn vị đã bảo toàn lovelace, nhưng `Destroy` **cố ý** không bảo toàn (đơn vị thôi tồn tại; ép giữ ADA thì không ai đóng được đơn vị) ⇒ về kinh tế, min-ADA của một đơn vị vẫn về tay ai ký được `Destroy` của nó. Thứ chặn kẻ trộm ở cửa đó nay là 2-of-2 (V10), không phải ràng buộc đích của value.
 2. **Merge không mang tỉ phần** — gộp hai lô cùng bên chứng thực, cùng tầng thì con ra là một con số khối lượng duy nhất; mọi hộp con sau đó bit-identical.
 3. **Trần `depth_phys = 8`** — chuỗi nông trại→thửa→cây→lô→quả→phân hạng→đóng gói→thùng→hộp đã ăn hết 8 trước hạ nguồn, chưa trừ đóng gói lại.
-4. **Cổng bên chứng thực là 1-of-1** (`controller_pkh`), trong khi `did_payment`/`did_stake`/`wakeme_vault` đều 2-of-2 qua `auth_logic.anchor_controller_ok`.
+4. **Cổng bên chứng thực mới 2-of-2 ở NỬA đường.** V10 đưa `Seal`/`Destroy` lên 2-of-2, nhưng `attestor_signed` — cổng của `Genesis`/`Split`/`Merge`/`PromoteLeaf`/`Commit` — vẫn là 1-of-1 `controller_pkh` (hàm `attestor_signed` trong `lineage_logic.ak`), trong khi `did_payment`/`did_stake`/`wakeme_vault` đều 2-of-2 qua `auth_logic.anchor_controller_ok`. Hệ quả đo được: người chỉ có seed của bên chứng thực **không** đóng/đốt được đơn vị nữa, nhưng vẫn **dựng** được phả hệ giả dưới danh nghĩa bên đó — tách lô, gắn cam kết Merkle, rút lá. Cùng một lập luận đã dùng cho V10 áp thẳng vào đây; chưa làm vì nó đổi trải nghiệm ký của bên chứng thực (mọi giao dịch chứng thực đều phải chạm khoá enclave), và đó là quyết định thiết kế chứ không phải lỗi cần vá — xem §"Chờ quyết định".
 
-**Chưa dựng tx thật trên Preview** — mọi số ExUnit là aiken tự đánh giá, chỉ báo chứ không phải số ledger thật.
+**Chưa dựng tx thật trên Preview** — mọi số ExUnit là aiken tự đánh giá, chỉ báo chứ không phải số ledger thật. Và biên ngân sách `Split n=20` phải **đo lại** sau khi V9 vào: `lovelace_conserved` thêm hai lượt duyệt danh sách vào cả năm nhánh.
+
+**Bằng chứng cho V9/V10 là phép ĐỘT BIẾN, không phải bảng test xanh.** Tạm gỡ từng bản vá rồi chạy lại: gỡ `lovelace_conserved` ⇒ đỏ đúng 5 bài `{split,merge,promote_leaf,commit,seal}_strips_lovelace_rejected`; gỡ `device_signed` ⇒ đỏ đúng 2 bài `{seal,destroy}_controller_only_rejected`. Không dư bài nào — nghĩa là các bài đó thật sự ghim đúng mệnh đề chúng nêu.
 
 ---
 
@@ -237,13 +241,14 @@ Và `PhoenixKey-Anchorme-Tech.md:355` — schema trả về của resolver chỉ
 
 Những việc dưới đây **không** thiếu người làm — chúng thiếu một lựa chọn được chốt. Liệt kê ở đây để không ai chờ nhầm.
 
-1. **Ngày cho đợt PA-1** — mốc v1.0 → v1.1. Hai việc kỹ thuật đã xong (`TAADDatum` 16 trường; `taad_did.rs` lên đủ 16, `PhoenixKey-Core` #81). Ba việc còn lại đều là quyết định, không phải thiếu người: chọn `uniqueness_bootstrap_seed`, xử hai UTxO Preview còn lại, và cấp tiền cho ví ký Preprod — ví mà kho có khoá (`FOUNDATION_SEED`) giữ 52,79 tADA, đi hết ba bước deploy cần ~110 tADA.
+1. **Ngày cho đợt PA-1** — mốc v1.0 → v1.1. Hai việc kỹ thuật đã xong (`TAADDatum` 16 trường; `taad_did.rs` lên đủ 16, `PhoenixKey-Core` #81). Ba việc còn lại đều là quyết định, không phải thiếu người: chọn `uniqueness_bootstrap_seed` và xử hai UTxO Preview còn lại. Mục "cấp tiền cho ví ký Preprod" **đã gỡ** — đo lại 2026-09-04 cho thấy đội có thừa tADA cho cả ba bước (~110 tADA); tiền chỉ nằm ở ví khác ví mà script trỏ tới. Còn lại đúng một quyết định thật: `uniqueness_bootstrap_seed`, vì bước bootstrap là one-shot — chọn sai thì không đúc bù được.
 2. **Khuôn `did`** — bật `pop-bind-encoder`, và di trú các DID đã cấp theo khuôn cũ thế nào: giữ song song, cấp lại, hay đóng băng (Validator #78).
 2b. **Ai trả min-ADA cho anchor.** Quy tắc đã chốt là *PersonDID không tính phí, không khoá ADA* — đó chính là lý do tầng v1.0 bỏ đường khoá ADA. Nhưng mỗi anchor TAAD là một UTxO, nên nó **phải** khoá min-ADA. Tiền đó lấy lại được (`GenesisBurn` cho phép đốt thuần, `state_nft_logic.ak:35`; burn theo vòng đời do TAAD spend validator gác), nhưng chỉ khi DID chấm dứt — còn suốt đời DID thì nó nằm đó. Chưa ai chốt ví nào ứng khoản này cho hàng triệu PersonDID, và ứng rồi thì thu về theo đường nào.
 3. **Luật đòi lại AssetDID** khi bị đăng ký nhầm/chiếm chỗ (§4a).
 4. **Điều kiện được ghi vào registry giấy-tờ** (§4b).
 5. **FROST hay VSS** cho phân tán seed — hiện có hai nguyên thuỷ song song, phải chọn một trước khi xây tiếp.
 6. **`GenesisChild` có nâng lên 2-of-2 không** — nếu có thì đổi hash, đi cổng THỜI-CHÍNH.
+6b. **`attestor_signed` của `lineage` có nâng lên 2-of-2 không** — cùng loại câu hỏi với mục 6, khác chỗ là nửa kia đã nâng rồi: Validator #104 đưa `Seal`/`Destroy` lên 2-of-2, còn `Genesis`/`Split`/`Merge`/`PromoteLeaf`/`Commit` vẫn 1-of-1. Nâng nốt thì người chỉ có seed của bên chứng thực không dựng được phả hệ giả dưới danh nghĩa bên đó; giá phải trả là **mọi** giao dịch chứng thực đều phải chạm khoá enclave, kể cả lô hàng ngày. Đây là quyết định về trải nghiệm của bên chứng thực, không phải lỗ cần vá — và làm thì đổi hash `lineage` lần nữa, nên nếu làm thì làm **trước** khi lên chuỗi.
 7. **Lượt phân giải hiện tại có tiếp tục trả địa chỉ ví không.** Hôm nay `GET /identifiers/{did}` công khai trả `#cardano-wallet` mang địa chỉ ví thật ⇒ ai biết chuỗi DID là biết ví và toàn bộ lịch sử giao dịch. Đây là hợp đồng công khai đang có bên tích hợp dùng, nên siết nó **không** phải bản vá kỹ thuật: hoặc giữ (và ghi rõ vào tài liệu tích hợp rằng công bố DID = công bố ví), hoặc cho chính chủ tự bật/tắt, hoặc bỏ hẳn khỏi tài liệu công khai và cấp qua đường có xác thực. Lượt phân giải theo mốc quá khứ đã thôi trả (Database PR #214) — phần còn lại chờ chốt.
 8. **Paymaster giữ hay bỏ** — treo từ 2026-08-12; phần "trả hộ phí mạng" của Feecover phụ thuộc câu trả lời.
 
@@ -292,6 +297,9 @@ Ghi lại để không ai dựng lập luận trên nền cũ:
 | 2026-08-30 | Database `99b33e2` | `SessionServiceImpl.java:167-168` gọi `existsByUserDidAndPublicKeyHexAndStatus(did, pubkey, "active")` — ba tham số, **không có vai**. `git grep -l 'key_role\|keyRole' src/main/java` = 2 tệp (`KeyServiceImpl`, `IdentityServiceImpl`), `AuthenticatedUser` chỉ mang DID ⟹ vai `manager`/`viewer` không cưỡng chế ở đâu. Issue #211 |
 | 2026-08-30 | Database `99b33e2` | `W3CDocumentBuilder.java:158-168` publish TAAD pubkey làm `#controller-key`; `IdentityRegisterRequest` javadoc ghi rõ backend không verify quyền sở hữu `taadPublicKeyHex`; `V38__taad_keys_pubkey_index.sql` cố ý **không** UNIQUE; `ResolveByControllerService` ném 404 khi `matches.size() > 1` ⟹ ba quyết định đúng-riêng-lẻ ghép thành đường khoá vĩnh viễn khôi phục của người khác. Issue #213 |
 | 2026-08-30 | Database `43093c7` (nhánh, chưa gộp) | Đăng nhập nhiều thiết bị / nhiều app: vai khoá vào phiên (`key_id`+`key_role`), cưỡng chế tại **một** chỗ `AuthRequiredInterceptor`, ba đường `GET|POST /keys/devices/**`, vai đi theo `app_token` ở `/auth/token/exchange` (không nâng vai). `./mvnw -o test` **875/875**, 0 fail. PR #215 |
+| 2026-09-05 | Validator (nhánh #104) | `lineage`: chữ `lovelace` xuất hiện 11 lần trong `lib/phoenixkey/lineage_logic.ak` và cả 11 nằm trong mẫu thử ⟹ mã sản xuất không có bất biến bảo toàn value nào. Vá bằng `lovelace_conserved` ở 5 nhánh + `device_signed` ở `Seal`/`Destroy`. `aiken check` **1.066/1.066**, exit 0 |
+| 2026-09-05 | Validator (nhánh #104) | Phép **đột biến** (không phải bảng test xanh): gỡ `lovelace_conserved` ⟹ 1.066 → 1.061 pass, đỏ đúng 5 bài `{split,merge,promote_leaf,commit,seal}_strips_lovelace_rejected`. Gỡ `device_signed` ⟹ 1.064 pass, đỏ đúng 2 bài `{seal,destroy}_controller_only_rejected`. Không dư bài nào |
+| 2026-09-05 | Validator (nhánh #104) | `aiken build` trước/sau: 28 mục blueprint, **25 giữ nguyên hash từng byte**; đổi đúng 3 mục cùng một script — `lineage.lineage.{spend,mint,else}`, `dc06264ff17bc5d8f176940b9e4434e7e301e92d51516d7c96ae4b89` → `3630b08d673a169251fe6e78e374bb317561d186aee0bf79136b6659` |
 | 2026-08-30 | Database `43093c7` | Tham số ma trận đi vòng cả bảng quyền — đo bằng MockMvc: `POST /keys/devices;x=1/abc/revoke` được Spring định tuyến vào đúng controller (`200`) trong khi `EndpointRolePolicy.requiredRole()` đọc ra `VIEWER`. `getRequestURI()` giữ `;k=v`, bộ định tuyến thì gỡ — hai cách đọc một chuỗi. Vá bằng hai lớp độc lập (chuẩn hoá đường thô + đối chiếu `BEST_MATCHING_PATTERN_ATTRIBUTE`, lấy mức cao hơn) |
 | 2026-08-30 | Database `43093c7` (Postgres thật) | `AuthorizedKeyReauthorizePostgresTest` **6/6** qua Testcontainers: dựng lại được lỗi trước V48 (thu hồi rồi cấp lại cùng thiết bị → vi phạm `uq_did_pubkey` = HTTP 500), chứng minh V48 cho cấp lại (2 dòng: 1 lịch sử + 1 hiệu lực, `key_id` mới nên token cũ không sống lại), và đo riêng index mới có hiệu lực chứ không ăn theo V27. Lỗi này ở **schema**, không ở Java — mọi test mock repository đều xanh với nó |
 | 2026-08-30 | Database `43093c7` | Kiểm phủ bằng cách gỡ cổng rồi đếm test đỏ: gỡ hai lớp chống tham số ma trận → **5/9** đỏ; gỡ lọc ký tự vô hình trong tên thiết bị → **13/28** đỏ; gỡ chuyển vai sang `app_token` → **4/4** đỏ; gỡ cổng vai ở bước dựng yêu cầu ký → **2/7** đỏ; gỡ tập đóng `intent.type` → **1/7** đỏ |
