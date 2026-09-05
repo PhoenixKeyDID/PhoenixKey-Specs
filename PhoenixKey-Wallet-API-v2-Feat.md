@@ -154,13 +154,27 @@ GET /wallet/standard/{did}
 ```
 - 🔒 **AUTHENTICATED.** Yêu cầu Bearer session và ép `caller_did == path_did` — chỉ trả ví
   của chính caller; DID khác trả **401**. Đây là hiện trạng production từ 2026-08-04
-  (`PhoenixKey-Database#116`, `WalletController.requireSelfDid`), áp cho **cả ba** endpoint
-  đọc ví: `/wallet/{did}/balance`, `/wallet/standard/{did}`, `/wallet/{did}/all`.
+  (`PhoenixKey-Database#116`, `WalletController.requireSelfDid`), áp cho **cả bốn** endpoint
+  đọc ví: `/wallet/{did}/balance`, `/wallet/standard/{did}`, `/wallet/{did}/all`,
+  `/wallet/{did}/utxos`.
+  > `/wallet/{did}/utxos` không nằm trong ba endpoint mà tài liệu này mô tả, nhưng nó gọi
+  > **cùng một cổng** (`WalletController.java:165-169`) và trả danh sách địa chỉ chi được
+  > của DID. Liệt kê ba mà quên nó là để cổng thủng đúng một lối.
   > Địa chỉ Cardano vốn công khai — nhưng thứ nhạy cảm không phải **địa chỉ**, mà là
   > **liên kết DID → địa chỉ → số dư**. Serve công khai là dựng lại đúng oracle liên kết
   > danh tính hàng loạt mà `Wallet#2` được mở ra để đóng: ai đoán được một DID là tra ra
   > toàn bộ `fixed`/`active`/`stake`/custody + số dư ADA/LAMP/CARP. Cần dữ liệu công khai
   > tối thiểu thì **tách endpoint mới**, đừng nới cái này.
+- 🔒 **Cổng này chỉ sống nếu có bài kiểm giữ — và phải là bài ở ĐÚNG hai tầng.**
+  Bài *"không Bearer → 401"* nằm ở tầng **interceptor**; bài *"Bearer hợp lệ nhưng của DID
+  khác → 401"* phải nằm ở tầng **controller**. Chỉ phủ một tầng thì tầng kia gỡ được mà CI
+  vẫn xanh: đo ngày 2026-09-05 trên `PhoenixKey-Database`, gỡ hẳn thân `requireSelfDid`
+  thành no-op vẫn cho **1014 test pass, 0 fail** — mã production đúng, nhưng không có gì
+  giữ nó đúng. Đã đóng ở `PhoenixKey-Database#239`.
+  Bài ở tầng controller phải khẳng định **hai** điều, không phải một: ném `UNAUTHORIZED`,
+  **và** không service nào được gọi. Một cài đặt lọc kết quả *sau* khi đã đọc dữ liệu vẫn
+  trả 401 đúng cho caller, nhưng đã chạm dữ liệu người khác và còn rò qua log, metric,
+  thời gian phản hồi.
 - Số dư = tổng UTxO tại `fixed` **+** `active` (nếu có), qua `getAddressUtxos` mỗi địa chỉ rồi cộng.
 - Chưa register Standard → **404** (phân biệt rõ với "đã register, số dư 0").
 
@@ -197,7 +211,8 @@ GET /wallet/{did}/all
 Quy tắc:
 - 🔒 **AUTHENTICATED — cùng cổng với §2.3.** Bearer session + `caller_did == path_did`;
   DID khác trả **401**. Endpoint này trả *nhiều* thông tin hơn §2.3 (cả hai ví + vault),
-  nên nới nó ra công khai còn nguy hơn.
+  nên nới nó ra công khai còn nguy hơn. Cổng chỉ sống nếu có bài kiểm ở **cả hai tầng** —
+  xem khối 🔒 thứ hai ở §2.3 và T11/T12/T13.
 - **`wallets[]` chỉ chứa ví đã có địa chỉ.** Phoenix luôn có (derive từ DID). Standard chỉ xuất hiện khi đã register (§2). Không register Standard → mảng chỉ có `phoenix`.
 - `phoenix.balances` **KHÔNG** có `magic`. MAGIC nằm ở block `magic` top-level, `source:"vault"`.
 - `magic.available/accrued`: đọc từ vault accounting (MagicLampNetwork SDK). Nếu Phase này chưa nối vault → trả `0` + `source:"vault"` (app hiển thị "—"), **không** trả từ `getBalance`.
@@ -296,8 +311,9 @@ Chạy trên preprod (Blockfrost preprod key). Ghi output thật vào PR.
 | T8 | `/wallet/{did}/balance` (deprecated) | `balanceMagic=0`, `magicAccrued=0`; swagger đánh `deprecated` |
 | T9 | `POST /wallet/magic/claim` | **410 Gone** (hoặc code lỗi rõ); KHÔNG mint token |
 | T10 | Register → Recover (Mode B) → `GET /identity/{did}/pubkey` | **200**, trả HW_Key owner **mới**; DB chỉ còn **1** owner-key active |
-| **T11** | Gọi **cả ba** endpoint đọc ví **không** header `Authorization` | **401** cả ba. Không rò địa chỉ, không rò số dư, không phân biệt được DID có tồn tại hay không |
-| **T12** | Gọi **cả ba** endpoint với Bearer hợp lệ của **DID khác** với `{did}` trên đường dẫn | **401** cả ba (KHÔNG 403, KHÔNG 200 rỗng) — đây là ca chứng minh `caller_did == path_did` còn sống, T11 chỉ chứng minh có cổng |
+| **T11** | Gọi **cả bốn** endpoint đọc ví (kể cả `/wallet/{did}/utxos`) **không** header `Authorization` | **401** cả bốn. Không rò địa chỉ, không rò số dư, không phân biệt được DID có tồn tại hay không. Ca này chặn ở tầng **interceptor** |
+| **T12** | Gọi **cả bốn** endpoint với Bearer hợp lệ của **DID khác** với `{did}` trên đường dẫn | **401** cả bốn (KHÔNG 403, KHÔNG 200 rỗng), **và không service nào được gọi**. Ca này chặn ở tầng **controller** — nó chứng minh `caller_did == path_did` còn sống, T11 chỉ chứng minh có cổng. Vế "không service nào được gọi" là vế đáng giá: cài đặt lọc kết quả *sau* khi đã đọc vẫn trả 401 đúng nhưng đã chạm dữ liệu người khác |
+| **T13** | **Ablation** — gỡ thân `requireSelfDid` thành no-op rồi chạy toàn bộ kho | T12 phải **ĐỎ**. Nếu vẫn xanh thì bảng test này chưa gác gì: đo 2026-09-05 trước khi thêm T12, ablation đó cho 1014 pass / 0 fail |
 
 > **Verify behavior, không chỉ compile:** T7 phải chạy `curl` thật với địa chỉ preprod có CARP
 > sau khi điền policy — 1 lệnh curl xác nhận CARP hiện đúng 1 lần. T10 phải tái hiện recovery thật.
